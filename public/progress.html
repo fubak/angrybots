@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Angry Bots — Live Progress</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        background: #0a0a0f;
+        color: #e8e8f0;
+      }
+      body {
+        margin: 0;
+        padding: 1.5rem 2rem 3rem;
+        max-width: 960px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.25rem;
+      }
+      .meta {
+        color: #888;
+        font-size: 0.85rem;
+        margin-bottom: 1.5rem;
+      }
+      a {
+        color: #6cf;
+      }
+      .pieces {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .piece {
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        background: #12121a;
+      }
+      .piece header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+      }
+      .piece h2 {
+        font-size: 1rem;
+        margin: 0;
+        font-weight: 600;
+      }
+      .status {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        background: #333;
+      }
+      .status.passed {
+        background: #1a4d2e;
+        color: #8f8;
+      }
+      .status.in_progress {
+        background: #4d3a1a;
+        color: #fc8;
+      }
+      .status.queued {
+        background: #222;
+        color: #aaa;
+      }
+      .status.failed {
+        background: #4d1a1a;
+        color: #f88;
+      }
+      .detail {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: #aaa;
+      }
+      .gap {
+        color: #f96;
+      }
+      .log {
+        margin-top: 2rem;
+        font-size: 0.8rem;
+        color: #666;
+        border-top: 1px solid #333;
+        padding-top: 1rem;
+      }
+      .log li {
+        margin: 0.25rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="title">Angry Bots</h1>
+    <p class="meta">
+      <span id="overall"></span> · Wave <span id="wave">1</span> ·
+      Updated <span id="updated">—</span> ·
+      <a id="play-link" href="/">Play game</a>
+    </p>
+    <div class="pieces" id="pieces"></div>
+    <ul class="log" id="log"></ul>
+    <script>
+      async function refresh() {
+        const res = await fetch('/progress.json?' + Date.now());
+        const data = await res.json();
+        document.getElementById('title').textContent = data.title;
+        document.getElementById('overall').textContent = data.overall;
+        document.getElementById('wave').textContent = data.wave;
+        document.getElementById('updated').textContent = new Date(
+          data.updatedAt
+        ).toLocaleString();
+        const play = document.getElementById('play-link');
+        play.href = data.devUrl || '/';
+
+        const container = document.getElementById('pieces');
+        container.innerHTML = '';
+        for (const p of data.pieces) {
+          const el = document.createElement('article');
+          el.className = 'piece';
+          el.innerHTML = `
+            <header>
+              <h2>${p.name}</h2>
+              <span class="status ${p.status}">${p.status.replace('_', ' ')}</span>
+            </header>
+            <div class="detail">
+              Owner: ${p.owner} · Round ${p.round}
+              ${p.criticVerdict ? `<br/>Critic: ${p.criticVerdict}` : ''}
+              ${p.gap ? `<br/><span class="gap">Gap: ${p.gap}</span>` : ''}
+            </div>`;
+          container.appendChild(el);
+        }
+
+        const logEl = document.getElementById('log');
+        logEl.innerHTML = (data.log || [])
+          .slice(-20)
+          .reverse()
+          .map((line) => `<li>${line}</li>`)
+          .join('');
+      }
+      refresh();
+      setInterval(refresh, 2000);
+    </script>
+  </body>
+</html>

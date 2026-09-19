@@ -1,0 +1,12 @@
+- generic [ref=f49e2]:
+  - generic:
+    - generic:
+      - text: "Grok Bots remaining:"
+      - strong: "1"
+    - generic:
+      - text: "Rival pigs:"
+      - strong: "2"
+    - generic:
+      - text: Drag the Grok bot backward on the slingshot ·
+      - link "Progress" [ref=f49e5] [cursor=pointer]:
+        - /url: /progress.html

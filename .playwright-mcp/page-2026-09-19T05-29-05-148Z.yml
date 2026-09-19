@@ -1,0 +1,22 @@
+- generic [ref=f309e2]:
+  - generic:
+    - generic:
+      - generic: Training Yard
+      - generic: Clear all rival pigs in 3 launches
+      - generic:
+        - generic:
+          - generic: Launches
+          - generic:
+            - generic "Launch 1"
+            - generic "Launch 2"
+            - generic "Launch 3"
+          - generic: 3 of 3 left
+        - generic:
+          - generic: Rival pigs
+          - strong: "3"
+          - progressbar
+      - generic: Pull the Grok bot
+      - generic:
+        - text: Drag the Grok bot backward on the slingshot ·
+        - link "Progress" [ref=f309e4] [cursor=pointer]:
+          - /url: /progress.html
