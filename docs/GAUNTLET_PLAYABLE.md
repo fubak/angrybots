@@ -1,3 +1,5 @@
+> Superseded for production completion: read [PRODUCTION_GAUNTLET_PROMPT.md](./PRODUCTION_GAUNTLET_PROMPT.md). The wave-specific rubric below is historical; its PASS labels and anchoring requirements do not satisfy the production gates.
+
 # Gauntlet — fully playable checklist
 
 Use with `docs/GAUNTLET_RUBRIC.md` and `docs/ANGRY_BIRDS_TARGET.md`. A tick **PASS** requires all items below unless noted.

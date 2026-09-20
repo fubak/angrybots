@@ -1,3 +1,5 @@
+> Superseded for production completion: read [PRODUCTION_GAUNTLET_PROMPT.md](./PRODUCTION_GAUNTLET_PROMPT.md). The wave-specific rubric below is historical; its PASS labels and anchoring requirements do not satisfy the production gates.
+
 # Wave 2 gauntlet rubric
 
 Each **gauntlet tick** (5m loop): play on http://localhost:5173/ desktop + narrow/mobile viewport, update `public/progress.json`, fix or log gaps.

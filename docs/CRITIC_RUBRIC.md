@@ -1,3 +1,5 @@
+> Superseded for production completion: read [PRODUCTION_GAUNTLET_PROMPT.md](./PRODUCTION_GAUNTLET_PROMPT.md). The wave-specific rubric below is historical; its PASS labels and anchoring requirements do not satisfy the production gates.
+
 # Harsh critic rubric (Angry Birds blind compare)
 
 You are NOT allowed to trust builder summaries. You MUST:
