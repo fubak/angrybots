@@ -12,8 +12,8 @@
 |------|--------|--------|
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
-| **3** 30 levels / 4 bots | **not started** | 3 benchmark levels (I04 partial) |
-| **4** Production reliability | **in progress** | CI + 28 e2e; strict TS / perf / disposal **unverified** |
+| **3** 30 levels / 4 bots | **started** | 4 bot profiles + queue on slice levels; chapters scaffold |
+| **4** Production reliability | **in progress** | CI + 28 e2e; `strict` TS; perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -70,11 +70,13 @@ Status key: **done** · **partial** · **open** · **unverified**
 | G07 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
 | G04–G06,G08 | open | Sample assets, mix buses; listen **unverified** |
 | H01–H07 | partial | Stars, progress, flow overlay |
-| I01 | partial | Level registry data-driven |
+| I01 | partial | Level registry + `chapters.ts` metadata |
+| I02 | partial | `bots/registry` (4 roles); mass/speed/visual queue; split ability **open** |
 | I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
 | I06 | partial | `docs/LEVEL_SOLUTIONS.md` star paths + e2e refs |
-| I02–I05,I07 | open | 1 bot; 3 levels (benchmark trio playable) |
-| J01–J07 | open/partial | CI K05; Game.ts monolith |
+| I03–I05,I07 | open | 30 levels; tutorials; full ability UX |
+| J01 | partial | `strict: true` in tsconfig |
+| J02–J07 | open/partial | CI K05; Game.ts monolith; perf profile |
 | K01–K06 | partial | Vitest + e2e; no visual regression grid |
 | K07–K10 | unverified | Human AB, phone touch, listening |
 
@@ -82,7 +84,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 20 pass (9 files)
+npm test           → 22 pass (10 files)
 npx playwright test tests/e2e → 28/28 pass (desktop + mobile)
 npm run gauntlet       → PASS (2026-09-20)
 ```
@@ -91,7 +93,7 @@ npm run gauntlet       → PASS (2026-09-20)
 
 1. Gate 1: C03 secondary-touch matrix; remaining A/B scenario tests.
 2. Gate 2: D02 impact/destruction hold; fill `AUDIO_LISTENING_NOTES.md`; E09 manifest.
-3. Gate 3: I02 four bots + level authoring pipeline after slice sign-off.
+3. Gate 3: split-bot impact ability; level authoring pipeline toward 30 levels.
 
 ## Explicitly unverified
 
