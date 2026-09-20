@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `ba5978d`  
+**Commit:** `PENDING`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -48,7 +48,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | A05 | partial | Win/loss **Retry** resets fort + ammo; pause/level-select; win input guard (`lifecycle.spec.ts`) |
 | A06 | partial | HUD via overlay results; `hud.spec.ts` |
 | A07 | partial | Tab hidden → auto pause; e2e visibility + pause-during-flight |
-| B01–B03 | partial | `ContactSystem` + body collide |
+| B01 | partial | `ContactSystem` + pair dedupe; `contact-dedupe.test.ts` |
+| B02–B03 | partial | Impact sign + material pairs |
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
 | B12 | **done** | `validateLevelLayout` on all **30** levels (`levels-registry.test.ts`) |
@@ -82,7 +83,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | G07 | **done** | TNT: `breakBlock` skips explosive; `detonateExplosive` owns mix |
 | G08 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
 | G04–G06,G08 | open | Sample assets, mix buses; listen **unverified** |
-| H01–H06 | partial | Stars, progress, flow overlay |
+| H01 | partial | Next level after win → `low-wall`; `lifecycle.spec.ts` |
+| H02–H06 | partial | Stars, progress, flow overlay |
 | H07 | partial | Escape pause/resume + Enter title start; `keyboard-access.spec.ts` |
 | I01 | partial | Level registry + `chapters.ts` metadata |
 | I02 | partial | 4 roles; dash strike boost; split burst on first hit + audio |
@@ -90,7 +92,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | I06 | partial | Benchmark paths in `LEVEL_SOLUTIONS.md`; full id catalog in `LEVEL_CATALOG.md` + vitest |
 | I07 | partial | `fortDeck` template + `docs/LEVEL_AUTHORING.md` |
 | I03 | **done** | **30** authored levels across training / glassworks / blast |
-| I05 | partial | HUD tips all four bots; `bot-tutorial.spec.ts` (3 levels) |
+| I05 | partial | HUD tips **all four** bots incl. Grok on Training Yard; `bot-tutorial.spec.ts` |
 | J01 | partial | `strict: true` in tsconfig |
 | J04 | partial | Pig dispose vitest; level reload clears entities in `Game.loadLevel` |
 | J05 | partial | `npm run perf:smoke` headless rAF; `docs/PERF_PROFILE.md` — **no phone session** |
@@ -102,9 +104,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 41 pass (20 files)
-npx playwright test tests/e2e → 56 passed, 2 skipped (58 specs; lifecycle retry A05)
-npm run gauntlet       → PASS (2026-09-20; ~10.8m; 58 e2e pass / 2 skip)
+npm test           → 42 pass (21 files)
+npx playwright test tests/e2e → 61 passed, 2 skipped (63 specs; grok tutorial + next level)
+npm run gauntlet       → PASS (2026-09-20; ~13.3m; 61 e2e pass / 2 skip)
 ```
 
 ## Next actions
