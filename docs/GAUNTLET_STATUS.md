@@ -10,10 +10,10 @@
 
 | Gate | State | Notes |
 |------|--------|--------|
-| **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Gate 1 still needs preview/live trajectory compare, Hz/stress matrix |
+| **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
 | **3** 30 levels / 4 bots | **not started** | 3 benchmark levels (I04 partial) |
-| **4** Production reliability | **in progress** | CI + 16 e2e; strict TS / perf / disposal **unverified** |
+| **4** Production reliability | **in progress** | CI + 20 e2e; strict TS / perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -50,7 +50,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
 | B06–B13 | open/partial | No CCD suite; level-layout validator (B12 partial) |
-| C01–C08 | partial | 20-point monotonic `launchCurve.test.ts`; preview/live compare **open** |
+| C01–C08 | partial | Monotonic sweep + `trajectory-preview.test.ts` (Cannon integrator); Hz input **open** |
 | D01 | partial | Portrait center; multi-viewport e2e partial |
 | D02–D05 | open | Camera beats, pan/zoom gestures |
 | E01 | **done** | `docs/ART_SPEC.md` |
@@ -61,7 +61,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | G01–G08 | open | Synth audio only; listening **unverified** |
 | H01–H07 | partial | Stars, progress, flow overlay |
 | I01 | partial | Level registry data-driven |
-| I02–I07 | open | 1 bot; 3 levels |
+| I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
+| I02–I07 | open | 1 bot; 3 levels (benchmark trio playable) |
 | J01–J07 | open/partial | CI K05; Game.ts monolith |
 | K01–K06 | partial | Vitest + e2e; no visual regression grid |
 | K07–K10 | unverified | Human AB, phone touch, listening |
@@ -70,13 +71,13 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass
-npm test           → 10 pass (6 files)
-npx playwright test tests/e2e → 18/18 pass (desktop + mobile)
+npm test           → 15 pass (7 files)
+npx playwright test tests/e2e → 20/20 pass (desktop + mobile)
 ```
 
 ## Next actions
 
-1. Gate 1: trajectory preview vs live comparison test; multi-Hz input sampling.
+1. Gate 1: multi-Hz pointer sampling; preview vs in-game `launchAtRelease` e2e.
 2. Gate 2: E04–E08 character/material pass; G listening notes; D02 camera beats.
 3. Gate 3: I02 four bots + level authoring pipeline after slice sign-off.
 
