@@ -190,4 +190,36 @@ test.describe('lifecycle regressions', () => {
     expect(next.gameState).toBe('ready');
     expect(next.shotsLeft).toBeGreaterThan(0);
   });
+
+  test('winning unlocks next level in level select (H01)', async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Play' }).click();
+
+    for (let i = 0; i < 6; i++) {
+      if ((await snapshot(page)).gameState === 'won') break;
+      await page.evaluate(() => {
+        const g = window.__game!;
+        g.debugPrepareNextFixtureShot?.();
+        g.debugLaunchIntoFort();
+      });
+      await waitForShotSettle(page, 28_000);
+    }
+
+    await expect(
+      page.getByRole('heading', { name: 'Victory!', exact: true })
+    ).toBeVisible({ timeout: 15_000 });
+
+    const save = await page.evaluate(() => {
+      const raw = localStorage.getItem('angrybots-progress-v1');
+      return raw ? JSON.parse(raw) : null;
+    });
+    expect(save.levels['low-wall']?.unlocked).toBe(true);
+
+    await page.getByRole('button', { name: 'Levels' }).click();
+    await expect(
+      page.locator('[data-level="low-wall"]:not([disabled])')
+    ).toBeVisible();
+  });
 });

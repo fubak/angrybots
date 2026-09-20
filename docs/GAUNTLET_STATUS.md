@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `974eee8`  
+**Commit:** `0b84f66`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -83,7 +83,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | G07 | **done** | TNT: `breakBlock` skips explosive; `detonateExplosive` owns mix |
 | G08 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
 | G04–G06,G08 | open | Sample assets, mix buses; listen **unverified** |
-| H01 | partial | Next level after win → `low-wall`; `lifecycle.spec.ts` |
+| H01 | partial | Next level + save unlock + level select; `lifecycle.spec.ts`, `progress-store.test.ts` |
 | H02–H06 | partial | Stars, progress, flow overlay |
 | H07 | partial | Escape pause/resume + Enter title start; `keyboard-access.spec.ts` |
 | I01 | partial | Level registry + `chapters.ts` metadata |
@@ -105,8 +105,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass (2026-09-20)
 npm test           → 43 pass (22 files)
-npx playwright test tests/e2e → 64 passed, 3 skipped (67 specs; A02 exhaustion)
-npm run gauntlet       → PASS (2026-09-20; ~13.3m; 61 e2e pass / 2 skip)
+npx playwright test tests/e2e → 64 passed, 2 skipped (66 specs)
+npm run gauntlet       → PASS (2026-09-20; ~12.8m; 64 e2e pass / 2 skip)
 ```
 
 ## Next actions
