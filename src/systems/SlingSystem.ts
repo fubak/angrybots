@@ -1,34 +1,27 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import {
-  GRAVITY,
   GROUND_CONTACT_Y,
   GROK_BOT_MASS,
   SLING_ANCHOR,
   SLING_AIM_CONE_DEG,
   SLING_GRAB_RADIUS,
-  SLING_LINEAR_DAMPING,
-  SLING_LAUNCH_SPEED_FLOOR,
-  SLING_MIN_LAUNCH_LIFT,
-  SLING_MAX_LAUNCH_SPEED,
   SLING_MAX_PULL,
   SLING_MAX_PULL_DOWN,
   SLING_MIN_EFFECTIVE_PULL,
   SLING_PERCH_OFFSET,
-  SLING_POWER,
-  SLING_POWER_EXPONENT,
   SLING_COIL_HOLD_SEC,
   SLING_SNAP_BOOST,
   SLING_SCREEN_PULL_GAIN,
-  WORLD_BOUNDS,
 } from '../config';
-import { launchSpeedFromPull } from '../sling/launchCurve';
+import { launchImpulseFromEffectivePull } from '../sling/launchImpulse';
+import { PREVIEW_TRAJ_DT, PREVIEW_TRAJ_STEPS, sampleBallisticArc } from '../sling/ballisticArc';
 import { clamp, vec2Len } from '../math';
 
 export type SlingPhase = 'ready' | 'aiming' | 'coiling' | 'flying' | 'settled';
 
-const TRAJ_STEPS = 80;
-const TRAJ_DT = 1 / 45;
+const TRAJ_STEPS = PREVIEW_TRAJ_STEPS;
+const TRAJ_DT = PREVIEW_TRAJ_DT;
 const _v2 = new THREE.Vector2();
 const _v3a = new THREE.Vector3();
 const _v3b = new THREE.Vector3();
@@ -295,32 +288,11 @@ export class SlingSystem {
 
   computeLaunchImpulse(): CANNON.Vec3 {
     const eff = this.effectivePull(_v2);
-    const len = eff.length();
-    if (len < 1e-4) {
-      return new CANNON.Vec3(0, 0, 0);
-    }
-    const t = clamp(len / SLING_MAX_PULL, 0, 1);
-    let speed = launchSpeedFromPull(
-      t,
-      SLING_POWER,
-      SLING_POWER_EXPONENT,
-      SLING_MAX_LAUNCH_SPEED,
-      SLING_LAUNCH_SPEED_FLOOR
+    return launchImpulseFromEffectivePull(
+      eff.x,
+      eff.y,
+      this.releaseSnapMul
     );
-    speed *= this.releaseSnapMul;
-    speed = Math.min(speed, SLING_MAX_LAUNCH_SPEED);
-    let nx = -eff.x / len;
-    let ny = -eff.y / len;
-    if (nx > 0.35 && ny < SLING_MIN_LAUNCH_LIFT && t > 0.15) {
-      const blend = clamp((t - 0.15) / 0.85, 0, 1) * 0.65;
-      const targetNy = SLING_MIN_LAUNCH_LIFT + nx * 0.08;
-      ny = ny * (1 - blend) + targetNy * blend;
-      const nlen = Math.hypot(nx, ny) || 1;
-      nx /= nlen;
-      ny /= nlen;
-    }
-    const m = GROK_BOT_MASS;
-    return new CANNON.Vec3(nx * speed * m, ny * speed * m, 0);
   }
 
   /** Trajectory/HUD — matches base launch (release snap is optional bonus only). */
@@ -422,33 +394,25 @@ export class SlingSystem {
     const lineAttr = this.trajectoryLine.geometry.attributes
       .position as THREE.BufferAttribute;
 
-    let vx = impulse.x / GROK_BOT_MASS;
-    let vy = impulse.y / GROK_BOT_MASS;
-    let x = origin.x;
-    let y = origin.y;
-    const damp = Math.exp(-SLING_LINEAR_DAMPING * TRAJ_DT);
+    const vx0 = impulse.x / GROK_BOT_MASS;
+    const vy0 = impulse.y / GROK_BOT_MASS;
+    const arc = sampleBallisticArc(origin.x, origin.y, vx0, vy0, {
+      dt: TRAJ_DT,
+      steps: TRAJ_STEPS,
+    });
     let visible = 0;
-
-    for (let i = 0; i < TRAJ_STEPS; i++) {
-      vy += GRAVITY * TRAJ_DT;
-      vx *= damp;
-      vy *= damp;
-      x += vx * TRAJ_DT;
-      y += vy * TRAJ_DT;
-      if (y >= GROUND_CONTACT_Y && x >= WORLD_BOUNDS.minX && x <= WORLD_BOUNDS.maxX) {
-        posAttr.setXYZ(visible, x, y, 0.5);
-        outlineAttr.setXYZ(visible, x, y, 0.5);
-        lineAttr.setXYZ(visible, x, y, 0.5);
-        visible++;
-      }
-      if (y < GROUND_CONTACT_Y && vy < 0) break;
-      if (x > WORLD_BOUNDS.maxX + 2) break;
+    for (const p of arc) {
+      posAttr.setXYZ(visible, p.x, p.y, 0.5);
+      outlineAttr.setXYZ(visible, p.x, p.y, 0.5);
+      lineAttr.setXYZ(visible, p.x, p.y, 0.5);
+      visible++;
     }
+    const tailX = arc.length ? arc[arc.length - 1]!.x : origin.x;
 
     for (let i = visible; i < TRAJ_STEPS; i++) {
-      posAttr.setXYZ(i, x, GROUND_CONTACT_Y, -999);
-      outlineAttr.setXYZ(i, x, GROUND_CONTACT_Y, -999);
-      lineAttr.setXYZ(i, x, GROUND_CONTACT_Y, -999);
+      posAttr.setXYZ(i, tailX, GROUND_CONTACT_Y, -999);
+      outlineAttr.setXYZ(i, tailX, GROUND_CONTACT_Y, -999);
+      lineAttr.setXYZ(i, tailX, GROUND_CONTACT_Y, -999);
     }
     posAttr.needsUpdate = true;
     outlineAttr.needsUpdate = true;
