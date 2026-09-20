@@ -41,7 +41,7 @@ test.describe('lifecycle regressions', () => {
 
     await page.getByRole('button', { name: 'Pause' }).click();
     await page.getByRole('button', { name: 'Level select' }).click();
-    await page.getByRole('button', { name: /Training Yard/ }).click();
+    await page.locator('[data-level="training-yard"]').click();
 
     const snap = await page.evaluate(() => window.__game!.debugSnapshot());
     expect(snap.launchedThisShot).toBe(false);

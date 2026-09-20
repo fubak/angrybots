@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `cd19751`  
+**Commit:** (pending — 30-level expansion + level-select scroll)  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -12,7 +12,7 @@
 |------|--------|--------|
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
-| **3** 30 levels / 4 bots | **started** | **14/30** levels; 3 chapters; fortDeck authoring; 4 bot roles |
+| **3** 30 levels / 4 bots | **partial** | **30/30** registry levels; 3 chapters; 4 bot roles; tutorials open (I05) |
 | **4** Production reliability | **in progress** | CI + 28 e2e; `strict` TS; perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
@@ -76,8 +76,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
 | I06 | partial | `docs/LEVEL_SOLUTIONS.md` star paths + e2e refs |
 | I07 | partial | `fortDeck` template + `docs/LEVEL_AUTHORING.md` |
-| I03 | partial | **14** registry levels across 3 chapters (**16** to reach 30) |
-| I05,I07 | open | Tutorials; full ability UX polish |
+| I03 | **done** | **30** authored levels across training / glassworks / blast |
+| I05 | open | Tutorials per bot/mechanic |
 | J01 | partial | `strict: true` in tsconfig |
 | J02–J07 | open/partial | CI K05; Game.ts monolith; perf profile |
 | K01–K06 | partial | Vitest + e2e; no visual regression grid |
@@ -96,7 +96,8 @@ npm run gauntlet       → PASS (2026-09-20)
 
 1. Gate 1: C03 secondary-touch matrix; remaining A/B scenario tests.
 2. Gate 2: D02 impact/destruction hold; fill `AUDIO_LISTENING_NOTES.md`; E09 manifest.
-3. Gate 3: bulk level authoring toward 30; tutorial beats per bot.
+3. Gate 3: tutorial beats per bot (I05); star solutions for extended levels.
+4. Gate 2/4: polish slice, perf/disposal evidence.
 
 ## Explicitly unverified
 

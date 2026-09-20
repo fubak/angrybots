@@ -6,7 +6,7 @@ describe('level registry', () => {
   it('has unique ids and passes layout validation', () => {
     const ids = LEVELS.map((l) => l.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(LEVELS.length).toBe(14);
+    expect(LEVELS.length).toBe(30);
     const errors: string[] = [];
     for (const level of LEVELS) {
       errors.push(...validateLevelLayout(level));

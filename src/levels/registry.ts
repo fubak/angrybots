@@ -4,8 +4,11 @@ import { LEVEL_3 } from './level3';
 import { LEVEL_4 } from './level4';
 import { LEVEL_5 } from './level5';
 import { TRAINING_BATCH } from './trainingBatch';
+import { TRAINING_EXTENDED } from './trainingExtended';
 import { GLASSWORKS_BATCH } from './glassworksBatch';
+import { GLASSWORKS_EXTENDED } from './glassworksExtended';
 import { BLAST_BATCH } from './blastBatch';
+import { BLAST_EXTENDED } from './blastExtended';
 import type { LevelDef } from './types';
 
 export const LEVELS: LevelDef[] = [
@@ -13,10 +16,13 @@ export const LEVELS: LevelDef[] = [
   LEVEL_4,
   LEVEL_5,
   ...TRAINING_BATCH,
+  ...TRAINING_EXTENDED,
   LEVEL_2,
   ...GLASSWORKS_BATCH,
+  ...GLASSWORKS_EXTENDED,
   LEVEL_3,
   ...BLAST_BATCH,
+  ...BLAST_EXTENDED,
 ];
 
 export function levelById(id: string): LevelDef | undefined {
