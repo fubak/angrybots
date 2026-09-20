@@ -4,19 +4,22 @@ import { SIDE_VIEW, WORLD_BOUNDS } from '../config';
 import type { SlingPhase } from './SlingSystem';
 
 const STRUCTURE_FOCUS = new THREE.Vector3(5.35, 2.4, 0);
-const LEVEL_CENTER = new THREE.Vector3(
-  SIDE_VIEW.centerX,
-  SIDE_VIEW.centerY,
-  0
-);
-
 export class CameraRig {
+  private readonly levelCenter = new THREE.Vector3(
+    SIDE_VIEW.centerX,
+    SIDE_VIEW.centerY,
+    0
+  );
   private target = new THREE.Vector3(
-    LEVEL_CENTER.x,
-    LEVEL_CENTER.y,
+    SIDE_VIEW.centerX,
+    SIDE_VIEW.centerY,
     SIDE_VIEW.cameraZ
   );
-  private look = new THREE.Vector3().copy(LEVEL_CENTER);
+  private look = new THREE.Vector3(
+    SIDE_VIEW.centerX,
+    SIDE_VIEW.centerY,
+    0
+  );
   private shake = 0;
   private shakeSeed = 0;
   private zoomPulse = 0;
@@ -26,16 +29,14 @@ export class CameraRig {
   private readonly leadDir = new THREE.Vector3(1, 0, 0);
   private readonly zeroVel = new THREE.Vector3();
   private camera: THREE.Camera;
-  private readonly ortho: THREE.OrthographicCamera | null;
-  private readonly baseFrustum: number;
-
   constructor(camera: THREE.Camera) {
     this.camera = camera;
-    this.ortho =
-      camera instanceof THREE.OrthographicCamera ? camera : null;
-    this.baseFrustum = SIDE_VIEW.frustumHeight;
     camera.position.copy(this.target);
     camera.lookAt(this.look);
+  }
+
+  setFramingCenter(x: number, y: number) {
+    this.levelCenter.set(x, y, 0);
   }
 
   addShake(amount: number) {
@@ -61,8 +62,8 @@ export class CameraRig {
     const speed = vel.length();
     const z = SIDE_VIEW.cameraZ;
 
-    this.desiredPos.set(LEVEL_CENTER.x, LEVEL_CENTER.y, z);
-    this.desiredLook.copy(LEVEL_CENTER);
+    this.desiredPos.set(this.levelCenter.x, this.levelCenter.y, z);
+    this.desiredLook.copy(this.levelCenter);
 
     if (phase === 'flying') {
       const lead = clamp(speed * 0.07, 0, 2);
@@ -109,19 +110,6 @@ export class CameraRig {
 
     this.shake = damp(this.shake, 0, 14, dt);
     this.zoomPulse = damp(this.zoomPulse, 0, 10, dt);
-
-    if (this.ortho) {
-      const aspect =
-        (this.ortho.right - this.ortho.left) /
-        (this.ortho.top - this.ortho.bottom);
-      const h = this.baseFrustum * (1 - this.zoomPulse * 0.04);
-      const w = h * aspect;
-      this.ortho.left = -w / 2;
-      this.ortho.right = w / 2;
-      this.ortho.top = h / 2;
-      this.ortho.bottom = -h / 2;
-      this.ortho.updateProjectionMatrix();
-    }
 
     this.camera.position.set(this.target.x + sx, this.target.y + sy, z);
     this.camera.lookAt(this.look);

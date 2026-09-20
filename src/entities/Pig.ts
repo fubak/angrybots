@@ -122,7 +122,8 @@ export class Pig {
     this.restQuat.copy(this.body.quaternion);
     this.body.velocity.set(0, 0, 0);
     this.body.angularVelocity.set(0, 0, 0);
-    this.body.type = CANNON.Body.STATIC;
+    this.body.type = CANNON.Body.DYNAMIC;
+    this.body.sleep();
   }
 
   wakeFromBotHit() {
@@ -213,8 +214,7 @@ export class Pig {
     if (this.popTime <= 0) {
       this.popActive = false;
       this.popDone = true;
-      this.group.scale.set(0.42, 0.22, 0.42);
-      this.group.rotation.z = 0;
+      this.group.visible = false;
     }
   }
 

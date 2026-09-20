@@ -7,7 +7,7 @@ export const LEVEL_2: LevelDef = {
   subtitle: 'Break the weak glass to drop the roof pig',
   shots: 3,
   starScores: [8000, 14000, 22000],
-  pigs: [[5.2, 3.35]],
+  pigs: [[5.2, 3.78]],
   blocks: [
     { material: 'stone', size: [2.8, 0.4, 0.9], pos: [5.2, 0.38] },
     { material: 'wood', size: [0.45, 2.1, 0.85], pos: [4.1, 1.45] },

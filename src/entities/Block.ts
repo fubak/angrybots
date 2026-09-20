@@ -85,7 +85,8 @@ export class Block {
     this.restQuat.copy(this.body.quaternion);
     this.body.velocity.set(0, 0, 0);
     this.body.angularVelocity.set(0, 0, 0);
-    this.body.type = CANNON.Body.STATIC;
+    this.body.type = CANNON.Body.DYNAMIC;
+    this.body.sleep();
   }
 
   wakeFromBotHit() {

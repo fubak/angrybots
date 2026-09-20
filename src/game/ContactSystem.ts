@@ -29,6 +29,8 @@ export function impactFromContact(contact: CANNON.ContactEquation): number {
 
 /** Min contact severity to unpin a static block/pig hit by moving debris. */
 export const CHAIN_WAKE_IMPULSE = 2.4;
+export const PIG_CRUSH_IMPULSE = 4.8;
+export const PIG_CRUSH_KILL = 7.5;
 
 function wakeAnchoredFromChain(
   block: Block | undefined,
@@ -106,8 +108,19 @@ export function handleCollide(
   }
 
   const pig = pigSelf ?? pigOther;
-  if (pig && botHit && !pig.isAnchored() && impulse > 5.5) {
-    ctx.onPigStrike(pig, impulse);
+  if (pig && !pig.dead) {
+    const blockHit =
+      (pigSelf && blockOther) || (pigOther && blockSelf);
+    if (blockHit && pig.isAnchored() && impulse >= PIG_CRUSH_KILL) {
+      pig.forceWake();
+    }
+    const crush =
+      (botHit && impulse > 5.5) ||
+      (blockHit && impulse >= PIG_CRUSH_IMPULSE) ||
+      (blockHit && !pig.isAnchored() && impulse >= PIG_CRUSH_IMPULSE * 0.85);
+    if (crush && (!pig.isAnchored() || impulse >= PIG_CRUSH_KILL)) {
+      ctx.onPigStrike(pig, impulse);
+    }
   }
 }
 

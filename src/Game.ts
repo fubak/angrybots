@@ -79,6 +79,11 @@ export class Game {
   private overlay: FlowOverlay;
   private contactCtx!: ContactContext;
   private readonly mount: HTMLElement;
+  private pauseSnapshot: {
+    gameState: GameState;
+    slingPhase: import('./systems/SlingSystem').SlingPhase;
+  } | null = null;
+  private lastHudKey = '';
 
   constructor(container: HTMLElement) {
     this.mount = container;
@@ -381,6 +386,13 @@ export class Game {
     this.gameState = 'ready';
     this.sling.resetPull();
     this.sling.phase = 'ready';
+    this.launchedThisShot = false;
+    this.flightTimer = 0;
+    this.settledTimer = 0;
+    this.resolveTimer = 0;
+    this.flightPeakX = -Infinity;
+    this.lastFlightPeakX = null;
+    this.pauseSnapshot = null;
 
     for (const b of def.blocks) {
       const { size, pos, rot } = blockVector(b);
@@ -443,16 +455,26 @@ export class Game {
 
   private pauseGame() {
     if (isTerminal(this.gameState) || this.gameState === 'title') return;
+    if (this.gameState === 'paused') return;
+    this.pauseSnapshot = {
+      gameState: this.gameState,
+      slingPhase: this.sling.phase,
+    };
     this.gameState = 'paused';
-    this.sling.resetPull();
+    const cancelable =
+      this.sling.phase === 'ready' ||
+      this.sling.phase === 'aiming' ||
+      this.sling.phase === 'coiling';
+    if (cancelable) this.sling.resetPull();
     this.overlay.showPaused();
   }
 
   private resumeGame() {
-    if (this.gameState !== 'paused') return;
+    if (this.gameState !== 'paused' || !this.pauseSnapshot) return;
     this.overlay.hide();
-    this.gameState = this.sling.phase === 'flying' ? 'flying' : 'ready';
-    this.sling.phase = this.gameState === 'flying' ? 'flying' : 'ready';
+    this.gameState = this.pauseSnapshot.gameState;
+    this.sling.phase = this.pauseSnapshot.slingPhase;
+    this.pauseSnapshot = null;
   }
 
   private retryLevel() {
@@ -564,6 +586,14 @@ export class Game {
     if (block.dead) {
       this.blocksBroken += 1;
       this.breakBlock(block, hitPos, effectiveImpulse, chainFromBreak);
+      const alive = this.pigs.filter((p) => !p.dead).length;
+      this.pigsCleared = this.pigGoal - alive;
+      this.score = computeScore(
+        this.pigsCleared,
+        this.blocksBroken,
+        this.shotsLeft
+      ).total;
+      this.lastHudKey = '';
     }
   }
 
@@ -718,6 +748,7 @@ export class Game {
       this.shotsLeft
     );
     this.score = breakdown.total;
+    this.lastHudKey = '';
     this.updateHud();
   }
 
@@ -741,6 +772,7 @@ export class Game {
   }
 
   private pinAnchoredStructures() {
+    if (this.structureWarmup <= 0 && this.playerHasShot) return;
     for (const b of this.blocks) b.pinIfAnchored();
     for (const p of this.pigs) p.pinIfAnchored();
   }
@@ -844,6 +876,14 @@ export class Game {
     return html;
   }
 
+  private maybeUpdateHud() {
+    const alive = this.pigs.filter((p) => !p.dead).length;
+    const key = `${this.gameState}|${this.sling.phase}|${this.shotsLeft}|${this.score}|${alive}`;
+    if (key === this.lastHudKey) return;
+    this.lastHudKey = key;
+    this.updateHud();
+  }
+
   private updateHud() {
     const alive = this.pigs.filter((p) => !p.dead).length;
     const phase = this.hudPhaseLabel();
@@ -863,11 +903,14 @@ export class Game {
   }
 
   private onResize() {
-    const { w, h, fh, aspect } = this.viewportMetrics();
-    this.camera.left = (-fh * aspect) / 2;
-    this.camera.right = (fh * aspect) / 2;
-    this.camera.top = fh / 2;
-    this.camera.bottom = -fh / 2;
+    const { w, h, fh, aspect, portrait } = this.viewportMetrics();
+    const centerX = portrait ? -3.85 : SIDE_VIEW.centerX;
+    const centerY = portrait ? 2.05 : SIDE_VIEW.centerY;
+    this.cameraRig.setFramingCenter(centerX, centerY);
+    this.camera.left = centerX - (fh * aspect) / 2;
+    this.camera.right = centerX + (fh * aspect) / 2;
+    this.camera.top = centerY + fh / 2;
+    this.camera.bottom = centerY - fh / 2;
     this.camera.updateProjectionMatrix();
     const dpr = this.effectivePixelRatio();
     this.renderer.setPixelRatio(dpr);
@@ -929,6 +972,7 @@ export class Game {
 
     this.sling.tick(dt);
     this.syncGameStateFromSling();
+    this.maybeUpdateHud();
 
     if (
       !this.overlay.isVisible() &&

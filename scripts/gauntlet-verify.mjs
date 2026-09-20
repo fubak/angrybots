@@ -17,7 +17,7 @@ console.log('=== gauntlet: unit tests ===');
 run('npm', ['test']);
 
 console.log('=== gauntlet: Playwright e2e ===');
-run('npx', ['playwright', 'test', 'tests/e2e/gauntlet.spec.ts'], {
+run('npx', ['playwright', 'test', 'tests/e2e'], {
   ...process.env,
   CI: process.env.CI ?? '1',
 });
