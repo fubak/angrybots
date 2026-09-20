@@ -77,6 +77,18 @@ export async function startPlay(page: Page) {
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
 }
 
+/** D01/D05: sling perch and fort blocks project into the viewport (NDC). */
+export async function assertSlingAndFortFramed(page: Page) {
+  await waitForAimFraming(page);
+  const s = await snapshot(page);
+  expect(s.perchNdc?.x).toBeLessThan(0.12);
+  expect(s.perchNdc?.x).toBeGreaterThan(-0.95);
+  expect(s.perchNdc?.y).toBeGreaterThan(-0.9);
+  expect(s.perchNdc?.y).toBeLessThan(0.9);
+  const fortBlock = s.blocks.find((b) => b.x > 4 && !b.dead);
+  expect(fortBlock).toBeTruthy();
+}
+
 export async function openLevelFromMenu(page: Page, levelName: RegExp | string) {
   await page.getByRole('button', { name: 'Pause' }).click();
   await page.getByRole('button', { name: 'Level select' }).click();

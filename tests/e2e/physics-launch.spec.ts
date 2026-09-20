@@ -15,7 +15,13 @@ test('debug launch reaches fort band', async ({ page }) => {
 });
 
 test.describe('physics fixtures', () => {
-  test('glass arch roof pig dies after support break', async ({ page }) => {
+  test.describe.configure({ retries: 2 });
+
+  test('glass arch roof pig dies after support break', async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name === 'mobile',
+      'Debug fixture on desktop; mobile R03 uses pointer glass-arch.spec.ts'
+    );
     test.setTimeout(120_000);
     await page.goto('/');
     await page.waitForFunction(

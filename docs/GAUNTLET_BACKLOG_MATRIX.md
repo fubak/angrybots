@@ -51,13 +51,13 @@ Status: **verified** · **partial** · **open** · **unverified**
 | F01 | partial |
 | F02 | open |
 | F03 | partial |
-| F04 | partial |
+| F04 | verified |
 | F05 | open |
 | F06 | open |
 | G01 | partial |
 | G02 | partial |
 | G03 | partial |
-| G07 | partial |
+| G07 | verified |
 | G04 | open |
 | G05 | open |
 | G06 | open |

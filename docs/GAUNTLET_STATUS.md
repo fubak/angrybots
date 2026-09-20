@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `9a1484b`  
+**Commit:** `42fb7ea`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -56,7 +56,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
 | C03 | partial | Active pointer ID; secondary touch ignored; `sling-secondary-pointer.spec.ts` |
 | C01–C02,C05–C08 | partial | Monotonic sweep, trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
-| D01 | partial | Portrait center; multi-viewport e2e partial |
+| D01 | partial | Portrait center; `viewports.spec.ts` NDC framing |
+| D05 | partial | Five target sizes in `viewports.spec.ts` (390–1920) |
 | D02 | partial | Reveal + destruction hold + `returnToSlingFraming` after shot |
 | D03–D05 | open | Pan/zoom gestures, bounds polish |
 | E01 | **done** | `docs/ART_SPEC.md` |
@@ -69,9 +70,11 @@ Status key: **done** · **partial** · **open** · **unverified**
 | E07 | partial | Fork posts, yoke, leather pouch torus |
 | E09 | **done** | `docs/ASSET_MANIFEST.md` |
 | F01 | partial | Grok blink/aim; pig `computePigThreat` worry; `pig-threat.test.ts` |
-| F02–F06 | open/partial | Juice material opacity (F04 partial) |
+| F04 | **done** | Per-particle juice materials (burst/dust/spark clone) |
+| F02,F03,F05,F06 | open/partial | Timeline polish, pooling |
 | G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
-| G07 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
+| G07 | **done** | TNT: `breakBlock` skips explosive; `detonateExplosive` owns mix |
+| G08 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
 | G04–G06,G08 | open | Sample assets, mix buses; listen **unverified** |
 | H01–H07 | partial | Stars, progress, flow overlay |
 | I01 | partial | Level registry + `chapters.ts` metadata |
@@ -93,7 +96,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass (2026-09-20)
 npm test           → 31 pass (16 files)
-npx playwright test tests/e2e → 34/34 pass (desktop + mobile)
+npx playwright test tests/e2e → 44/44 pass (desktop + mobile, incl. viewports)
 npm run gauntlet       → PASS (2026-09-20)
 ```
 

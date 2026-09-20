@@ -81,7 +81,7 @@ export class JuiceSystem {
     for (let i = 0; i < dustCount; i++) {
       const mesh = new THREE.Mesh(
         this.dustGeo,
-        this.materialFor(0xccbbaa)
+        this.materialFor(0xccbbaa).clone()
       );
       mesh.position.copy(position);
       mesh.position.x += (Math.random() - 0.5) * 0.4;
@@ -114,7 +114,7 @@ export class JuiceSystem {
       for (let i = 0; i < sparks; i++) {
         const mesh = new THREE.Mesh(
           this.sparkGeo,
-          this.materialFor(0xfff4a8)
+          this.materialFor(0xfff4a8).clone()
         );
         mesh.position.copy(position);
         this.scene.add(mesh);
