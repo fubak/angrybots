@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `1de4393`  
+**Commit:** `TBD`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; F01 pig threat + D02 sling return partial; G notes inventory |
 | **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
-| **4** Production reliability | **in progress** | CI + 48 e2e; disposal vitest; `perf:smoke` + `docs/PERF_PROFILE.md` (device TBD) |
+| **4** Production reliability | **in progress** | CI + 52 e2e; disposal vitest; physics fixture no longer early-resets resolve |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -56,7 +56,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B06–B08,B10–B11,B13 | open | No CCD suite |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
 | C03 | partial | Active pointer ID; secondary touch ignored; `sling-secondary-pointer.spec.ts` |
-| C01–C02,C05–C08 | partial | Monotonic sweep, trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
+| C01 | partial | 20-point monotonic pull in `launchCurve.test.ts` |
+| C02 | partial | Preview vs snap documented in `sling-preview-snap.test.ts` + trajectory parity |
+| C05–C08 | partial | Trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
 | D01 | partial | Portrait center; `viewports.spec.ts` NDC framing |
 | D05 | partial | Five target sizes in `viewports.spec.ts` (390–1920) |
 | D02 | partial | Reveal + destruction hold + `returnToSlingFraming` after shot |
@@ -99,7 +101,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 35 pass (18 files)
+npm test           → 38 pass (19 files)
 npx playwright test tests/e2e → 50 passed, 1 skipped, 1 flaky retry (52 specs @ `501c610`)
 npm run gauntlet       → PASS (2026-09-20; ~10m incl. lifecycle A05/A07)
 ```
