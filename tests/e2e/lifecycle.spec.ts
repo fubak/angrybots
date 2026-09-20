@@ -124,6 +124,7 @@ test.describe('lifecycle regressions', () => {
 
     const mid = await snapshot(page);
     expect(mid.score).toBeGreaterThan(0);
+    expect(mid.bot.mood).toBe('celebrate');
 
     await page.getByRole('button', { name: 'Retry' }).click();
     await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();

@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `0c83b69`  
+**Commit:** `5f2ffed`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm run build` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -83,8 +83,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | F05 | open/partial | Pooling |
 | G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
 | G07 | **done** | TNT: `breakBlock` skips explosive; `detonateExplosive` owns mix |
-| G08 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
-| G04–G06,G08 | open | Sample assets, mix buses; listen **unverified** |
+| G08 | partial | Volume/reduced motion persist; `settings-persist.spec.ts` + `settings-store.test.ts` |
+| G04–G06 | open | Sample assets, mix buses; listen **unverified** |
 | H01 | partial | Next level + save unlock + level select; `lifecycle.spec.ts`, `progress-store.test.ts` |
 | H02–H06 | partial | Stars, progress, flow overlay |
 | H07 | partial | Escape pause/resume + Enter title start; `keyboard-access.spec.ts` |
@@ -109,8 +109,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 npm run typecheck  → pass (2026-09-20)
 npm test           → 49 pass (25 files)
 npm run build      → pass (in CI + gauntlet script)
-npx playwright test tests/e2e → 65 passed, 2 skipped (67 specs)
-npm run gauntlet       → PASS (2026-09-20; ~13.7m; 66 e2e pass / 2 skip)
+npx playwright test tests/e2e → 68 passed, 2 skipped (70 specs)
+npm run gauntlet       → PASS (2026-09-20; ~14.6m incl. build; 66 e2e pass / 2 skip)
 ```
 
 ## Next actions
