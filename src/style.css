@@ -373,6 +373,34 @@ body {
   color: #c8e4ff;
 }
 
+.hud-tutorial {
+  pointer-events: auto;
+  margin: 10px auto 0;
+  max-width: min(92vw, 340px);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(20, 32, 52, 0.92);
+  border: 1px solid rgba(110, 180, 255, 0.35);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.hud-tutorial p {
+  margin: 0 0 8px;
+}
+
+.hud-tutorial-dismiss {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(61, 139, 253, 0.25);
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+}
+
 .hud-hint {
   margin-top: 8px;
   font-size: 11px;

@@ -20,4 +20,9 @@ describe('GameState guards', () => {
     expect(canLaunch('flying')).toBe(true);
     expect(canLaunch('ready')).toBe(false);
   });
+
+  it('blocks aim while resolving or paused', () => {
+    expect(canAim('resolving', 2)).toBe(false);
+    expect(canAim('paused', 2)).toBe(false);
+  });
 });

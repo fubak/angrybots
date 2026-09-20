@@ -33,10 +33,13 @@ import { canAim, isTerminal, type GameState } from './game/GameState';
 import { sceneHasMeaningfulMotion } from './game/SceneQuiescence';
 import { computeScore, starsForScore } from './game/Scoring';
 import {
+  getTutorialsSeen,
   loadProgress,
+  markTutorialSeen,
   recordLevelResult,
   updateSettings,
 } from './game/ProgressStore';
+import { tutorialTipFor } from './bots/tutorialTips';
 import { applyImpulseAtCenter } from './physics/planar';
 import { FlowOverlay } from './ui/FlowOverlay';
 import { botProfile, normalizeBotQueue } from './bots/registry';
@@ -93,6 +96,8 @@ export class Game {
     slingPhase: import('./systems/SlingSystem').SlingPhase;
   } | null = null;
   private lastHudKey = '';
+  /** Active bot tutorial banner (I05). */
+  private tutorialKind: BotKind | null = null;
   private botQueue: BotKind[] = ['grok', 'grok', 'grok'];
   private activeBotKind: BotKind = 'grok';
   private launchedBotKind: BotKind = 'grok';
@@ -428,6 +433,7 @@ export class Game {
     this.lockCastle();
     this.rebindStructureContacts();
     this.resetBotToSlingshot();
+    this.refreshTutorialBanner();
     this.updateHud();
   }
 
@@ -443,6 +449,24 @@ export class Game {
     this.sling.resetPull();
     this.cameraRig.playLevelReveal();
     this.onResize();
+    this.refreshTutorialBanner();
+    this.updateHud();
+  }
+
+  private refreshTutorialBanner() {
+    const kind = this.activeBotKind;
+    if (kind === 'grok' || getTutorialsSeen()[kind]) {
+      this.tutorialKind = null;
+      return;
+    }
+    if (tutorialTipFor(kind)) this.tutorialKind = kind;
+  }
+
+  private dismissTutorial() {
+    if (!this.tutorialKind) return;
+    markTutorialSeen(this.tutorialKind);
+    this.tutorialKind = null;
+    this.lastHudKey = '';
     this.updateHud();
   }
 
@@ -976,6 +1000,13 @@ export class Game {
   private updateHud() {
     const alive = this.pigs.filter((p) => !p.dead).length;
     const phase = this.hudPhaseLabel();
+    const tip =
+      this.tutorialKind && tutorialTipFor(this.tutorialKind)
+        ? `<div class="hud-tutorial" role="status">
+            <p><strong>${botProfile(this.tutorialKind).displayName}:</strong> ${tutorialTipFor(this.tutorialKind)}</p>
+            <button type="button" class="hud-tutorial-dismiss">Got it</button>
+          </div>`
+        : '';
     this.hud.innerHTML = `
       <div class="hud-bar">
         <button type="button" class="hud-icon-btn" id="hud-pause" aria-label="Pause">⏸</button>
@@ -985,9 +1016,13 @@ export class Game {
         <div class="hud-bar-pigs">🐷 ${alive}</div>
       </div>
       <div class="hud-phase-chip">${phase}</div>
+      ${tip}
     `;
     this.hud.querySelector('#hud-pause')?.addEventListener('click', () => {
       if (!isTerminal(this.gameState)) this.pauseGame();
+    });
+    this.hud.querySelector('.hud-tutorial-dismiss')?.addEventListener('click', () => {
+      this.dismissTutorial();
     });
   }
 
@@ -1036,6 +1071,7 @@ export class Game {
     this.launchedThisShot = false;
     this.splitUsedThisShot = false;
     this.gameState = 'ready';
+    this.refreshTutorialBanner();
     this.updateHud();
   }
 
@@ -1122,6 +1158,10 @@ export class Game {
         );
         this.launchedThisShot = true;
         this.playerHasShot = true;
+        if (this.tutorialKind === this.activeBotKind) {
+          markTutorialSeen(this.activeBotKind);
+          this.tutorialKind = null;
+        }
         if (this.shotsLeft > 0) {
           this.shotsLeft -= 1;
           this.shotsConsumed += 1;

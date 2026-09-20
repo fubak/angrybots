@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** (pending — 30-level expansion + level-select scroll)  
+**Commit:** `792779e`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -12,7 +12,7 @@
 |------|--------|--------|
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
-| **3** 30 levels / 4 bots | **partial** | **30/30** registry levels; 3 chapters; 4 bot roles; tutorials open (I05) |
+| **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
 | **4** Production reliability | **in progress** | CI + 28 e2e; `strict` TS; perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
@@ -77,7 +77,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | I06 | partial | `docs/LEVEL_SOLUTIONS.md` star paths + e2e refs |
 | I07 | partial | `fortDeck` template + `docs/LEVEL_AUTHORING.md` |
 | I03 | **done** | **30** authored levels across training / glassworks / blast |
-| I05 | open | Tutorials per bot/mechanic |
+| I05 | partial | HUD tips + save `tutorialsSeen`; `bot-tutorial.spec.ts` |
 | J01 | partial | `strict: true` in tsconfig |
 | J02–J07 | open/partial | CI K05; Game.ts monolith; perf profile |
 | K01–K06 | partial | Vitest + e2e; no visual regression grid |
@@ -87,9 +87,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 23 pass (12 files)
-npx playwright test tests/e2e → 28/28 pass (desktop + mobile)
-npm run gauntlet       → PASS 28/28 (2026-09-20, post 30-level + level-select scroll)
+npm test           → 26 pass (13 files)
+npx playwright test tests/e2e → 30 specs (29 prior + bot-tutorial); re-run gauntlet after commit
 ```
 
 ## Next actions

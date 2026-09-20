@@ -1,3 +1,5 @@
+import type { BotKind } from '../bots/types';
+
 const KEY = 'angrybots-progress-v1';
 
 export type LevelProgress = {
@@ -14,6 +16,8 @@ export type SaveData = {
     sfxVolume: number;
     reducedMotion: boolean;
   };
+  /** Bot ability tutorials dismissed or launched once. */
+  tutorialsSeen?: Partial<Record<BotKind, boolean>>;
 };
 
 function defaultSave(): SaveData {
@@ -42,6 +46,16 @@ export function saveProgress(data: SaveData) {
   } catch {
     /* quota / private mode */
   }
+}
+
+export function getTutorialsSeen(): Partial<Record<BotKind, boolean>> {
+  return loadProgress().tutorialsSeen ?? {};
+}
+
+export function markTutorialSeen(kind: BotKind) {
+  const data = loadProgress();
+  data.tutorialsSeen = { ...data.tutorialsSeen, [kind]: true };
+  saveProgress(data);
 }
 
 export function updateSettings(partial: Partial<SaveData['settings']>) {
