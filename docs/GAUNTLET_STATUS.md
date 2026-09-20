@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `bb15ae7`  
+**Commit:** `9a1484b`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -11,7 +11,7 @@
 | Gate | State | Notes |
 |------|--------|--------|
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
-| **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
+| **2** Three-level quality slice | **started** | E01–E02 done; F01 pig threat + D02 sling return partial; G notes inventory |
 | **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
 | **4** Production reliability | **in progress** | CI + 30 e2e; disposal vitest; `perf:smoke` + `docs/PERF_PROFILE.md` (device TBD) |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
@@ -35,12 +35,14 @@
 
 ## Backlog snapshot (A01–K10)
 
+Full **87-row** matrix: `docs/GAUNTLET_BACKLOG_MATRIX.md`.
+
 Status key: **done** · **partial** · **open** · **unverified**
 
 | ID | Status | Notes / evidence |
 |----|--------|------------------|
 | A01 | partial | Explicit `GameState` + sling phases; not fully isolated from render |
-| A02 | partial | Shot consumption in sling; e2e ammo checks |
+| A02 | partial | Shot consumption in sling; `ammunition.test.ts` + debug launch shot delta e2e |
 | A03 | partial | `resolving` + quiescence; debris no longer blocks win |
 | A04 | partial | Win after pig clear; chain win path e2e on Training Yard |
 | A05 | partial | Retry/next/menu/pause; e2e lifecycle |
@@ -55,7 +57,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | C03 | partial | Active pointer ID; secondary touch ignored; `sling-secondary-pointer.spec.ts` |
 | C01–C02,C05–C08 | partial | Monotonic sweep, trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
 | D01 | partial | Portrait center; multi-viewport e2e partial |
-| D02 | partial | Level reveal + resolving destruction hold on fort; flight follow |
+| D02 | partial | Reveal + destruction hold + `returnToSlingFraming` after shot |
 | D03–D05 | open | Pan/zoom gestures, bounds polish |
 | E01 | **done** | `docs/ART_SPEC.md` |
 | E02 | **done** | `groundCrossSection.ts` |
@@ -66,7 +68,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | E08 | partial | Brighter hemi/sun/fill + exposure 1.12 |
 | E07 | partial | Fork posts, yoke, leather pouch torus |
 | E09 | **done** | `docs/ASSET_MANIFEST.md` |
-| F01–F06 | open | Juice burst clones material (F04 partial) |
+| F01 | partial | Grok blink/aim; pig `computePigThreat` worry; `pig-threat.test.ts` |
+| F02–F06 | open/partial | Juice material opacity (F04 partial) |
 | G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
 | G07 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
 | G04–G06,G08 | open | Sample assets, mix buses; listen **unverified** |
@@ -77,7 +80,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | I06 | partial | Benchmark trio + dash-lane / glass-columns / tnt-duo in `LEVEL_SOLUTIONS.md` |
 | I07 | partial | `fortDeck` template + `docs/LEVEL_AUTHORING.md` |
 | I03 | **done** | **30** authored levels across training / glassworks / blast |
-| I05 | partial | HUD tips + save `tutorialsSeen`; `bot-tutorial.spec.ts` |
+| I05 | partial | HUD tips all four bots; `bot-tutorial.spec.ts` (3 levels) |
 | J01 | partial | `strict: true` in tsconfig |
 | J04 | partial | Pig dispose vitest; level reload clears entities in `Game.loadLevel` |
 | J05 | partial | `npm run perf:smoke` headless rAF; `docs/PERF_PROFILE.md` — **no phone session** |
@@ -89,8 +92,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 27 pass (14 files)
-npx playwright test tests/e2e → 30/30 pass (desktop + mobile)
+npm test           → 31 pass (16 files)
+npx playwright test tests/e2e → 36/36 pass (desktop + mobile)
 npm run gauntlet       → PASS (2026-09-20, physics fixture stable)
 ```
 

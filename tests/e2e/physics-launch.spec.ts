@@ -69,4 +69,5 @@ test.describe('physics fixtures', () => {
       await page.evaluate(() => window.__game!.debugSnapshot().pigsAlive)
     ).toBe(0);
   });
+
 });

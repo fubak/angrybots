@@ -26,6 +26,8 @@ export class CameraRig {
   /** 0 → 1 level reveal pan from fort to sling framing. */
   private reveal = 1;
   private reducedMotion = false;
+  /** Brief faster pan back to sling after a shot resolves (D02). */
+  private slingReturnBoost = 0;
   private readonly desiredPos = new THREE.Vector3();
   private readonly desiredLook = new THREE.Vector3();
   private readonly frameCenter = new THREE.Vector3();
@@ -54,6 +56,11 @@ export class CameraRig {
 
   isRevealComplete() {
     return this.reveal >= 1;
+  }
+
+  returnToSlingFraming() {
+    if (this.reducedMotion) return;
+    this.slingReturnBoost = 1;
   }
 
   addShake(amount: number) {
@@ -128,8 +135,17 @@ export class CameraRig {
 
     const lockAimCam =
       (phase === 'aiming' || phase === 'coiling') && slingDragging;
-    const posLambda = lockAimCam ? 48 : phase === 'flying' ? 5 : 3.5;
-    const lookLambda = lockAimCam ? 48 : phase === 'flying' ? 5.5 : 4;
+    let posLambda = lockAimCam ? 48 : phase === 'flying' ? 5 : 3.5;
+    let lookLambda = lockAimCam ? 48 : phase === 'flying' ? 5.5 : 4;
+    if (
+      this.slingReturnBoost > 0.02 &&
+      (phase === 'ready' || phase === 'aiming' || phase === 'coiling')
+    ) {
+      const boost = 1 + this.slingReturnBoost * 2.2;
+      posLambda *= boost;
+      lookLambda *= boost;
+    }
+    this.slingReturnBoost = damp(this.slingReturnBoost, 0, 2.8, dt);
 
     this.target.x = damp(this.target.x, this.desiredPos.x, posLambda, dt);
     this.target.y = damp(this.target.y, this.desiredPos.y, posLambda, dt);

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import type { MaterialRegistry } from '../physics/materials';
 import { enforcePlanarMotion } from '../physics/planar';
-import { clamp } from '../math';
+import { clamp, damp } from '../math';
 
 export class Pig {
   readonly group = new THREE.Group();
@@ -114,12 +114,13 @@ export class Pig {
       this.group.add(eyeWhite);
     }
 
-    const brow = new THREE.Mesh(
+    this.brow = new THREE.Mesh(
       new THREE.BoxGeometry(0.36, 0.05, 0.04),
       new THREE.MeshStandardMaterial({ color: 0x4a9a3a })
     );
-    brow.position.set(0, 0.32, r * 0.68);
-    this.group.add(brow);
+    this.browRestY = 0.32;
+    this.brow.position.set(0, this.browRestY, r * 0.68);
+    this.group.add(this.brow);
 
     scene.add(this.group);
   }
@@ -160,6 +161,9 @@ export class Pig {
   }
 
   private bodyRemovalQueued = false;
+  private readonly brow: THREE.Mesh;
+  private worry = 0;
+  private readonly browRestY: number;
 
   beginDefeatPop() {
     if (this.dead) return;
@@ -224,6 +228,14 @@ export class Pig {
       this.popDone = true;
       this.group.visible = false;
     }
+  }
+
+  updateIdleThreat(dt: number, threat01: number) {
+    if (this.dead || this.popActive) return;
+    this.worry = damp(this.worry, threat01, 10, dt);
+    const squash = 1 + this.worry * 0.05;
+    this.group.scale.set(1, squash, 1);
+    this.brow.position.y = this.browRestY - this.worry * 0.06;
   }
 
   sync() {

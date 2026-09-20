@@ -31,6 +31,7 @@ import {
 } from './game/ContactSystem';
 import { canAim, isTerminal, type GameState } from './game/GameState';
 import { sceneHasMeaningfulMotion } from './game/SceneQuiescence';
+import { computePigThreat } from './game/pigThreat';
 import { computeScore, starsForScore } from './game/Scoring';
 import {
   getTutorialsSeen,
@@ -1071,6 +1072,7 @@ export class Game {
     this.launchedThisShot = false;
     this.splitUsedThisShot = false;
     this.gameState = 'ready';
+    this.cameraRig.returnToSlingFraming();
     this.refreshTutorialBanner();
     this.updateHud();
   }
@@ -1201,9 +1203,31 @@ export class Game {
     this.sling.updateTrajectory(botPos, this.sling.previewLaunchImpulse());
 
     for (const b of this.blocks) b.sync(dt);
+    const botFlying = this.sling.phase === 'flying' && this.launchedThisShot;
+    const bx = this.bot.body.position.x;
+    const by = this.bot.body.position.y;
+    const bvx = this.bot.body.velocity.x;
+    const bvy = this.bot.body.velocity.y;
     for (const p of this.pigs) {
       if (p.isPopping()) p.updateDefeatPop(dt);
-      else p.sync();
+      else {
+        if (botFlying && !p.dead) {
+          p.updateIdleThreat(
+            dt,
+            computePigThreat(
+              bx,
+              by,
+              bvx,
+              bvy,
+              p.body.position.x,
+              p.body.position.y
+            )
+          );
+        } else {
+          p.updateIdleThreat(dt, 0);
+        }
+        p.sync();
+      }
     }
 
     if (this.sling.phase === 'flying' && this.launchedThisShot) {
