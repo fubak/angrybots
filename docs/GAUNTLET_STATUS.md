@@ -63,8 +63,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | C05–C08 | partial | Trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
 | D01 | partial | Portrait center; `viewports.spec.ts` NDC framing |
 | D05 | partial | Five target sizes in `viewports.spec.ts` (390–1920) |
-| D02 | partial | Reveal + destruction hold + `returnToSlingFraming` after shot |
-| D04 | partial | Deliberate pan/zoom without launch; inspect reset on level load / sling return |
+| D02 | partial | Reveal + destruction hold + `returnToSlingFraming`; e2e inspect reset after shot |
+| D04 | partial | Pan/wheel e2e; inspect clears on shot resolve / round end (`camera-inspect.spec.ts`) |
 | D03,D05 | open | Bounds polish |
 | E01 | **done** | `docs/ART_SPEC.md` |
 | E02 | **done** | `groundCrossSection.ts` |

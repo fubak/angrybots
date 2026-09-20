@@ -36,4 +36,27 @@ describe('ballistic integration step rates', () => {
       0.2
     );
   });
+
+  it('stays near 60 Hz after a single-frame stall (2× dt then catch-up)', () => {
+    const impulse = launchImpulseFromEffectivePull(pull.x, pull.y, 1);
+    const vx = impulse.x / GROK_BOT_MASS;
+    const vy = impulse.y / GROK_BOT_MASS;
+    const dt60 = 1 / 60;
+
+    const ref = integrateProjectileHistory(origin.x, origin.y, vx, vy, {
+      dt: dt60,
+      steps: 36,
+    });
+
+    const stall = integrateProjectileHistory(origin.x, origin.y, vx, vy, {
+      dt: dt60 * 2,
+      steps: 18,
+    });
+
+    const refEnd = ref[36]!;
+    const stallEnd = stall[18]!;
+    expect(
+      Math.hypot(stallEnd.x - refEnd.x, stallEnd.y - refEnd.y)
+    ).toBeLessThan(0.55);
+  });
 });

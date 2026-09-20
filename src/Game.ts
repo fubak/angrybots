@@ -690,6 +690,7 @@ export class Game {
   }
 
   private finishRound(won: boolean) {
+    this.cameraRig.resetInspect();
     this.gameState = won ? 'won' : 'lost';
     const alive = this.pigs.filter((p) => !p.dead).length;
     this.pigsCleared = this.pigGoal - alive;
@@ -1199,6 +1200,7 @@ export class Game {
       this.sling.phase = 'ready';
       this.sling.resetPull();
       this.gameState = 'ready';
+      this.cameraRig.returnToSlingFraming();
     }
   }
 
@@ -1476,6 +1478,7 @@ export class Game {
     if (this.sling.phase === 'settled' && this.gameState !== 'resolving') {
       this.sling.phase = 'ready';
       this.gameState = 'ready';
+      this.cameraRig.returnToSlingFraming();
     }
   }
 
