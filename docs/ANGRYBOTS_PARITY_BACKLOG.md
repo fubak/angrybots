@@ -152,7 +152,7 @@ Acceptance: A first-time player can start, learn, win/lose, retry, advance, quit
 ## I. Bot abilities and level design — P1/P2
 
 - [ ] I01: Make level geometry, bot queue, target variants, theme, camera bounds, scoring thresholds, and unlock requirements data-driven.
-- [ ] I02: Build four distinct bot roles as a proposed release baseline: standard impact, dash/piercing, split/multiple projectiles, and explosive/heavy. Give abilities clear timing, feedback, and limits. *(partial: registry + mass/speed/visual queue on slice; split projectile **open**)*
+- [ ] I02: Build four distinct bot roles as a proposed release baseline: standard impact, dash/piercing, split/multiple projectiles, and explosive/heavy. Give abilities clear timing, feedback, and limits. *(partial: dash strike boost; split diverging burst on first hit; heavy/grok baseline; no mid-air tap split yet)*
 - [ ] I03: Separate launch, camera, and ability gestures. Ability activation is available only at valid times and exactly once where appropriate. Add trajectory/physics tests for spawned projectiles.
 - [ ] I04: Author three benchmark levels first: precise support removal, material/ability choice, and multi-stage chain reaction. Include at least two viable strategies in representative advanced levels.
 - [ ] I05: Expand to the proposed 30-level/three-chapter release after slice acceptance. Introduce concepts gradually, combine them deliberately, and vary silhouettes, terrain, range, elevation, and target protection.

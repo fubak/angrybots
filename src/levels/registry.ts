@@ -3,14 +3,20 @@ import { LEVEL_2 } from './level2';
 import { LEVEL_3 } from './level3';
 import { LEVEL_4 } from './level4';
 import { LEVEL_5 } from './level5';
+import { TRAINING_BATCH } from './trainingBatch';
+import { GLASSWORKS_BATCH } from './glassworksBatch';
+import { BLAST_BATCH } from './blastBatch';
 import type { LevelDef } from './types';
 
 export const LEVELS: LevelDef[] = [
   LEVEL_1,
   LEVEL_4,
   LEVEL_5,
+  ...TRAINING_BATCH,
   LEVEL_2,
+  ...GLASSWORKS_BATCH,
   LEVEL_3,
+  ...BLAST_BATCH,
 ];
 
 export function levelById(id: string): LevelDef | undefined {

@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `1e28263`  
+**Commit:** `cd19751`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -12,7 +12,7 @@
 |------|--------|--------|
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
-| **3** 30 levels / 4 bots | **started** | 5 levels; split/dash abilities; `validateLayout`; 30 **open** |
+| **3** 30 levels / 4 bots | **started** | **14/30** levels; 3 chapters; fortDeck authoring; 4 bot roles |
 | **4** Production reliability | **in progress** | CI + 28 e2e; `strict` TS; perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
@@ -75,7 +75,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | I02 | partial | 4 roles; dash strike boost; split burst on first hit + audio |
 | I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
 | I06 | partial | `docs/LEVEL_SOLUTIONS.md` star paths + e2e refs |
-| I03 | partial | 5 authored levels (`low-wall`, `twin-posts` in training chapter) |
+| I07 | partial | `fortDeck` template + `docs/LEVEL_AUTHORING.md` |
+| I03 | partial | **14** registry levels across 3 chapters (**16** to reach 30) |
 | I05,I07 | open | Tutorials; full ability UX polish |
 | J01 | partial | `strict: true` in tsconfig |
 | J02–J07 | open/partial | CI K05; Game.ts monolith; perf profile |
@@ -86,7 +87,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 22 pass (11 files)
+npm test           → 23 pass (12 files)
 npx playwright test tests/e2e → 28/28 pass (desktop + mobile)
 npm run gauntlet       → PASS (2026-09-20)
 ```
