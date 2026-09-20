@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `42fb7ea`  
+**Commit:** `6b081b7`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -52,7 +52,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
 | B12 | **done** | `validateLevelLayout` on all **30** levels (`levels-registry.test.ts`) |
-| B06–B11,B13 | open | No CCD suite |
+| B09 | partial | Material thresholds in `config`; `material-damage.test.ts` |
+| B06–B08,B10–B11,B13 | open | No CCD suite |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
 | C03 | partial | Active pointer ID; secondary touch ignored; `sling-secondary-pointer.spec.ts` |
 | C01–C02,C05–C08 | partial | Monotonic sweep, trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
@@ -71,7 +72,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | E09 | **done** | `docs/ASSET_MANIFEST.md` |
 | F01 | partial | Grok blink/aim; pig `computePigThreat` worry; `pig-threat.test.ts` |
 | F04 | **done** | Per-particle juice materials (burst/dust/spark clone) |
-| F02,F03,F05,F06 | open/partial | Timeline polish, pooling |
+| F06 | partial | HUD score pop animation on increases |
+| F02,F03,F05 | open/partial | Timeline polish, pooling |
 | G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
 | G07 | **done** | TNT: `breakBlock` skips explosive; `detonateExplosive` owns mix |
 | G08 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
@@ -95,7 +97,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 31 pass (16 files)
+npm test           → 34 pass (17 files)
 npx playwright test tests/e2e → 44/44 pass (desktop + mobile, incl. viewports)
 npm run gauntlet       → PASS (44 e2e; 1 skipped mobile physics fixture)
 ```

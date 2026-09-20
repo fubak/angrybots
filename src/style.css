@@ -69,6 +69,23 @@ body {
   opacity: 0.9;
 }
 
+@keyframes score-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.14);
+    color: #ffe566;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.hud-bar-score.score-pop {
+  animation: score-pop 0.38s ease-out;
+}
+
 .hud-bar-pigs {
   font-size: 13px;
 }

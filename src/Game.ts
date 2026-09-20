@@ -97,6 +97,7 @@ export class Game {
     slingPhase: import('./systems/SlingSystem').SlingPhase;
   } | null = null;
   private lastHudKey = '';
+  private lastScoreShown = 0;
   /** Active bot tutorial banner (I05). */
   private tutorialKind: BotKind | null = null;
   private botQueue: BotKind[] = ['grok', 'grok', 'grok'];
@@ -394,6 +395,7 @@ export class Game {
     this.shotsConsumed = 0;
     this.pigGoal = def.pigs.length;
     this.score = 0;
+    this.lastScoreShown = 0;
     this.blocksBroken = 0;
     this.pigsCleared = 0;
     this.playerHasShot = false;
@@ -1012,7 +1014,7 @@ export class Game {
       <div class="hud-bar">
         <button type="button" class="hud-icon-btn" id="hud-pause" aria-label="Pause">⏸</button>
         <div class="hud-bar-title">${this.levelDef.name}</div>
-        <div class="hud-bar-score">${this.score.toLocaleString()}</div>
+        <div class="hud-bar-score${this.score > this.lastScoreShown && this.lastScoreShown > 0 ? ' score-pop' : ''}">${this.score.toLocaleString()}</div>
         <div class="shot-row compact">${this.renderShotPips()}</div>
         <div class="hud-bar-pigs">🐷 ${alive}</div>
       </div>
@@ -1025,6 +1027,7 @@ export class Game {
     this.hud.querySelector('.hud-tutorial-dismiss')?.addEventListener('click', () => {
       this.dismissTutorial();
     });
+    this.lastScoreShown = this.score;
   }
 
   private onResize() {
@@ -1354,8 +1357,28 @@ export class Game {
   /** Physics e2e only — aimable state between debug impulse shots. */
   debugPrepareNextFixtureShot(): boolean {
     this.debugEnsurePlayable();
-    if (this.pigs.every((p) => p.dead)) return true;
+    const pigsAlive = this.pigs.filter((p) => !p.dead).length;
+    if (pigsAlive === 0) return true;
     if (this.shotsLeft <= 0) return false;
+
+    if (this.sling.phase === 'flying' && this.flightTimer > 3.2) {
+      this.lastFlightPeakX = this.flightPeakX;
+      this.launchedThisShot = false;
+      this.sling.phase = 'settled';
+      this.gameState = 'resolving';
+      this.flightTimer = 0;
+      this.settledTimer = 0;
+    }
+    if (
+      pigsAlive > 0 &&
+      this.shotsLeft > 0 &&
+      (this.gameState === 'resolving' || this.sling.phase === 'settled')
+    ) {
+      this.resolveTimer = 0;
+      this.resetShot();
+    }
+
+    this.debugEnsurePlayable();
     if (this.sling.phase === 'flying') return false;
     return (
       this.sling.phase === 'ready' ||
