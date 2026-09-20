@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
 | **3** 30 levels / 4 bots | **not started** | 3 benchmark levels (I04 partial) |
-| **4** Production reliability | **in progress** | CI + 22 e2e; strict TS / perf / disposal **unverified** |
+| **4** Production reliability | **in progress** | CI + 24 e2e; strict TS / perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -50,7 +50,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
 | B06–B13 | open/partial | No CCD suite; level-layout validator (B12 partial) |
-| C01–C08 | partial | Monotonic sweep, Cannon trajectory, `launch-preview.spec.ts` (pointer preview vs release); Hz input **open** |
+| C04 | **done** | `cancelDrag` on `pointercancel`; `tests/e2e/sling-cancel.spec.ts` (desktop + mobile) |
+| C01–C03,C05–C08 | partial | Monotonic sweep, Cannon trajectory, `launch-preview.spec.ts`; `pointerTiming.ts` + Hz unit tests (C08); pouch/cancel-near-perch (C03/C04 partial) |
 | D01 | partial | Portrait center; multi-viewport e2e partial |
 | D02–D05 | open | Camera beats, pan/zoom gestures |
 | E01 | **done** | `docs/ART_SPEC.md` |
@@ -71,14 +72,14 @@ Status key: **done** · **partial** · **open** · **unverified**
 ## Latest verification
 
 ```
-npm run typecheck  → pass
-npm test           → 18 pass (8 files)
-npx playwright test tests/e2e → 22/22 pass (desktop + mobile)
+npm run typecheck  → pass (2026-09-20)
+npm test           → 20 pass (9 files)
+npx playwright test tests/e2e → 24/24 pass (desktop + mobile)
 ```
 
 ## Next actions
 
-1. Gate 1: multi-Hz pointer sampling (C08); remaining A/B scenario matrix.
+1. Gate 1: cancel-near-perch (C04 remainder); C03 pointer capture matrix; remaining A/B scenario matrix.
 2. Gate 2: E04–E08 character/material pass; G listening notes; D02 camera beats.
 3. Gate 3: I02 four bots + level authoring pipeline after slice sign-off.
 

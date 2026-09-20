@@ -16,6 +16,7 @@ import {
 } from '../config';
 import { launchImpulseFromEffectivePull } from '../sling/launchImpulse';
 import { PREVIEW_TRAJ_DT, PREVIEW_TRAJ_STEPS, sampleBallisticArc } from '../sling/ballisticArc';
+import { pointerDeltaSeconds } from '../sling/pointerTiming';
 import { clamp, vec2Len } from '../math';
 
 export type SlingPhase = 'ready' | 'aiming' | 'coiling' | 'flying' | 'settled';
@@ -62,6 +63,7 @@ export class SlingSystem {
   private activePointerId: number | null = null;
   private peakScreenNdcMag = 0;
   private lastPointerDt = 1 / 60;
+  private lastPointerMoveMs = 0;
 
   /** Peak NDC drag magnitude this aim (screen pulls only). */
   get screenDragPeakNdc() {
@@ -201,6 +203,7 @@ export class SlingSystem {
         this.dragStartEff.copy(this.effectivePull());
         this.peakScreenNdcMag = 0;
         canvas.setPointerCapture(e.pointerId);
+        this.lastPointerMoveMs = e.timeStamp || performance.now();
         this.applyPointerPullFromHit(hit.x, hit.y, 0);
       }
       },
@@ -218,7 +221,9 @@ export class SlingSystem {
       )
         return;
       if (e.pointerType === 'touch') e.preventDefault();
-      this.lastPointerDt = Math.min(Math.max(e.timeStamp ? 0.001 : 1 / 60, 1 / 120), 0.05);
+      const nowMs = e.timeStamp || performance.now();
+      this.lastPointerDt = pointerDeltaSeconds(this.lastPointerMoveMs, nowMs);
+      this.lastPointerMoveMs = nowMs;
       const hit = this.pointerOnPlane(e, canvas);
       if (!hit) return;
       if (this.pullFromScreen) {
@@ -441,6 +446,7 @@ export class SlingSystem {
     this.pullFromScreen = false;
     this.pullVelocity = 0;
     this.lastPullLen = 0;
+    this.lastPointerMoveMs = 0;
     this.coilTimer = 0;
     this.bandRecoil = 0;
     this.releaseBandTension = 0;

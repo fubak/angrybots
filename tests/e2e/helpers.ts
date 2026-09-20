@@ -15,6 +15,7 @@ export type GauntletSnap = {
   launchPreview: { vx: number; vy: number; speed: number };
   launchAtRelease: { vx: number; vy: number; speed: number } | null;
   effPull: { x: number; y: number; len: number };
+  launchedThisShot: boolean;
 };
 
 declare global {

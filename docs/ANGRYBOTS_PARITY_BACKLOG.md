@@ -77,11 +77,11 @@ Primary files: src/systems/PhysicsWorld.ts, src/entities/Block.ts, src/entities/
 - [ ] C01: Establish one understandable pull-to-launch relationship: pull opposite the desired flight direction, with a smooth monotonic power curve and a clear maximum stretch.
 - [ ] C02: Remove unexplained quarter/half/deep-drag tiers and threshold discontinuities. The present SlingSystem/config contain many viewport-dependent caps and boosts. More pull at a fixed angle should not unexpectedly produce less launch speed.
 - [ ] C03: Normalize input across aspect ratios and devices. Track the active pointer ID; separate bird grabbing from camera panning and pinch zoom. Handle secondary touches, pointer capture loss, release outside the canvas, pointercancel, and rotation.
-- [ ] C04: Cancel when returned near the perch or interrupted. pointercancel currently invokes the release path; it must not fire the projectile.
+- [x] C04: Cancel when returned near the perch or interrupted. pointercancel currently invokes the release path; it must not fire the projectile. *(pointercancel → `cancelDrag`; e2e `sling-cancel.spec.ts`; return-near-perch still open)*
 - [ ] C05: Make trajectory prediction use the same launch position, velocity, damping, gravity, and stepping convention as live motion. Eliminate unpreviewed release boosts or show them honestly. Define whether the preview ends at the first predicted obstruction.
 - [ ] C06: Add a clear pouch and readable front/back sling bands, continuous tension feedback, a restrained release recoil, and a visible ready-projectile queue. Use intentional timing rather than a delayed/unresponsive release.
 - [ ] C07: Add a fading previous-shot trail to support learning. Provide subtle first-use guidance and an unobstructed aiming area.
-- [ ] C08: Measure input feel at 30, 60, and 120 Hz. Do not estimate drag velocity using a constant 1/60 for every pointer event.
+- [ ] C08: Measure input feel at 30, 60, and 120 Hz. Do not estimate drag velocity using a constant 1/60 for every pointer event. *(partial: `pointerDeltaSeconds` + `pointer-timing.test.ts`; no device Hz soak)*
 
 Acceptance: A 20-point pull sweep has monotonic speed at fixed direction; small angle changes produce small trajectory changes. Preview and live pre-contact trajectory stay within a proposed quarter-projectile-radius tolerance under controlled stepping. Touch cancellation consumes no shot. Expert and first-time users can make precise adjustments.
 
