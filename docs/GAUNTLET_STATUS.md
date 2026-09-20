@@ -56,7 +56,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B09 | partial | Material thresholds in `config`; `material-damage.test.ts` |
 | B06–B08,B10–B11,B13 | open | No CCD suite |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
-| C03 | partial | Secondary ignore; pan / wheel / pinch inspect (`camera-inspect.spec.ts`) |
+| C03 | partial | Secondary ignore; pan + wheel e2e; pinch in code (device verify TBD) |
 | C01 | partial | 20-point monotonic pull in `launchCurve.test.ts` |
 | C02 | partial | Preview vs snap documented in `sling-preview-snap.test.ts` + trajectory parity |
 | C05–C08 | partial | Trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
@@ -105,7 +105,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass (2026-09-20)
 npm test           → 43 pass (22 files)
-npx playwright test tests/e2e → 64 passed, 2 skipped (66 specs; A02 exhaustion + pinch)
+npx playwright test tests/e2e → 64 passed, 3 skipped (67 specs; A02 exhaustion)
 npm run gauntlet       → PASS (2026-09-20; ~13.3m; 61 e2e pass / 2 skip)
 ```
 
