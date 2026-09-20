@@ -9,6 +9,7 @@ export type GauntletSnap = {
   phase: string;
   debrisFragments: number;
   shotsLeft: number;
+  shotsConsumed?: number;
   score: number;
   hudPhase: string;
   flightPeakX: number | null;

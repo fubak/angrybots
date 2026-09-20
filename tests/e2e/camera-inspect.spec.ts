@@ -57,3 +57,67 @@ test('wheel over fort zooms without launching', async ({ page }, testInfo) => {
   expect(after.phase).toBe('ready');
   expect(after.cameraInspect?.zoom ?? 1).toBeGreaterThan(z0 + 0.04);
 });
+
+test('two-finger pinch over fort zooms without launching', async ({ page }) => {
+  await waitForGame(page);
+  await startPlay(page);
+  await waitForAimFraming(page);
+
+  const canvas = page.locator('canvas');
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('canvas missing');
+
+  const z0 = (await snapshot(page)).cameraInspect?.zoom ?? 1;
+  const cx = box.x + box.width * 0.68;
+  const cy = box.y + box.height * 0.42;
+  const spread = box.width * 0.08;
+
+  await canvas.dispatchEvent('pointerdown', {
+    clientX: cx - spread,
+    clientY: cy,
+    pointerId: 40,
+    pointerType: 'touch',
+    bubbles: true,
+  });
+  await canvas.dispatchEvent('pointerdown', {
+    clientX: cx + spread,
+    clientY: cy,
+    pointerId: 41,
+    pointerType: 'touch',
+    bubbles: true,
+  });
+  await canvas.dispatchEvent('pointermove', {
+    clientX: cx - spread * 1.6,
+    clientY: cy,
+    pointerId: 40,
+    pointerType: 'touch',
+    bubbles: true,
+  });
+  await canvas.dispatchEvent('pointermove', {
+    clientX: cx + spread * 1.6,
+    clientY: cy,
+    pointerId: 41,
+    pointerType: 'touch',
+    bubbles: true,
+  });
+  await canvas.dispatchEvent('pointerup', {
+    clientX: cx - spread * 1.6,
+    clientY: cy,
+    pointerId: 40,
+    pointerType: 'touch',
+    bubbles: true,
+  });
+  await canvas.dispatchEvent('pointerup', {
+    clientX: cx + spread * 1.6,
+    clientY: cy,
+    pointerId: 41,
+    pointerType: 'touch',
+    bubbles: true,
+  });
+
+  await page.waitForTimeout(200);
+  const after = await snapshot(page);
+  expect(after.shotsLeft).toBe(3);
+  expect(after.phase).toBe('ready');
+  expect(after.cameraInspect?.zoom ?? 1).toBeGreaterThan(z0 + 0.03);
+});

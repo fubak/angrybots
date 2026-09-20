@@ -142,6 +142,11 @@ export class Game {
     this.sling = new SlingSystem(this.scene, this.camera);
     this.sling.onAimCancelled = () => this.audio.slingCancel();
     this.sling.onAimTension = (t) => this.audio.slingTension(t);
+    this.sling.inputGate = () =>
+      canAim(this.gameState, this.shotsLeft) &&
+      !isTerminal(this.gameState) &&
+      this.gameState !== 'paused' &&
+      this.gameState !== 'resolving';
     this.sling.bind(this.renderer.domElement);
     this.bindCameraInspect(this.renderer.domElement);
     this.cameraRig = new CameraRig(this.camera);
@@ -498,11 +503,6 @@ export class Game {
         if (inAimZone(p.x, p.y)) return;
         panPointer = e.pointerId;
         panLast = { x: p.x, y: p.y };
-        try {
-          canvas.setPointerCapture(e.pointerId);
-        } catch {
-          /* ok */
-        }
       },
       { passive: true }
     );
@@ -514,16 +514,21 @@ export class Game {
         const p = eventToNdc(e);
         pointers.set(e.pointerId, { x: p.x, y: p.y });
 
-        if (pointers.size >= 2 && canInspect() && pinchStartDist > 0.02) {
+        if (pointers.size >= 2 && canInspect()) {
           const vals = [...pointers.values()];
           const dist = Math.hypot(
             vals[0]!.x - vals[1]!.x,
             vals[0]!.y - vals[1]!.y
           );
-          this.cameraRig.setInspectZoom(
-            pinchStartZoom * (dist / pinchStartDist)
-          );
-          this.onResize();
+          if (pinchStartDist <= 0.02) {
+            pinchStartDist = dist;
+            pinchStartZoom = this.cameraRig.getInspectZoom();
+          } else if (dist > 0.02) {
+            this.cameraRig.setInspectZoom(
+              pinchStartZoom * (dist / pinchStartDist)
+            );
+            this.onResize();
+          }
           return;
         }
 
@@ -1602,6 +1607,7 @@ export class Game {
         ? this.flightPeakX
         : this.lastFlightPeakX,
       shotsLeft: this.shotsLeft,
+      shotsConsumed: this.shotsConsumed,
       score: this.score,
       gameState: this.gameState,
       hudPhase: this.hudPhaseLabel(),

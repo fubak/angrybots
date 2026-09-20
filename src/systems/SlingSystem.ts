@@ -32,6 +32,8 @@ export class SlingSystem {
   phase: SlingPhase = 'ready';
   onAimCancelled?: () => void;
   onAimTension?: (tension01: number) => void;
+  /** When false, pointer aim is ignored (A02 ammunition / terminal states). */
+  inputGate?: () => boolean;
   private tensionCueBucket = 0;
   /** World offset from anchor; at rest equals perch offset. */
   pull = new THREE.Vector2(SLING_PERCH_OFFSET.x, SLING_PERCH_OFFSET.y);
@@ -230,6 +232,7 @@ export class SlingSystem {
       'pointerdown',
       (e) => {
       if (overlayBlocksInput()) return;
+      if (this.inputGate && !this.inputGate()) return;
       if (this.phase !== 'ready' && this.phase !== 'aiming') return;
       if (
         this.pointerDown &&
