@@ -1,8 +1,8 @@
 import type { BotKind } from './types';
 
-/** First-time ability callouts (I05). Grok basics are on the title screen. */
+/** First-time ability callouts (I05). */
 export const BOT_TUTORIAL_TIPS: Record<BotKind, string | null> = {
-  grok: null,
+  grok: 'Pull back opposite your aim, then release to launch Grok at pigs and supports.',
   dash: 'Dash adds extra strike speed—drive through beams and glass for big hits.',
   heavy: 'Heavy weighs more—use it to crack stone and topple tall forts.',
   split: 'Split bursts into two on first impact—aim into clusters or weak glass.',

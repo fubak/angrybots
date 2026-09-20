@@ -582,7 +582,7 @@ export class Game {
 
   private refreshTutorialBanner() {
     const kind = this.activeBotKind;
-    if (kind === 'grok' || getTutorialsSeen()[kind]) {
+    if (getTutorialsSeen()[kind]) {
       this.tutorialKind = null;
       return;
     }
@@ -1606,6 +1606,8 @@ export class Game {
       gameState: this.gameState,
       hudPhase: this.hudPhaseLabel(),
       pigsAlive: this.pigs.filter((p) => !p.dead).length,
+      levelId: this.levelDef.id,
+      levelName: this.levelDef.name,
       cameraRevealDone: this.cameraRig.isRevealComplete(),
       cameraInspect: {
         ...this.cameraRig.getInspectPan(),

@@ -3,6 +3,8 @@ import { expect, type Page } from '@playwright/test';
 export type GauntletSnap = {
   blocks: { dead: boolean; anchored: boolean; x: number; y: number }[];
   pigsAlive: number;
+  levelId?: string;
+  levelName?: string;
   gameState: string;
   phase: string;
   debrisFragments: number;
@@ -17,6 +19,7 @@ export type GauntletSnap = {
   effPull: { x: number; y: number; len: number };
   launchedThisShot: boolean;
   cameraRevealDone?: boolean;
+  cameraInspect?: { x: number; y: number; zoom: number };
 };
 
 declare global {

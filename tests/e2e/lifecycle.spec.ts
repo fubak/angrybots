@@ -162,4 +162,32 @@ test.describe('lifecycle regressions', () => {
     expect(reset.shotsLeft).toBe(3);
     expect(reset.pigsAlive).toBe(3);
   });
+
+  test('next level advances progression after win (A05/H01)', async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Play' }).click();
+
+    for (let i = 0; i < 6; i++) {
+      if ((await snapshot(page)).gameState === 'won') break;
+      await page.evaluate(() => {
+        const g = window.__game!;
+        g.debugPrepareNextFixtureShot?.();
+        g.debugLaunchIntoFort();
+      });
+      await waitForShotSettle(page, 28_000);
+    }
+
+    await expect(
+      page.getByRole('heading', { name: 'Victory!', exact: true })
+    ).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole('button', { name: 'Next level' }).click();
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+
+    const next = await snapshot(page);
+    expect(next.levelId).toBe('low-wall');
+    expect(next.gameState).toBe('ready');
+    expect(next.shotsLeft).toBeGreaterThan(0);
+  });
 });

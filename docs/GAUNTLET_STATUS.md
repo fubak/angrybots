@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `HEAD`  
+**Commit:** `ba5978d`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -104,7 +104,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 npm run typecheck  → pass (2026-09-20)
 npm test           → 41 pass (20 files)
 npx playwright test tests/e2e → 56 passed, 2 skipped (58 specs; lifecycle retry A05)
-npm run gauntlet       → PASS (2026-09-20; ~9.3m)
+npm run gauntlet       → PASS (2026-09-20; ~10.8m; 58 e2e pass / 2 skip)
 ```
 
 ## Next actions

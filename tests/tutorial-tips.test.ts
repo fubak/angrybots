@@ -6,7 +6,7 @@ import {
 
 describe('bot tutorial tips', () => {
   it('returns tips for special bots only', () => {
-    expect(tutorialTipFor('grok')).toBeNull();
+    expect(tutorialTipFor('grok')).toMatch(/pull back/i);
     expect(tutorialTipFor('dash')).toMatch(/speed/i);
     expect(tutorialTipFor('heavy')).toMatch(/stone/i);
     expect(tutorialTipFor('split')).toMatch(/impact/i);
