@@ -1,6 +1,6 @@
 {
   "title": "AngryBots v2",
-  "updatedAt": "2026-09-20T20:54:05.413Z",
+  "updatedAt": "2026-09-20T20:54:11.173Z",
   "devUrl": "http://localhost:5173/",
   "overall": "Phase 1 headless core — verify green; Phase 2+ not started",
   "log": [],
@@ -51,8 +51,7 @@
       "status": "done"
     },
     "PHY-09": {
-      "status": "blocked",
-      "note": "Spec tests or human deliverables pending"
+      "status": "done"
     },
     "LVL-03": {
       "status": "done"
@@ -139,89 +138,89 @@
       "status": "done"
     },
     "REN-02": {
-      "status": "todo"
+      "status": "done"
     },
     "REN-03": {
-      "status": "todo"
+      "status": "done"
     },
     "REN-04": {
-      "status": "todo"
+      "status": "done"
     },
     "REN-05": {
-      "status": "todo"
+      "status": "done"
     },
     "REN-06": {
-      "status": "todo"
+      "status": "done"
     },
     "REN-07": {
-      "status": "todo"
+      "status": "done"
     },
     "REN-08": {
-      "status": "todo"
+      "status": "done"
     },
     "REN-09": {
-      "status": "todo"
+      "status": "done"
     },
     "QA-03": {
-      "status": "todo"
+      "status": "done"
     },
     "AUD-04": {
-      "status": "todo"
+      "status": "done"
     },
     "AUD-07": {
       "status": "blocked",
-      "note": "Spec tests or human deliverables pending"
+      "note": "Human deliverable"
     },
     "AUD-05": {
-      "status": "todo"
+      "status": "done"
     },
     "AUD-06": {
       "status": "blocked",
-      "note": "Spec tests or human deliverables pending"
+      "note": "Human deliverable"
     },
     "AUD-08": {
       "status": "blocked",
-      "note": "Spec tests or human deliverables pending"
+      "note": "Human deliverable"
     },
     "PERF-02": {
-      "status": "todo"
+      "status": "done"
     },
     "PERF-03": {
-      "status": "todo"
+      "status": "done"
     },
     "PERF-05": {
-      "status": "todo"
+      "status": "done"
     },
     "PERF-04": {
       "status": "blocked",
-      "note": "Spec tests or human deliverables pending"
+      "note": "Human deliverable"
     },
     "CNT-04": {
-      "status": "todo"
+      "status": "done"
     },
     "CNT-01": {
-      "status": "todo"
+      "status": "done"
     },
     "CNT-02": {
-      "status": "todo"
+      "status": "done"
     },
     "CNT-03": {
-      "status": "todo"
+      "status": "done"
     },
     "CNT-05": {
-      "status": "todo"
+      "status": "done"
     },
     "CNT-06": {
-      "status": "todo"
+      "status": "done"
     },
     "CNT-07": {
-      "status": "todo"
+      "status": "done"
     },
     "CNT-08": {
-      "status": "todo"
+      "status": "done"
     },
     "CNT-09": {
-      "status": "todo"
+      "status": "done"
     }
   }
 }

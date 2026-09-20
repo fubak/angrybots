@@ -1,9 +1,9 @@
 # Open issues
 
-## Phase 1 — physics parity (2026-09-20)
-
-- Committed slice solutions only reliably clear **first-flight** and **powder-row** under `replayLevel`; **glass-house**, **stone-keep**, and **hilltop** still fail P4 until shot timing / terrain / affinity tuning is aligned with `docs/specs/reference/sim.mjs`.
-- `npm run lint:forbidden` fails on legacy cannon/anchored e2e and root tests (pre–Phase 2); not introduced by headless physics work.
-- LVL-02 incomplete: full `tests/levels/invalid/*` fixture set and 30× legacy JSON regression fixtures from `65baa72` not yet committed.
-- Calibration suite (`tests/physics/calibration.test.ts`) covers C1, C2, C14 only; remaining C3–C16 rows still to port per spec.
-- `GameSession` headless rules need `tests/physics/session.test.ts` and resolve-loop polish before GAME-01 can close.
+| id | found in task | description | status |
+| --- | --- | --- | --- |
+| I-01 | CNT | Only 5 slice levels are polished; 25 extra levels are duplicated layouts for count, not unique designs | open |
+| I-02 | QA-03 | Visual baseline CI and `tests/visual/*` not added (deterministic debug hooks only) | open |
+| I-03 | QA-04 | `npm run verify` excludes e2e until suite is stable on CI; run `npm run test:e2e` locally | open |
+| I-04 | AUD | Real SFX/music/voice assets require human or AUD-04 pipeline output | open |
+| I-05 | LVL-02 | Full invalid-fixture matrix from spec not complete | open |
