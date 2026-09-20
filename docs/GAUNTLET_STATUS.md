@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `6b081b7`  
+**Commit:** (pending)  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 

@@ -53,7 +53,7 @@ Status: **verified** · **partial** · **open** · **unverified**
 | F03 | partial |
 | F04 | verified |
 | F05 | open |
-| F06 | open |
+| F06 | partial |
 | G01 | partial |
 | G02 | partial |
 | G03 | partial |
