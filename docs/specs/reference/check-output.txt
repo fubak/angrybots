@@ -1,0 +1,5 @@
+first-flight   static: ok | settle move 0.030 rot 0.08° | idle deaths: none
+powder-row     static: ok | settle move 0.044 rot 0.11° | idle deaths: none
+glass-house    static: ok | settle move 0.050 rot 0.36° | idle deaths: none
+stone-keep     static: ok | settle move 0.074 rot 0.17° | idle deaths: none
+hilltop        static: ok | settle move 0.042 rot 0.06° | idle deaths: none

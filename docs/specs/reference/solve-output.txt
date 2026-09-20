@@ -1,0 +1,10 @@
+first-flight: shots=[[34,18,"grok"]] pigsLeft=0 score=31350 (2s)
+powder-row: shots=[[43,20,"dash"]] pigsLeft=0 score=46050 (5s)
+glass-house: shots=[[40,17,"grok"]] pigsLeft=0 score=41520 (2s)
+stone-keep: shots=[[25,23,"heavy"]] pigsLeft=0 score=39230 (3s)
+hilltop: shots=[[31,23,"grok"],[67,20,"split"]] pigsLeft=0 score=42900 (6s)
+first-flight: one-shot clear 6.3% | avg pigs killed 0.69/2
+powder-row: one-shot clear 14.6% | avg pigs killed 0.79/4
+glass-house: one-shot clear 0.4% | avg pigs killed 1.40/4
+stone-keep: one-shot clear 3.6% | avg pigs killed 0.33/3
+hilltop: one-shot clear 0.0% | avg pigs killed 0.37/4

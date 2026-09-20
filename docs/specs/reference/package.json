@@ -1,0 +1,13 @@
+{
+  "name": "angrybots-reference-sim",
+  "private": true,
+  "type": "module",
+  "description": "Headless Planck reference simulation for AngryBots v2 specs. Not shipped.",
+  "scripts": {
+    "check": "node check.mjs",
+    "rate": "node rate.mjs",
+    "solve": "node solve.mjs",
+    "calib": "node calib.mjs"
+  },
+  "dependencies": { "planck": "1.5.0" }
+}

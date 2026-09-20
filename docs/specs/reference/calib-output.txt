@@ -1,0 +1,33 @@
+M pig falls 0.6                          p0:0.47
+M pig falls 1                            p0:0.28
+M pig falls 1.2                          p0:0.20
+M pig falls 2                            p0:DEAD
+M pig falls 3                            p0:DEAD
+bot 8 -> M pig                           p0:0.45
+bot 10 -> M pig                          p0:0.26
+bot 12 -> M pig                          p0:0.04
+bot 14 -> M pig                          p0:DEAD
+bot 16 -> M pig                          p0:DEAD
+bot 14 -> S pig                          p0:DEAD
+bot 18 -> S pig                          p0:DEAD
+bot 20 -> S pig                          p0:DEAD
+bot 18 -> L pig                          p0:DEAD
+bot 20 -> L pig                          p0:DEAD
+bot 23 -> L pig                          p0:DEAD
+heavy 23 -> L helmet                     p0:0.29
+bot 8 -> glass cube                      b0:0.54
+bot 10 -> glass cube                     b0:0.35
+bot 12 -> glass cube                     b0:0.15
+bot 14 -> glass cube                     b0:DEAD
+bot 16 -> wood cube                      b0:0.36
+bot 18 -> wood cube                      b0:0.33
+bot 20 -> wood cube                      b0:0.25
+bot 23 -> wood cube                      b0:DEAD
+grok 23 -> stone cube                    b0:0.37
+heavy 23 -> stone cube                   b0:0.03
+static heavy stack 10s                   a:1.00 b:1.00 c:1.00 d:1.00 e:1.00 f:1.00 g:1.00 p0:1.00
+TNT pig at 1                             b0:DEAD p0:DEAD
+TNT pig at 2                             b0:DEAD p0:DEAD
+TNT pig at 2.8                           b0:DEAD p0:DEAD
+C14 dash 20 -> wood cube (no affinity)   b0:0.37
+C16 split child r.38 14 -> glass postL (no affinity) b0:0.13
