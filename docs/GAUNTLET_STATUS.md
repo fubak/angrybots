@@ -89,7 +89,7 @@ npm run gauntlet       → PASS (2026-09-20)
 ## Next actions
 
 1. Gate 1: C03 secondary-touch matrix; remaining A/B scenario tests.
-2. Gate 2: E07 sling art; fill `AUDIO_LISTENING_NOTES.md`; D02 camera beats.
+2. Gate 2: D02 impact/destruction hold; fill `AUDIO_LISTENING_NOTES.md`; E09 manifest.
 3. Gate 3: I02 four bots + level authoring pipeline after slice sign-off.
 
 ## Explicitly unverified
