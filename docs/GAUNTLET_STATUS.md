@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `be92c40`  
+**Commit:** (pending)  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
 | **3** 30 levels / 4 bots | **not started** | 3 benchmark levels (I04 partial) |
-| **4** Production reliability | **in progress** | CI + 26 e2e; strict TS / perf / disposal **unverified** |
+| **4** Production reliability | **in progress** | CI + 28 e2e; strict TS / perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -51,9 +51,10 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B05 | partial | `enforcePlanarMotion` |
 | B06–B13 | open/partial | No CCD suite; level-layout validator (B12 partial) |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
-| C01–C03,C05–C08 | partial | Monotonic sweep, Cannon trajectory, `launch-preview.spec.ts`; `pointerTiming.ts` + Hz unit tests (C08); active pointer + `lostpointercapture` cancel (C03 partial) |
+| C03 | partial | Active pointer ID; secondary touch ignored; `sling-secondary-pointer.spec.ts` |
+| C01–C02,C05–C08 | partial | Monotonic sweep, trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
 | D01 | partial | Portrait center; multi-viewport e2e partial |
-| D02 | partial | Level reveal pan (`playLevelReveal`); flight follow existing |
+| D02 | partial | Level reveal + resolving destruction hold on fort; flight follow |
 | D03–D05 | open | Pan/zoom gestures, bounds polish |
 | E01 | **done** | `docs/ART_SPEC.md` |
 | E02 | **done** | `groundCrossSection.ts` |
@@ -63,7 +64,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | E06 | partial | Stone/glass kit + stone/wood HP color lerp |
 | E08 | partial | Brighter hemi/sun/fill + exposure 1.12 |
 | E07 | partial | Fork posts, yoke, leather pouch torus |
-| E09 | open | Asset manifest |
+| E09 | **done** | `docs/ASSET_MANIFEST.md` |
 | F01–F06 | open | Juice burst clones material (F04 partial) |
 | G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
 | G07 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
@@ -82,7 +83,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass (2026-09-20)
 npm test           → 20 pass (9 files)
-npx playwright test tests/e2e → 26/26 pass (desktop + mobile)
+npx playwright test tests/e2e → 28/28 pass (desktop + mobile)
 npm run gauntlet       → PASS (2026-09-20)
 ```
 
