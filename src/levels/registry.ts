@@ -1,36 +1,22 @@
-import { LEVEL_1 } from './level1';
-import { LEVEL_2 } from './level2';
-import { LEVEL_3 } from './level3';
-import { LEVEL_4 } from './level4';
-import { LEVEL_5 } from './level5';
-import { TRAINING_BATCH } from './trainingBatch';
-import { TRAINING_EXTENDED } from './trainingExtended';
-import { GLASSWORKS_BATCH } from './glassworksBatch';
-import { GLASSWORKS_EXTENDED } from './glassworksExtended';
-import { BLAST_BATCH } from './blastBatch';
-import { BLAST_EXTENDED } from './blastExtended';
-import type { LevelDef } from './types';
+import type { LevelV2 } from './schema';
+import { loadLevelFromJson } from './load';
 
-export const LEVELS: LevelDef[] = [
-  LEVEL_1,
-  LEVEL_4,
-  LEVEL_5,
-  ...TRAINING_BATCH,
-  ...TRAINING_EXTENDED,
-  LEVEL_2,
-  ...GLASSWORKS_BATCH,
-  ...GLASSWORKS_EXTENDED,
-  LEVEL_3,
-  ...BLAST_BATCH,
-  ...BLAST_EXTENDED,
-];
+const modules = import.meta.glob<{ default: unknown }>('./data/*.json', { eager: true });
 
-export function levelById(id: string): LevelDef | undefined {
-  return LEVELS.find((l) => l.id === id);
+const levels: LevelV2[] = Object.entries(modules)
+  .map(([, mod]) => loadLevelFromJson(mod.default))
+  .sort((a, b) => a.chapter.localeCompare(b.chapter) || a.order - b.order);
+
+export function allLevels(): readonly LevelV2[] {
+  return levels;
 }
 
-export function nextLevelId(currentId: string): string | undefined {
-  const i = LEVELS.findIndex((l) => l.id === currentId);
-  if (i < 0 || i >= LEVELS.length - 1) return undefined;
-  return LEVELS[i + 1].id;
+export function levelById(id: string): LevelV2 | undefined {
+  return levels.find((l) => l.id === id);
+}
+
+export function nextLevel(id: string): LevelV2 | undefined {
+  const i = levels.findIndex((l) => l.id === id);
+  if (i < 0 || i >= levels.length - 1) return undefined;
+  return levels[i + 1];
 }

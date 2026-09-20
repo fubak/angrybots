@@ -1,51 +1,5 @@
-/** Chapter metadata for Gate 3 progression (levels reference `chapter` id). */
-export const CHAPTERS = [
-  {
-    id: 'training',
-    name: 'Training Grounds',
-    levelIds: [
-      'training-yard',
-      'low-wall',
-      'twin-posts',
-      'stone-lip',
-      'glass-windows',
-      'triple-deck',
-      'dash-lane',
-      'heavy-gate',
-      'split-salvo',
-      'wood-stack',
-      'stone-shelf',
-      'narrow-peak',
-      'balanced-trio',
-    ],
-  },
-  {
-    id: 'glassworks',
-    name: 'Glassworks',
-    levelIds: [
-      'glass-arch',
-      'glass-columns',
-      'glass-bridge',
-      'frag-vault',
-      'prism-wall',
-      'glass-skylight',
-      'crystal-tower',
-      'pane-cascade',
-      'split-shatter',
-    ],
-  },
-  {
-    id: 'blast',
-    name: 'Blast Yard',
-    levelIds: [
-      'tnt-yard',
-      'tnt-pillar',
-      'tnt-duo',
-      'powder-keg',
-      'blast-chain',
-      'crater-base',
-      'split-bomb',
-      'double-stack-tnt',
-    ],
-  },
-] as const;
+export type ChapterMeta = { id: string; name: string; color: string; order: number };
+
+export const CHAPTERS: ChapterMeta[] = [
+  { id: 'training', name: 'Training', color: '#6ecf68', order: 1 },
+];

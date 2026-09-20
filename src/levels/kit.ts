@@ -18,7 +18,8 @@ export type KitId = (typeof KIT_IDS)[number];
 
 export type KitDef =
   | { kind: 'box'; w: number; h: number; depth: number }
-  | { kind: 'circle'; r: number; depth: number };
+  | { kind: 'circle'; r: number; depth: number }
+  | { kind: 'triangle'; w: number; h: number; depth: number; mirror: boolean };
 
 export const KIT: Record<KitId, KitDef> = {
   plankL: { kind: 'box', w: 4.0, h: 0.4, depth: 0.9 },
@@ -32,8 +33,8 @@ export const KIT: Record<KitId, KitDef> = {
   slab: { kind: 'box', w: 2.0, h: 0.8, depth: 0.9 },
   wheel: { kind: 'circle', r: 0.4, depth: 0.9 },
   wheelS: { kind: 'circle', r: 0.2, depth: 0.9 },
-  triR: { kind: 'box', w: 0.8, h: 0.8, depth: 0.9 },
-  triL: { kind: 'box', w: 0.8, h: 0.8, depth: 0.9 },
+  triR: { kind: 'triangle', w: 0.8, h: 0.8, depth: 0.9, mirror: false },
+  triL: { kind: 'triangle', w: 0.8, h: 0.8, depth: 0.9, mirror: true },
 };
 
 export function isKitId(v: unknown): v is KitId {

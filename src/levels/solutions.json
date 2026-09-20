@@ -1,0 +1,27 @@
+{
+  "first-flight": {
+    "shots": [{ "angleDeg": 34, "speed": 18 }],
+    "score": 31350,
+    "source": "solver"
+  },
+  "powder-row": {
+    "shots": [{ "angleDeg": 43, "speed": 20 }],
+    "score": 46050,
+    "source": "solver"
+  },
+  "glass-house": {
+    "shots": [{ "angleDeg": 40, "speed": 17 }],
+    "score": 41520,
+    "source": "solver"
+  },
+  "stone-keep": {
+    "shots": [{ "angleDeg": 25, "speed": 23 }],
+    "score": 39230,
+    "source": "solver"
+  },
+  "hilltop": {
+    "shots": [{ "angleDeg": 31, "speed": 23 }, { "angleDeg": 67, "speed": 20 }],
+    "score": 42900,
+    "source": "solver"
+  }
+}

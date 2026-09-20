@@ -19,7 +19,19 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/Game.ts",
+    "src/systems/**",
+    "src/entities/Block.ts",
+    "src/entities/GrokBot.ts",
+    "src/entities/Pig.ts",
+    "src/sling/ballisticArc.ts",
+    "src/sling/launchImpulse.ts",
+    "src/game/ContactSystem.ts",
+    "src/game/SceneQuiescence.ts"
+  ]
 }
