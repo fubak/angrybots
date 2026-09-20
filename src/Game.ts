@@ -1333,7 +1333,9 @@ export class Game {
   /** Dev/E2E: unpause and dismiss overlays so physics/fixtures keep running. */
   debugEnsurePlayable() {
     if (this.gameState === 'paused') this.resumeGame();
-    if (this.overlay.isVisible()) this.startPlay();
+    if (this.overlay.isVisible() && !isTerminal(this.gameState)) {
+      this.startPlay();
+    }
     this.reconcilePlayability();
     if (this.sling.phase === 'flying' && this.launchedThisShot) {
       const v = this.bot.body.velocity.length();
@@ -1347,19 +1349,27 @@ export class Game {
         this.flightTimer = 0;
       }
     }
-    const pigsAlive = this.pigs.filter((p) => !p.dead).length;
-    if (
-      pigsAlive > 0 &&
-      this.shotsLeft > 0 &&
-      (this.gameState === 'resolving' || this.sling.phase === 'settled')
-    ) {
-      this.resolveTimer = 0;
-      this.resetShot();
-      return;
-    }
-    if (this.sling.phase === 'settled') {
+    if (this.sling.phase === 'settled' && this.gameState !== 'resolving') {
       this.sling.phase = 'ready';
       this.gameState = 'ready';
+    }
+  }
+
+  /** Physics e2e: step simulation until next aim or terminal outcome. */
+  private debugAdvanceFixtureResolve(maxSeconds = 10) {
+    const step = 1 / 60;
+    const cap = Math.ceil(maxSeconds / step);
+    for (let i = 0; i < cap; i++) {
+      if (isTerminal(this.gameState)) return;
+      if (this.pigs.filter((p) => !p.dead).length === 0) return;
+      if (
+        this.sling.phase === 'ready' &&
+        this.gameState === 'ready' &&
+        !this.launchedThisShot
+      ) {
+        return;
+      }
+      this.tick(step);
     }
   }
 
@@ -1367,24 +1377,34 @@ export class Game {
   debugPrepareNextFixtureShot(): boolean {
     this.debugEnsurePlayable();
     const pigsAlive = this.pigs.filter((p) => !p.dead).length;
-    if (pigsAlive === 0) return true;
+    if (pigsAlive === 0 || isTerminal(this.gameState)) return true;
     if (this.shotsLeft <= 0) return false;
 
-    if (this.sling.phase === 'flying' && this.flightTimer > 3.2) {
-      this.lastFlightPeakX = this.flightPeakX;
-      this.launchedThisShot = false;
-      this.sling.phase = 'settled';
-      this.gameState = 'resolving';
-      this.flightTimer = 0;
-      this.settledTimer = 0;
+    if (this.sling.phase === 'flying' && this.launchedThisShot) {
+      const v = this.bot.body.velocity.length();
+      const p = this.bot.body.position;
+      const stalled =
+        this.flightTimer > 2.6 ||
+        p.x > 16.5 ||
+        p.x < -10.5 ||
+        (p.y < 1.35 && v < 2.8);
+      if (stalled) {
+        this.lastFlightPeakX = Math.max(this.flightPeakX, p.x);
+        this.launchedThisShot = false;
+        this.sling.phase = 'settled';
+        this.gameState = 'resolving';
+        this.flightTimer = 0;
+        this.settledTimer = 0;
+        if (this.resolveTimer <= 0) this.resolveTimer = 0.01;
+      }
     }
+
     if (
-      pigsAlive > 0 &&
-      this.shotsLeft > 0 &&
-      (this.gameState === 'resolving' || this.sling.phase === 'settled')
+      this.gameState === 'resolving' ||
+      this.sling.phase === 'settled' ||
+      this.sling.phase === 'flying'
     ) {
-      this.resolveTimer = 0;
-      this.resetShot();
+      this.debugAdvanceFixtureResolve(12);
     }
 
     this.debugEnsurePlayable();

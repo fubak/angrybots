@@ -59,11 +59,8 @@ test.describe('physics fixtures', () => {
 
       try {
         await page.waitForFunction(
-          () => {
-            window.__game!.debugEnsurePlayable!();
-            return window.__game!.debugSnapshot().pigsAlive === 0;
-          },
-          { timeout: 40_000 }
+          () => window.__game!.debugSnapshot().pigsAlive === 0,
+          { timeout: 55_000 }
         );
         return;
       } catch {
