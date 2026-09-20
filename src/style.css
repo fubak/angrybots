@@ -166,6 +166,22 @@ body {
   border-color: rgba(255, 120, 90, 0.35);
 }
 
+.flow-breakdown {
+  list-style: none;
+  margin: 10px 0 14px;
+  padding: 0;
+  font-size: 13px;
+  text-align: left;
+}
+
+.flow-breakdown li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  opacity: 0.92;
+}
+
 .flow-settings {
   margin: 14px 0 8px;
   text-align: left;

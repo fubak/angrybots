@@ -26,6 +26,16 @@ describe('ProgressStore', () => {
     expect(data.levels['low-wall']?.unlocked).toBe(true);
   });
 
+  it('falls back to defaults on corrupt or wrong-version save', () => {
+    localStorage.setItem('angrybots-progress-v1', '{not json');
+    expect(loadProgress().levels['training-yard']?.unlocked).toBe(true);
+    localStorage.setItem(
+      'angrybots-progress-v1',
+      JSON.stringify({ version: 99, levels: {} })
+    );
+    expect(loadProgress().settings.masterVolume).toBe(1);
+  });
+
   it('keeps best score and stars monotonic', () => {
     recordLevelResult('training-yard', 8_000, 1, 'low-wall');
     recordLevelResult('training-yard', 6_000, 0, 'low-wall');

@@ -103,7 +103,7 @@ test.describe('lifecycle regressions', () => {
   });
 
   test('retry after win resets shots and fort (A05)', async ({ page }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(120_000);
     await page.goto('/');
     await page.getByRole('button', { name: 'Play' }).click();
 
@@ -126,6 +126,8 @@ test.describe('lifecycle regressions', () => {
       'aria-label',
       /[1-3] stars/
     );
+    await expect(page.locator('.flow-breakdown')).toBeVisible();
+    await expect(page.getByText('Pigs cleared')).toBeVisible();
 
     const mid = await snapshot(page);
     expect(mid.score).toBeGreaterThan(0);

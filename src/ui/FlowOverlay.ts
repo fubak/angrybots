@@ -61,14 +61,24 @@ export class FlowOverlay {
     score: number;
     stars: number;
     hasNext: boolean;
+    breakdown?: { pigs: number; blocks: number; birdsLeft: number };
   }) {
     this.root.hidden = false;
     const stars = '★'.repeat(opts.stars) + '☆'.repeat(3 - opts.stars);
+    const breakdown = opts.breakdown;
+    const breakdownHtml = breakdown
+      ? `<ul class="flow-breakdown" aria-label="Score breakdown">
+          <li><span>Pigs cleared</span><span>${breakdown.pigs.toLocaleString()}</span></li>
+          <li><span>Blocks broken</span><span>${breakdown.blocks.toLocaleString()}</span></li>
+          <li><span>Bots remaining</span><span>${breakdown.birdsLeft.toLocaleString()}</span></li>
+        </ul>`
+      : '';
     this.root.innerHTML = `
       <div class="flow-panel ${opts.won ? 'win' : 'lose'}">
         <h2>${opts.won ? 'Victory!' : 'Out of bots'}</h2>
         <p class="flow-stars" aria-label="${opts.stars} stars">${stars}</p>
         <p class="flow-score">Score: ${opts.score.toLocaleString()}</p>
+        ${breakdownHtml}
         <div class="flow-actions">
           <button type="button" class="flow-btn" data-action="retry">Retry</button>
           ${

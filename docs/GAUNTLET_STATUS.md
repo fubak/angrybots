@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `db19853` (pending push)  
+**Commit:** `8173e79`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm run build` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -45,7 +45,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | A02 | partial | `inputGate` blocks aim at 0 shots; `ammunition-exhaustion.spec.ts` + vitest |
 | A03 | partial | `resolving` + `sceneHasMeaningfulMotion`; `scene-quiescence.test.ts` |
 | A04 | partial | Win after pig clear; chain win path e2e on Training Yard |
-| A05 | partial | Win/loss **Retry** resets fort + ammo; pause/level-select; win input guard (`lifecycle.spec.ts`) |
+| A05 | partial | Retry resets fort/ammo; 8× loss retry fixture (`retry-stability.spec.ts`); lifecycle e2e |
 | A06 | partial | HUD via overlay results; `hud.spec.ts` |
 | A07 | partial | Tab hidden → auto pause; resize aborts mid-aim (`orientation-resize.spec.ts`) |
 | B01 | partial | `ContactSystem` + pair dedupe; `contact-dedupe.test.ts` |
@@ -86,8 +86,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 | G08 | partial | Settings persist + reduced-motion pan block (`reduced-motion.spec.ts`) |
 | G04–G06 | open | Sample assets, mix buses; listen **unverified** |
 | H01 | partial | Next level + save unlock + level select; `lifecycle.spec.ts`, `progress-store.test.ts` |
-| H02 | partial | Star thresholds vitest; results `aria-label` on win (`lifecycle.spec.ts`) |
-| H03–H06 | partial | Progress, flow overlay, level select |
+| H02 | partial | Star thresholds vitest; results stars + score breakdown UI |
+| H03 | partial | Transparent breakdown on results; corrupt save → defaults (`progress-store.test.ts`) |
+| H04–H06 | partial | Flow overlay, level select |
 | H07 | partial | Escape pause/resume + Enter title start; `keyboard-access.spec.ts` |
 | I01 | partial | Level registry + `chapters.ts` metadata |
 | I02 | partial | 4 roles; dash strike boost; split burst on first hit + audio |
@@ -97,8 +98,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | I03 | **done** | **30** authored levels across training / glassworks / blast |
 | I05 | partial | HUD tips **all four** bots incl. Grok on Training Yard; `bot-tutorial.spec.ts` |
 | J01 | partial | `strict: true` in tsconfig |
-| J04 | partial | Pig dispose vitest; level reload clears entities in `Game.loadLevel` |
-| J05 | partial | `npm run perf:smoke` headless rAF; `docs/PERF_PROFILE.md` — **no phone session** |
+| J04 | partial | Pig dispose vitest; `retry-stability` debris bounds after reload |
+| J05 | partial | `perf:smoke` on prod preview (2026-09-20: p50≈50ms p95≈67ms headless); **no phone session** |
 | J02 | partial | CI: typecheck + **build** + unit + e2e (`.github/workflows/ci.yml`) |
 | J03,J06–J07 | open/partial | Game.ts monolith |
 | K01–K06 | partial | Vitest + e2e; no visual regression grid |

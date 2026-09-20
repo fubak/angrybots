@@ -719,6 +719,7 @@ export class Game {
       score: this.score,
       stars,
       hasNext: Boolean(nextLevelId(this.levelDef.id)),
+      breakdown,
     });
     this.updateHud();
   }

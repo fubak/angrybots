@@ -17,6 +17,8 @@ Run after `npm run build`:
 
 ```bash
 npm run perf:smoke
+
+Uses production preview (`4173`) and waits for in-game **Pause** (no dev `__game` hook). Headless Chromium often exceeds the 32ms p95 smoke threshold; treat as a regression signal only, not device parity.
 ```
 
 This loads the production bundle in headless Chromium, samples `requestAnimationFrame` deltas for ~8 s on Training Yard, and prints p50/p95 ms. It does **not** substitute device profiling.

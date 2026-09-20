@@ -26,7 +26,7 @@ try {
 }
 
 await page.getByRole('button', { name: 'Play' }).click();
-await page.waitForFunction(() => window.__game?.debugSnapshot);
+await page.getByRole('button', { name: 'Pause' }).waitFor({ timeout: 15_000 });
 
 const samples = await page.evaluate(async () => {
   const out = [];
