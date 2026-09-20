@@ -45,9 +45,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 | A02 | partial | Shot consumption in sling; `ammunition.test.ts` + debug launch shot delta e2e |
 | A03 | partial | `resolving` + quiescence; debris no longer blocks win |
 | A04 | partial | Win after pig clear; chain win path e2e on Training Yard |
-| A05 | partial | Retry/next/menu/pause; e2e lifecycle |
+| A05 | partial | Retry/next/menu/pause; win blocks further pointer shots (`lifecycle.spec.ts`) |
 | A06 | partial | HUD via overlay results; `hud.spec.ts` |
-| A07 | partial | Visibility pause; e2e pause-during-flight |
+| A07 | partial | Tab hidden → auto pause; e2e visibility + pause-during-flight |
 | B01–B03 | partial | `ContactSystem` + body collide |
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
@@ -100,7 +100,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass (2026-09-20)
 npm test           → 35 pass (18 files)
-npx playwright test tests/e2e → 47 passed, 1 skipped (48 specs; keyboard-access)
+npx playwright test tests/e2e → 49 passed, 1 skipped (50 specs; lifecycle A05/A07)
 npm run gauntlet       → PASS (2026-09-20; ~7.8m)
 ```
 
