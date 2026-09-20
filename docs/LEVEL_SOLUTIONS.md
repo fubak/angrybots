@@ -59,3 +59,7 @@ Recorded against level defs in `src/levels/`. Star thresholds come from each lev
 | 3 | 30,000 | Single chain clears all three pigs |
 
 Human replay and three-star score capture on device remain **unverified** (K07).
+
+## Full catalog (30 levels)
+
+See `docs/LEVEL_CATALOG.md` for chapter-grouped shot counts and one-line focus per level id (generated from `src/levels/registry.ts`; enforced by `tests/level-catalog.test.ts`).

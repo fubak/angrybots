@@ -5,7 +5,7 @@ import type { BotProfile } from '../bots/types';
 import type { MaterialRegistry } from '../physics/materials';
 import { enforcePlanarMotion } from '../physics/planar';
 
-export type GrokMood = 'idle' | 'aim' | 'fly' | 'hit';
+export type GrokMood = 'idle' | 'aim' | 'fly' | 'hit' | 'celebrate';
 
 const RADIUS = 0.58;
 
@@ -244,7 +244,7 @@ export class GrokBot {
     const vx = this.body.velocity.x;
     const vy = this.body.velocity.y;
 
-    if (this.hitTimer > 0) {
+    if (this.hitTimer > 0 && this.mood !== 'celebrate') {
       this.hitTimer -= dt;
       if (this.hitTimer <= 0 && v > 1.5) this.mood = 'fly';
       else if (this.hitTimer <= 0) this.mood = 'idle';
@@ -273,6 +273,10 @@ export class GrokBot {
     } else if (this.mood === 'hit') {
       targetSx = 1 + (this.stretch - 1) * squashVis;
       targetSy = 1 + (this.squash - 1) * squashVis;
+    } else if (this.mood === 'celebrate') {
+      const w = Math.sin(this.animTime * 7.5) * 0.09;
+      targetSx = 1 + w;
+      targetSy = 1 - w * 0.6;
     }
 
     this.rotator.scale.x = damp(this.rotator.scale.x, targetSx, 14, dt);
@@ -353,6 +357,13 @@ export class GrokBot {
         eyeRotR = -0.42;
         eyeTint = 0xffffff;
         shellMat.emissiveIntensity = 0.15 + this.hitFlash * 0.45;
+        break;
+      }
+      case 'celebrate': {
+        eyeScaleX = 0.75;
+        eyeScaleY = 1.35;
+        eyeTint = 0xffffff;
+        shellMat.emissiveIntensity = 0.38 + Math.sin(this.animTime * 9) * 0.12;
         break;
       }
       default: {

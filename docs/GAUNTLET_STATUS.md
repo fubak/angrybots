@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** (pending)  
+**Commit:** `7a58102`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; F01 pig threat + D02 sling return partial; G notes inventory |
 | **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
-| **4** Production reliability | **in progress** | CI + 44 e2e; disposal vitest; `perf:smoke` + `docs/PERF_PROFILE.md` (device TBD) |
+| **4** Production reliability | **in progress** | CI + 48 e2e; disposal vitest; `perf:smoke` + `docs/PERF_PROFILE.md` (device TBD) |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -73,16 +73,18 @@ Status key: **done** · **partial** · **open** · **unverified**
 | F01 | partial | Grok blink/aim; pig `computePigThreat` worry; `pig-threat.test.ts` |
 | F04 | **done** | Per-particle juice materials (burst/dust/spark clone) |
 | F06 | partial | HUD score pop animation on increases |
-| F02,F03,F05 | open/partial | Timeline polish, pooling |
+| F02 | partial | Grok `celebrate` mood on win (bounce + eyes) |
+| F03,F05 | open/partial | Timeline polish, pooling |
 | G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
 | G07 | **done** | TNT: `breakBlock` skips explosive; `detonateExplosive` owns mix |
 | G08 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
 | G04–G06,G08 | open | Sample assets, mix buses; listen **unverified** |
-| H01–H07 | partial | Stars, progress, flow overlay |
+| H01–H06 | partial | Stars, progress, flow overlay |
+| H07 | partial | Escape pause/resume + Enter title start; `keyboard-access.spec.ts` |
 | I01 | partial | Level registry + `chapters.ts` metadata |
 | I02 | partial | 4 roles; dash strike boost; split burst on first hit + audio |
 | I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
-| I06 | partial | Benchmark trio + dash-lane / glass-columns / tnt-duo in `LEVEL_SOLUTIONS.md` |
+| I06 | partial | Benchmark paths in `LEVEL_SOLUTIONS.md`; full id catalog in `LEVEL_CATALOG.md` + vitest |
 | I07 | partial | `fortDeck` template + `docs/LEVEL_AUTHORING.md` |
 | I03 | **done** | **30** authored levels across training / glassworks / blast |
 | I05 | partial | HUD tips all four bots; `bot-tutorial.spec.ts` (3 levels) |
@@ -97,9 +99,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 34 pass (17 files)
-npx playwright test tests/e2e → 44/44 pass (desktop + mobile, incl. viewports)
-npm run gauntlet       → PASS (44 e2e; 1 skipped mobile physics fixture)
+npm test           → 35 pass (18 files)
+npx playwright test tests/e2e → 47 passed, 1 skipped (48 specs; keyboard-access)
+npm run gauntlet       → PASS (2026-09-20; ~7.8m)
 ```
 
 ## Next actions

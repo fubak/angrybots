@@ -207,6 +207,14 @@ export class Game {
           this.pauseGame();
         }
       }
+      if (
+        e.key === 'Enter' &&
+        this.gameState === 'title' &&
+        this.overlay.isVisible()
+      ) {
+        e.preventDefault();
+        this.startPlay();
+      }
     });
     this.onResize();
   }
@@ -574,6 +582,7 @@ export class Game {
       ? starsForScore(this.score, this.levelDef.starScores)
       : 0;
     if (won) {
+      this.bot.setMood('celebrate');
       recordLevelResult(
         this.levelDef.id,
         this.score,

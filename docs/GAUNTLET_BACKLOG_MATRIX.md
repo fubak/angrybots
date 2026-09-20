@@ -49,7 +49,7 @@ Status: **verified** · **partial** · **open** · **unverified**
 | E08 | partial |
 | E09 | verified |
 | F01 | partial |
-| F02 | open |
+| F02 | partial |
 | F03 | partial |
 | F04 | verified |
 | F05 | open |
