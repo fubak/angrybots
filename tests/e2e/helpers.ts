@@ -13,7 +13,7 @@ export type GauntletSnap = {
   score: number;
   hudPhase: string;
   flightPeakX: number | null;
-  bot: { x: number; y: number; vx: number; vy: number };
+  bot: { x: number; y: number; vx: number; vy: number; mood?: string };
   perchNdc?: { x: number; y: number };
   launchPreview: { vx: number; vy: number; speed: number };
   launchAtRelease: { vx: number; vy: number; speed: number } | null;

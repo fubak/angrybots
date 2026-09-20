@@ -710,6 +710,8 @@ export class Game {
         stars,
         nextLevelId(this.levelDef.id)
       );
+    } else {
+      this.bot.setMood('defeat');
     }
     this.overlay.showResults({
       won,
@@ -1602,6 +1604,7 @@ export class Game {
         y: this.bot.body.position.y,
         vx: this.bot.body.velocity.x,
         vy: this.bot.body.velocity.y,
+        mood: this.bot.getMood(),
       },
       flightPeakX: this.launchedThisShot
         ? this.flightPeakX

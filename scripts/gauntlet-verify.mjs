@@ -13,6 +13,9 @@ function run(cmd, args, env = process.env) {
 console.log('=== gauntlet: typecheck ===');
 run('npm', ['run', 'typecheck']);
 
+console.log('=== gauntlet: production build ===');
+run('npm', ['run', 'build']);
+
 console.log('=== gauntlet: unit tests ===');
 run('npm', ['test']);
 

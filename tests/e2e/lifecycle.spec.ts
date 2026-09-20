@@ -154,6 +154,9 @@ test.describe('lifecycle regressions', () => {
       page.getByRole('heading', { name: 'Out of bots', exact: true })
     ).toBeVisible({ timeout: 20_000 });
 
+    const lost = await snapshot(page);
+    expect(lost.bot.mood).toBe('defeat');
+
     await page.getByRole('button', { name: 'Retry' }).click();
     await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
 

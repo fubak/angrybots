@@ -5,7 +5,7 @@ import type { BotProfile } from '../bots/types';
 import type { MaterialRegistry } from '../physics/materials';
 import { enforcePlanarMotion } from '../physics/planar';
 
-export type GrokMood = 'idle' | 'aim' | 'fly' | 'hit' | 'celebrate';
+export type GrokMood = 'idle' | 'aim' | 'fly' | 'hit' | 'celebrate' | 'defeat';
 
 const RADIUS = 0.58;
 
@@ -153,6 +153,10 @@ export class GrokBot {
     this.mood = m;
   }
 
+  getMood(): GrokMood {
+    return this.mood;
+  }
+
   setLookDirection(x: number, y: number) {
     this.lookDir.set(x, y);
   }
@@ -277,6 +281,9 @@ export class GrokBot {
       const w = Math.sin(this.animTime * 7.5) * 0.09;
       targetSx = 1 + w;
       targetSy = 1 - w * 0.6;
+    } else if (this.mood === 'defeat') {
+      targetSx = 1.08;
+      targetSy = 0.82;
     }
 
     this.rotator.scale.x = damp(this.rotator.scale.x, targetSx, 14, dt);
@@ -364,6 +371,15 @@ export class GrokBot {
         eyeScaleY = 1.35;
         eyeTint = 0xffffff;
         shellMat.emissiveIntensity = 0.38 + Math.sin(this.animTime * 9) * 0.12;
+        break;
+      }
+      case 'defeat': {
+        eyeScaleX = 1.2;
+        eyeScaleY = 0.35;
+        eyeRotL = -0.25;
+        eyeRotR = 0.25;
+        eyeTint = 0xcccccc;
+        shellMat.emissiveIntensity = 0.12;
         break;
       }
       default: {
