@@ -15,13 +15,15 @@ import type { LevelDef } from './levels/types';
 import {
   GROK_BOT_RADIUS,
   MATERIAL,
+  PIG_FATAL_FALL_DELTA,
   PORTRAIT_FRUSTUM_HEIGHT,
   SLING_ANCHOR,
   SIDE_VIEW,
   type BlockMaterial,
 } from './config';
 import { clamp } from './math';
-import { grassMaterial, loadAbTextures } from './visuals/abTextures';
+import { loadAbTextures } from './visuals/abTextures';
+import { buildGroundCrossSection } from './visuals/groundCrossSection';
 import {
   bindBodyContacts,
   beginContactFrame,
@@ -239,11 +241,11 @@ export class Game {
         [16, 1.3],
       ] as const) {
         const hill = new THREE.Mesh(
-          new THREE.ConeGeometry(5 * s, 3.5 * s, 5),
+          new THREE.SphereGeometry(2.2 * s, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.42),
           hillMat
         );
-        hill.position.set(x, 1.2 * s, 0);
-        hill.rotation.y = x * 0.05;
+        hill.position.set(x, 0.15 * s, 0);
+        hill.scale.y = 0.55;
         g.add(hill);
       }
     });
@@ -261,10 +263,11 @@ export class Game {
         [12, 1.05],
       ] as const) {
         const hill = new THREE.Mesh(
-          new THREE.ConeGeometry(4.5 * s, 2.8 * s, 5),
+          new THREE.SphereGeometry(1.9 * s, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.4),
           hillMat
         );
-        hill.position.set(x, 0.9 * s, 0);
+        hill.position.set(x, 0.1 * s, 0);
+        hill.scale.y = 0.5;
         g.add(hill);
       }
     });
@@ -310,22 +313,7 @@ export class Game {
   }
 
   private setupEnvironment() {
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(40, 20),
-      grassMaterial()
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    this.scene.add(ground);
-
-    const strip = new THREE.Mesh(
-      new THREE.PlaneGeometry(40, 3),
-      new THREE.MeshStandardMaterial({ color: 0x4d8a3f, roughness: 1 })
-    );
-    strip.rotation.x = -Math.PI / 2;
-    strip.position.set(0, 0.01, -4);
-    strip.receiveShadow = true;
-    this.scene.add(strip);
+    this.scene.add(buildGroundCrossSection());
 
     const pad = new THREE.Mesh(
       new THREE.BoxGeometry(4.2, 0.12, 1.2),
@@ -834,7 +822,9 @@ export class Game {
       if (this.structureWarmup > 0) return;
       for (const pig of this.pigs) {
         if (pig.dead || pig.isAnchored()) continue;
-        if (pig.body.position.y < -1) this.killPig(pig);
+        if (pig.body.position.y < pig.spawnY - PIG_FATAL_FALL_DELTA) {
+          this.killPig(pig);
+        }
       }
     });
   }
@@ -1102,19 +1092,20 @@ export class Game {
       this.flushQueuedBodyRemovals();
       this.pinAnchoredStructures();
       this.resolveTimer += dt;
-      const moving =
-        sceneHasMeaningfulMotion(
-          this.bot.body,
-          this.blocks,
-          this.pigs,
-          this.pendingExplosions
-        ) || this.debris.hasMotion();
+      const structMotion = sceneHasMeaningfulMotion(
+        this.bot.body,
+        this.blocks,
+        this.pigs,
+        this.pendingExplosions
+      );
+      const debrisMotion = this.debris.hasMotion();
       const alive = this.pigs.filter((p) => !p.dead).length;
-      if (alive === 0 && !moving && this.resolveTimer > 0.5) {
+      if (alive === 0 && !structMotion && this.resolveTimer > 0.5) {
         this.audio.win();
         this.finishRound(true);
       } else if (
-        !moving &&
+        !structMotion &&
+        !debrisMotion &&
         this.resolveTimer > 1.2 &&
         this.resolveTimer < 12
       ) {
@@ -1147,8 +1138,17 @@ export class Game {
     this.renderer.render(this.scene, this.camera);
   }
 
-  /** Dev/E2E: reliable launch into fort when synthetic mouse drag is flaky. */
-  debugLaunchIntoFort() {
+  /** Dev/E2E: jump to a level without menu navigation. */
+  debugLoadLevel(levelId: string) {
+    const def = LEVELS.find((l) => l.id === levelId);
+    if (!def) return false;
+    this.loadLevel(def);
+    this.startPlay();
+    return true;
+  }
+
+  /** Dev/E2E: launch with custom impulse (physics scenario tests). */
+  debugLaunchWithImpulse(ix: number, iy: number) {
     this.reconcilePlayability();
     if (this.overlay.isVisible()) this.startPlay();
     if (this.shotsLeft <= 0 || this.sling.phase === 'flying') return false;
@@ -1156,7 +1156,7 @@ export class Game {
     this.resetBotToSlingshot();
     this.sling.phase = 'flying';
     this.bot.body.type = CANNON.Body.DYNAMIC;
-    const impulse = new CANNON.Vec3(13.5, 9.5, 0);
+    const impulse = new CANNON.Vec3(ix, iy, 0);
     this.bot.launch(impulse);
     this.audio.launch(impulse.length());
     this.launchedThisShot = true;
@@ -1168,6 +1168,11 @@ export class Game {
     this.flightPeakX = this.bot.body.position.x;
     this.sling.trajectory.visible = false;
     return true;
+  }
+
+  /** Dev/E2E: reliable launch into fort when synthetic mouse drag is flaky. */
+  debugLaunchIntoFort() {
+    return this.debugLaunchWithImpulse(13.5, 9.5);
   }
 
   /** Dev-only playtest hook (see main.ts `window.__game`). */

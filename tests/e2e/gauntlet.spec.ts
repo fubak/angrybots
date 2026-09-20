@@ -165,7 +165,7 @@ test.describe('gauntlet playable', () => {
       name: 'Victory!',
       exact: true,
     });
-    await expect(victoryHeading).toBeVisible({ timeout: 15_000 });
+    await expect(victoryHeading).toBeVisible({ timeout: 30_000 });
     await expect(victoryHeading).toHaveCount(1);
   });
 

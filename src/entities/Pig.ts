@@ -19,6 +19,8 @@ export class Pig {
   private readonly restPos = new CANNON.Vec3();
   private readonly restQuat = new CANNON.Quaternion();
   readonly radius = 0.55;
+  /** Spawn center Y — used for fatal long falls (roof pigs). */
+  readonly spawnY: number;
 
   constructor(
     world: CANNON.World,
@@ -27,6 +29,7 @@ export class Pig {
     y: number,
     materials: MaterialRegistry
   ) {
+    this.spawnY = y;
     const r = this.radius;
     this.body = new CANNON.Body({
       mass: 1.5,
@@ -220,7 +223,6 @@ export class Pig {
 
   sync() {
     if (this.dead || this.popActive) return;
-    this.pinIfAnchored();
     enforcePlanarMotion(this.body);
     this.group.position.copy(this.body.position as unknown as THREE.Vector3);
     this.group.quaternion.copy(this.body.quaternion as unknown as THREE.Quaternion);

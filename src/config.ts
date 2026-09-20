@@ -14,6 +14,8 @@ export const SLING_MAX_LAUNCH_SPEED = 20.5;
 export const SLING_LAUNCH_SPEED_FLOOR = 11;
 export const GROK_BOT_RADIUS = 0.58;
 export const GROUND_CONTACT_Y = GROK_BOT_RADIUS + 0.14;
+/** Unanchored pig must drop this far below spawn Y to count as a fatal fall. */
+export const PIG_FATAL_FALL_DELTA = 1.75;
 export const GROK_BOT_MASS = 1.2;
 export const SLING_LINEAR_DAMPING = 0.02;
 export const SLING_GRAB_RADIUS = 2.4;
@@ -77,7 +79,7 @@ export const MATERIAL = {
   glass: {
     color: 0xaeefff,
     splinterColor: 0xd8f8ff,
-    hp: 25,
+    hp: 20,
     mass: 0.5,
     restitution: 0.35,
     damageScale: 2.6,
