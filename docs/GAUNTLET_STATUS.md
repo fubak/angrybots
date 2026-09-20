@@ -89,9 +89,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 28 pass (14 files)
-npx playwright test tests/e2e/physics-launch.spec.ts → stable (fixture hooks)
-npm run gauntlet       → re-run after commit
+npm test           → 27 pass (14 files)
+npx playwright test tests/e2e → 30/30 pass (desktop + mobile)
+npm run gauntlet       → PASS (2026-09-20, physics fixture stable)
 ```
 
 ## Next actions
