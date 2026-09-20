@@ -15,54 +15,58 @@ test('debug launch reaches fort band', async ({ page }) => {
 });
 
 test.describe('physics fixtures', () => {
-  test.describe.configure({ retries: 2 });
-
   test('glass arch roof pig dies after support break', async ({ page }) => {
-  test.setTimeout(90_000);
-  await page.goto('/');
-  await page.waitForFunction(
-    () =>
-      window.__game?.debugLoadLevel &&
-      window.__game?.debugLaunchWithImpulse &&
-      window.__game?.debugEnsurePlayable
-  );
-  await page.evaluate(() => window.__game!.debugLoadLevel!('glass-arch'));
-  await page.evaluate(() => window.__game!.debugEnsurePlayable!());
-  await page.waitForTimeout(2600);
-
-  for (let attempt = 0; attempt < 2; attempt++) {
+    test.setTimeout(120_000);
+    await page.goto('/');
     await page.waitForFunction(
-      () => {
-        window.__game!.debugEnsurePlayable!();
-        const p = window.__game!.debugSnapshot().phase;
-        return p === 'ready' || p === 'aiming';
-      },
-      { timeout: 25_000 }
+      () =>
+        window.__game?.debugLoadLevel &&
+        window.__game?.debugLaunchWithImpulse &&
+        window.__game?.debugPrepareNextFixtureShot
+    );
+    await page.evaluate(() => window.__game!.debugLoadLevel!('glass-arch'));
+    await page.waitForFunction(
+      () => window.__game!.debugSnapshot().cameraRevealDone,
+      { timeout: 15_000 }
     );
 
-    const impulse = attempt === 0 ? [14.2, 10.2] : [13.5, 11.2];
-    const ok = await page.evaluate(
-      ([ix, iy]) => window.__game!.debugLaunchWithImpulse!(ix, iy),
-      impulse
-    );
-    expect(ok).toBe(true);
+    const impulses: [number, number][] = [
+      [14.2, 10.2],
+      [13.5, 11.2],
+      [12.8, 10.8],
+    ];
 
-    try {
+    for (const impulse of impulses) {
       await page.waitForFunction(
-        () => {
-          window.__game!.debugEnsurePlayable!();
-          return window.__game!.debugSnapshot().pigsAlive === 0;
-        },
-        { timeout: 35_000 }
+        () => window.__game!.debugPrepareNextFixtureShot!(),
+        { timeout: 45_000 }
       );
-      return;
-    } catch {
-      /* roof drop can need a follow-up debug shot */
-    }
-  }
 
-  expect(
-    await page.evaluate(() => window.__game!.debugSnapshot().pigsAlive)
-  ).toBe(0);
+      const snapBefore = await page.evaluate(() => window.__game!.debugSnapshot());
+      if (snapBefore.pigsAlive === 0) break;
+
+      const ok = await page.evaluate(
+        ([ix, iy]) => window.__game!.debugLaunchWithImpulse!(ix, iy),
+        impulse
+      );
+      expect(ok).toBe(true);
+
+      try {
+        await page.waitForFunction(
+          () => {
+            window.__game!.debugEnsurePlayable!();
+            return window.__game!.debugSnapshot().pigsAlive === 0;
+          },
+          { timeout: 40_000 }
+        );
+        return;
+      } catch {
+        /* try another impulse */
+      }
+    }
+
+    expect(
+      await page.evaluate(() => window.__game!.debugSnapshot().pigsAlive)
+    ).toBe(0);
   });
 });

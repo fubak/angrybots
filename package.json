@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "gauntlet": "node scripts/gauntlet-verify.mjs"
+    "gauntlet": "node scripts/gauntlet-verify.mjs",
+    "perf:smoke": "node scripts/perf-smoke.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

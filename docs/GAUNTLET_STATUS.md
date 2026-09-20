@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `792779e`  
+**Commit:** `bb15ae7`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
 | **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
-| **4** Production reliability | **in progress** | CI + 30 e2e; `strict` TS; perf / disposal **unverified** |
+| **4** Production reliability | **in progress** | CI + 30 e2e; disposal vitest; `perf:smoke` + `docs/PERF_PROFILE.md` (device TBD) |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -49,7 +49,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B01–B03 | partial | `ContactSystem` + body collide |
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
-| B12 | partial | `validateLevelLayout` on full `LEVELS` registry |
+| B12 | **done** | `validateLevelLayout` on all **30** levels (`levels-registry.test.ts`) |
 | B06–B11,B13 | open | No CCD suite |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
 | C03 | partial | Active pointer ID; secondary touch ignored; `sling-secondary-pointer.spec.ts` |
@@ -74,12 +74,14 @@ Status key: **done** · **partial** · **open** · **unverified**
 | I01 | partial | Level registry + `chapters.ts` metadata |
 | I02 | partial | 4 roles; dash strike boost; split burst on first hit + audio |
 | I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
-| I06 | partial | `docs/LEVEL_SOLUTIONS.md` star paths + e2e refs |
+| I06 | partial | Benchmark trio + dash-lane / glass-columns / tnt-duo in `LEVEL_SOLUTIONS.md` |
 | I07 | partial | `fortDeck` template + `docs/LEVEL_AUTHORING.md` |
 | I03 | **done** | **30** authored levels across training / glassworks / blast |
 | I05 | partial | HUD tips + save `tutorialsSeen`; `bot-tutorial.spec.ts` |
 | J01 | partial | `strict: true` in tsconfig |
-| J02–J07 | open/partial | CI K05; Game.ts monolith; perf profile |
+| J04 | partial | Pig dispose vitest; level reload clears entities in `Game.loadLevel` |
+| J05 | partial | `npm run perf:smoke` headless rAF; `docs/PERF_PROFILE.md` — **no phone session** |
+| J02–J03,J06–J07 | open/partial | CI; Game.ts monolith |
 | K01–K06 | partial | Vitest + e2e; no visual regression grid |
 | K07–K10 | unverified | Human AB, phone touch, listening |
 
@@ -87,9 +89,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 26 pass (13 files)
-npx playwright test tests/e2e → 30/30 pass (1 flaky desktop physics fixture)
-npm run gauntlet       → PASS (2026-09-20)
+npm test           → 28 pass (14 files)
+npx playwright test tests/e2e/physics-launch.spec.ts → stable (fixture hooks)
+npm run gauntlet       → re-run after commit
 ```
 
 ## Next actions

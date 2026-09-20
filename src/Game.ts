@@ -1299,10 +1299,45 @@ export class Game {
     if (this.gameState === 'paused') this.resumeGame();
     if (this.overlay.isVisible()) this.startPlay();
     this.reconcilePlayability();
+    if (this.sling.phase === 'flying' && this.launchedThisShot) {
+      const v = this.bot.body.velocity.length();
+      const onGround = this.bot.body.position.y < 1.45;
+      if (onGround && v < 1.25) {
+        this.lastFlightPeakX = this.flightPeakX;
+        this.sling.phase = 'settled';
+        this.gameState = 'resolving';
+        this.launchedThisShot = false;
+        this.settledTimer = 0;
+        this.flightTimer = 0;
+      }
+    }
+    const pigsAlive = this.pigs.filter((p) => !p.dead).length;
+    if (
+      pigsAlive > 0 &&
+      this.shotsLeft > 0 &&
+      (this.gameState === 'resolving' || this.sling.phase === 'settled')
+    ) {
+      this.resolveTimer = 0;
+      this.resetShot();
+      return;
+    }
     if (this.sling.phase === 'settled') {
       this.sling.phase = 'ready';
       this.gameState = 'ready';
     }
+  }
+
+  /** Physics e2e only — aimable state between debug impulse shots. */
+  debugPrepareNextFixtureShot(): boolean {
+    this.debugEnsurePlayable();
+    if (this.pigs.every((p) => p.dead)) return true;
+    if (this.shotsLeft <= 0) return false;
+    if (this.sling.phase === 'flying') return false;
+    return (
+      this.sling.phase === 'ready' ||
+      this.sling.phase === 'aiming' ||
+      this.sling.phase === 'coiling'
+    );
   }
 
   /** Dev/E2E: launch with custom impulse (physics scenario tests). */

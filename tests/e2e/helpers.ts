@@ -27,6 +27,7 @@ declare global {
       debugLoadLevel?: (id: string) => boolean;
       debugEnsurePlayable?: () => void;
       debugLaunchWithImpulse?: (ix: number, iy: number) => boolean;
+      debugPrepareNextFixtureShot?: () => boolean;
     };
   }
 }
