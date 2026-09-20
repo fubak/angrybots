@@ -39,6 +39,8 @@ import {
 } from './game/ProgressStore';
 import { applyImpulseAtCenter } from './physics/planar';
 import { FlowOverlay } from './ui/FlowOverlay';
+import { botProfile, normalizeBotQueue } from './bots/registry';
+import type { BotKind } from './bots/types';
 
 type ParallaxLayer = {
   root: THREE.Object3D;
@@ -90,6 +92,8 @@ export class Game {
     slingPhase: import('./systems/SlingSystem').SlingPhase;
   } | null = null;
   private lastHudKey = '';
+  private botQueue: BotKind[] = ['grok', 'grok', 'grok'];
+  private activeBotKind: BotKind = 'grok';
 
   constructor(container: HTMLElement) {
     this.mount = container;
@@ -415,6 +419,7 @@ export class Game {
         new Pig(this.physics.world, this.scene, x, y, this.physics.materials)
       );
     }
+    this.botQueue = normalizeBotQueue(def.shots, def.bots);
     this.lockCastle();
     this.rebindStructureContacts();
     this.resetBotToSlingshot();
@@ -553,7 +558,14 @@ export class Game {
     this.updateHud();
   }
 
+  private syncActiveBotFromQueue() {
+    const idx = clamp(this.shotsConsumed, 0, Math.max(0, this.botQueue.length - 1));
+    this.activeBotKind = this.botQueue[idx] ?? 'grok';
+    this.bot.applyProfile(botProfile(this.activeBotKind));
+  }
+
   private resetBotToSlingshot() {
+    this.syncActiveBotFromQueue();
     const restX = this.sling.anchor.x + this.sling.perchOffset.x;
     const restY = this.sling.anchor.y + this.sling.perchOffset.y;
     this.bot.reset(new CANNON.Vec3(restX, restY, 0));
@@ -871,9 +883,9 @@ export class Game {
       case 'flying':
         return 'In flight';
       case 'settled':
-        return 'Next Grok bot…';
+        return `Next ${botProfile(this.activeBotKind).displayName} bot…`;
       default:
-        return 'Pull the Grok bot';
+        return `Pull the ${botProfile(this.activeBotKind).displayName} bot`;
     }
   }
 
@@ -889,7 +901,9 @@ export class Game {
         !isTerminal(this.gameState) &&
         this.shotsLeft > 0;
       const cls = spent ? 'spent' : active ? 'active' : 'ready';
-      html += `<span class="shot-pip ${cls}" title="Launch ${i + 1}"></span>`;
+      const kind = this.botQueue[i] ?? 'grok';
+      const pipBot = botProfile(kind).pipClass;
+      html += `<span class="shot-pip ${cls} bot-${pipBot}" title="${botProfile(kind).displayName}"></span>`;
     }
     return html;
   }
@@ -1038,6 +1052,9 @@ export class Game {
         if (this.bot.body.position.y < minY) {
           this.bot.body.position.y = minY;
         }
+        const speedScale = this.bot.getSpeedScale();
+        impulse.x *= speedScale;
+        impulse.y *= speedScale;
         this.bot.launch(impulse);
         this.audio.launch(impulse.length());
         this.cameraRig.addShake(

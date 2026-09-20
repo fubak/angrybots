@@ -322,6 +322,18 @@ body {
   opacity: 0.65;
 }
 
+.shot-pip.bot-dash.ready {
+  background: radial-gradient(circle at 30% 30%, #ffb080, #cc5522);
+}
+
+.shot-pip.bot-heavy.ready {
+  background: radial-gradient(circle at 30% 30%, #8899aa, #334455);
+}
+
+.shot-pip.bot-split.ready {
+  background: radial-gradient(circle at 30% 30%, #aaff88, #338822);
+}
+
 @keyframes pip-pulse {
   0%,
   100% {

@@ -6,6 +6,8 @@ export const LEVEL_2: LevelDef = {
   name: 'Glass Arch',
   subtitle: 'Break the weak glass to drop the roof pig',
   shots: 4,
+  chapter: 'glassworks',
+  bots: ['grok', 'dash', 'grok', 'dash'],
   starScores: [8000, 14000, 22000],
   pigs: [[5.2, 3.72]],
   blocks: [

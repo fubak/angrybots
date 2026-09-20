@@ -6,6 +6,8 @@ export const LEVEL_3: LevelDef = {
   name: 'Blast Yard',
   subtitle: 'Detonate TNT to clear the deck',
   shots: 3,
+  chapter: 'blast',
+  bots: ['heavy', 'grok', 'split'],
   starScores: [10000, 18000, 28000],
   pigs: [
     [4.6, 1.45],

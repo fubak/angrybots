@@ -9,6 +9,7 @@ export const LEVEL_1: LevelDef = {
   name: 'Training Yard',
   subtitle: 'Clear all rival pigs',
   shots: 3,
+  chapter: 'training',
   starScores: [6000, 12000, 20000],
   pigs: [
     [4.85, 1.68],

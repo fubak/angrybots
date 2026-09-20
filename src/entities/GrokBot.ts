@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { clamp, damp } from '../math';
+import type { BotProfile } from '../bots/types';
 import type { MaterialRegistry } from '../physics/materials';
 import { enforcePlanarMotion } from '../physics/planar';
 
@@ -34,6 +35,7 @@ export class GrokBot {
   private nextBlink = 2.4;
   private animTime = 0;
   private lookDir = new THREE.Vector2(0, 0);
+  private profileSpeedScale = 1;
 
   constructor(world: CANNON.World, materials: MaterialRegistry) {
     this.body = new CANNON.Body({
@@ -169,6 +171,24 @@ export class GrokBot {
 
   /** Set at launch; used for preview-vs-live checks (not mid-flight body velocity). */
   lastLaunchVel = { vx: 0, vy: 0 };
+
+  applyProfile(profile: BotProfile) {
+    this.profileSpeedScale = profile.speedScale;
+    const mass = 1.2 * profile.massScale;
+    if (Math.abs(this.body.mass - mass) > 0.001) {
+      this.body.mass = mass;
+      this.body.updateMassProperties();
+    }
+    this.rotator.scale.setScalar(profile.visualScale);
+    const mat = this.shell.material as THREE.MeshStandardMaterial;
+    mat.color.setHex(profile.shellColor);
+    mat.emissive.setHex(profile.emissive);
+    mat.emissiveIntensity = profile.kind === 'dash' ? 0.42 : 0.28;
+  }
+
+  getSpeedScale() {
+    return this.profileSpeedScale;
+  }
 
   launch(impulse: CANNON.Vec3) {
     this.body.wakeUp();
