@@ -1,6 +1,6 @@
 {
   "title": "AngryBots v2",
-  "updatedAt": "2026-09-20T13:25:52.474Z",
+  "updatedAt": "2026-09-20T13:27:59.188Z",
   "devUrl": "http://localhost:5173/",
   "overall": "Phase 0 — Foundation",
   "log": [],
@@ -9,7 +9,7 @@
       "status": "done"
     },
     "APP-02": {
-      "status": "todo"
+      "status": "done"
     },
     "QA-01": {
       "status": "todo"
