@@ -1,0 +1,79 @@
+@import '@fontsource/baloo-2/600.css';
+@import '@fontsource/baloo-2/800.css';
+
+:root {
+  font-family: 'Baloo 2', system-ui, sans-serif;
+  color: #fff;
+}
+
+#ui-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#ui-root button,
+#ui-root input {
+  pointer-events: auto;
+}
+
+.ui-btn {
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 3px solid #23180f;
+  background: #ffb938;
+  box-shadow: 0 4px 0 #c77d0a;
+  font-family: inherit;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 1px 1px 0 #23180f, -1px 1px 0 #23180f, 1px -1px 0 #23180f, -1px -1px 0 #23180f;
+  cursor: pointer;
+}
+
+.ui-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #c77d0a;
+}
+
+.ui-panel {
+  background: rgba(43, 58, 85, 0.92);
+  border: 3px solid #23180f;
+  border-radius: 16px;
+  padding: 16px;
+  pointer-events: auto;
+}
+
+.hud-top {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hud-score {
+  font-size: 32px;
+  font-weight: 800;
+  text-align: right;
+}
+
+#rotate-prompt {
+  position: fixed;
+  inset: 0;
+  background: #2b3a55;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+#rotate-prompt.visible {
+  display: flex;
+}

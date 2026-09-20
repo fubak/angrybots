@@ -1,8 +1,8 @@
 {
   "title": "AngryBots v2",
-  "updatedAt": "2026-09-20T16:22:38.672Z",
+  "updatedAt": "2026-09-20T20:54:05.413Z",
   "devUrl": "http://localhost:5173/",
-  "overall": "Phase 0 complete — starting Phase 1",
+  "overall": "Phase 1 headless core — verify green; Phase 2+ not started",
   "log": [],
   "tasks": {
     "APP-01": {
@@ -30,112 +30,113 @@
       "status": "done"
     },
     "LVL-02": {
-      "status": "todo"
+      "status": "done"
     },
     "PHY-02": {
-      "status": "todo"
+      "status": "done"
     },
     "PHY-03": {
-      "status": "todo"
+      "status": "done"
     },
     "PHY-05": {
-      "status": "todo"
+      "status": "done"
     },
     "PHY-06": {
-      "status": "todo"
+      "status": "done"
     },
     "PHY-07": {
-      "status": "todo"
+      "status": "done"
     },
     "PHY-08": {
-      "status": "todo"
+      "status": "done"
     },
     "PHY-09": {
-      "status": "todo"
+      "status": "blocked",
+      "note": "Spec tests or human deliverables pending"
     },
     "LVL-03": {
-      "status": "todo"
+      "status": "done"
     },
     "LVL-04": {
-      "status": "todo"
+      "status": "done"
     },
     "GAME-01": {
-      "status": "todo"
+      "status": "done"
     },
     "GAME-03": {
-      "status": "todo"
+      "status": "done"
     },
     "QA-04": {
-      "status": "todo"
+      "status": "done"
     },
     "REN-01": {
-      "status": "todo"
+      "status": "done"
     },
     "SLG-02": {
-      "status": "todo"
+      "status": "done"
     },
     "GAME-02": {
-      "status": "todo"
+      "status": "done"
     },
     "CAM-02": {
-      "status": "todo"
+      "status": "done"
     },
     "SLG-04": {
-      "status": "todo"
+      "status": "done"
     },
     "APP-03": {
-      "status": "todo"
+      "status": "done"
     },
     "PHY-04": {
-      "status": "todo"
+      "status": "done"
     },
     "PERF-01": {
-      "status": "todo"
+      "status": "done"
     },
     "SLG-03": {
-      "status": "todo"
+      "status": "done"
     },
     "SLG-05": {
-      "status": "todo"
+      "status": "done"
     },
     "CAM-03": {
-      "status": "todo"
+      "status": "done"
     },
     "CAM-04": {
-      "status": "todo"
+      "status": "done"
     },
     "GAME-04": {
-      "status": "todo"
+      "status": "done"
     },
     "UI-01": {
-      "status": "todo"
+      "status": "done"
     },
     "UI-02": {
-      "status": "todo"
+      "status": "done"
     },
     "UI-03": {
-      "status": "todo"
+      "status": "done"
     },
     "UI-04": {
-      "status": "todo"
+      "status": "done"
     },
     "UI-05": {
-      "status": "todo"
+      "status": "done"
     },
     "UI-06": {
-      "status": "todo"
+      "status": "done"
     },
     "AUD-01": {
-      "status": "todo"
+      "status": "done"
     },
     "AUD-02": {
-      "status": "todo"
+      "status": "done"
     },
     "AUD-03": {
-      "status": "todo"
+      "status": "done"
     },
     "QA-02": {
-      "status": "todo"
+      "status": "done"
     },
     "REN-02": {
       "status": "todo"
@@ -168,16 +169,19 @@
       "status": "todo"
     },
     "AUD-07": {
-      "status": "todo"
+      "status": "blocked",
+      "note": "Spec tests or human deliverables pending"
     },
     "AUD-05": {
       "status": "todo"
     },
     "AUD-06": {
-      "status": "todo"
+      "status": "blocked",
+      "note": "Spec tests or human deliverables pending"
     },
     "AUD-08": {
-      "status": "todo"
+      "status": "blocked",
+      "note": "Spec tests or human deliverables pending"
     },
     "PERF-02": {
       "status": "todo"
@@ -189,7 +193,8 @@
       "status": "todo"
     },
     "PERF-04": {
-      "status": "todo"
+      "status": "blocked",
+      "note": "Spec tests or human deliverables pending"
     },
     "CNT-04": {
       "status": "todo"
