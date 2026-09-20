@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `5f2ffed`  
+**Commit:** `a19c546`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm run build` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; `ballistic-hz.test.ts` (30/60/120 step parity); full Hz soak open |
 | **2** Three-level quality slice | **started** | E01–E02 done; F01 pig threat + D02 sling return partial; G notes inventory |
 | **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
-| **4** Production reliability | **in progress** | CI + 52 e2e; disposal vitest; physics fixture no longer early-resets resolve |
+| **4** Production reliability | **in progress** | CI + **68** e2e pass / 2 skip; disposal vitest; physics fixture resolve stable |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -107,10 +107,10 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 49 pass (25 files)
+npm test           → 50 pass (26 files)
 npm run build      → pass (in CI + gauntlet script)
 npx playwright test tests/e2e → 68 passed, 2 skipped (70 specs)
-npm run gauntlet       → PASS (2026-09-20; ~14.6m incl. build; 66 e2e pass / 2 skip)
+npm run gauntlet       → PASS (2026-09-20; ~13.6m incl. build; 68 e2e pass / 2 skip)
 ```
 
 ## Next actions
