@@ -28,4 +28,9 @@ export type GameEvents = {
   'game:won': { score: number; stars: 0 | 1 | 2 | 3; bonus: number };
   'game:lost': { score: number };
   'shot:resolved': { pigsLeft: number; botsLeft: number };
+  'bot:firstImpact': { id: string; x: number; y: number };
+  'bot:ability': { kind: string; botId: string };
+  'bot:launched': { kind: string; vx: number; vy: number };
+  'sling:aimUpdate': { tension: number };
+  'sling:cancel': Record<string, never>;
 };

@@ -5,7 +5,7 @@ import { expandLevel } from '../levels/expand';
 import { PhysicsWorld } from '../physics/PhysicsWorld';
 import { EntityRegistry } from '../entities/EntityRegistry';
 import { createBlock, createPig, createTerrain } from '../entities/bodies';
-import { spawnBot } from '../entities/Bot';
+import { spawnBot, spawnBotAt } from '../entities/Bot';
 import { applyFragmentSpawnImpulse } from '../physics/fragments';
 import { attachDamagePipeline } from '../physics/damage';
 import { defaultTntExplosion } from '../physics/explosions';
@@ -71,6 +71,14 @@ export class Level {
       },
       onDestroy: (e) => this.destroyEntity(e, 'impact'),
       onImpact: () => {},
+      onBotFirstImpact: (bot) => {
+        if (bot.firstImpactAt === null) bot.firstImpactAt = this.simTime;
+        this.bus.emit('bot:firstImpact', {
+          id: bot.id,
+          x: bot.body!.getPosition().x,
+          y: bot.body!.getPosition().y,
+        });
+      },
     });
     pw.setContactFlush(() => damage.flushContacts());
   }
@@ -363,6 +371,44 @@ export class Level {
   setSeed(seed: number) {
     this.rngFn = makeRng(seed);
   }
+
+  getSimTime(): number {
+    return this.simTime;
+  }
+
+  removeBotBody(bot: BotEntity): void {
+    bot.alive = false;
+    if (bot.body) {
+      this.pw.queueRemoval(bot.body);
+      bot.body = null;
+    }
+  }
+
+  spawnSplitChild(
+    x: number,
+    y: number,
+    vx: number,
+    vy: number,
+    parentId: string
+  ): BotEntity {
+    const bot = spawnBotAt(
+      this.pw.world,
+      x,
+      y,
+      vx,
+      vy,
+      'split',
+      `split-${parentId}-${this.simTime}-${Math.random()}`,
+      { r: 0.38, density: 1.0, spawnedFrom: parentId }
+    );
+    this.registry.add(bot);
+    return bot;
+  }
+
+  shotBots(): BotEntity[] {
+    return this.registry.all().filter((e): e is BotEntity => e.kind === 'bot' && e.alive);
+  }
+
 }
 
 export function replayLevel(def: LevelV2, shots: [number, number, BotKind?][]): Level {

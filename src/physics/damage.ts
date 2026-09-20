@@ -18,6 +18,7 @@ export type DamageCallbacks = {
   onPigDamaged: (e: PigEntity, hpRatio: number) => void;
   onDestroy: (entity: BlockEntity | PigEntity) => void;
   onImpact: (ev: ImpactEvent) => void;
+  onBotFirstImpact?: (bot: BotEntity) => void;
 };
 
 type PendingHit = { entity: BlockEntity | PigEntity; impulse: number; other: GameEntity | null };
@@ -58,6 +59,12 @@ export function attachDamagePipeline(
       if (e.kind === 'block' || e.kind === 'pig') {
         if (e.alive) pending.push({ entity: e, impulse: I, other: e === a ? b : a });
       }
+    }
+    if (a.kind === 'bot' && a.alive && a.firstImpactAt === null && (b.kind === 'block' || b.kind === 'pig' || b.kind === 'ground' || b.kind === 'terrain')) {
+      callbacks.onBotFirstImpact?.(a);
+    }
+    if (b.kind === 'bot' && b.alive && b.firstImpactAt === null && (a.kind === 'block' || a.kind === 'pig' || a.kind === 'ground' || a.kind === 'terrain')) {
+      callbacks.onBotFirstImpact?.(b);
     }
     if (I >= 1.0 && a.id && b.id) {
       impactPairs.push({
