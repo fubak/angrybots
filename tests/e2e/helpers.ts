@@ -24,6 +24,7 @@ declare global {
       debugSnapshot: () => GauntletSnap;
       debugLaunchIntoFort: () => boolean;
       debugLoadLevel?: (id: string) => boolean;
+      debugEnsurePlayable?: () => void;
       debugLaunchWithImpulse?: (ix: number, iy: number) => boolean;
     };
   }

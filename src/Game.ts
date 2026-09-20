@@ -1147,11 +1147,22 @@ export class Game {
     return true;
   }
 
+  /** Dev/E2E: unpause and dismiss overlays so physics/fixtures keep running. */
+  debugEnsurePlayable() {
+    if (this.gameState === 'paused') this.resumeGame();
+    if (this.overlay.isVisible()) this.startPlay();
+    this.reconcilePlayability();
+    if (this.sling.phase === 'settled') {
+      this.sling.phase = 'ready';
+      this.gameState = 'ready';
+    }
+  }
+
   /** Dev/E2E: launch with custom impulse (physics scenario tests). */
   debugLaunchWithImpulse(ix: number, iy: number) {
-    this.reconcilePlayability();
-    if (this.overlay.isVisible()) this.startPlay();
+    this.debugEnsurePlayable();
     if (this.shotsLeft <= 0 || this.sling.phase === 'flying') return false;
+    if (this.sling.phase === 'coiling') return false;
 
     this.resetBotToSlingshot();
     this.sling.phase = 'flying';

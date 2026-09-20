@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** (pending this session’s push)  
+**Commit:** `fd0e34e`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
 | **3** 30 levels / 4 bots | **not started** | 3 benchmark levels (I04 partial) |
-| **4** Production reliability | **in progress** | CI + 24 e2e; strict TS / perf / disposal **unverified** |
+| **4** Production reliability | **in progress** | CI + 26 e2e; strict TS / perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -50,7 +50,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
 | B06–B13 | open/partial | No CCD suite; level-layout validator (B12 partial) |
-| C04 | **done** | `cancelDrag` on `pointercancel`; `tests/e2e/sling-cancel.spec.ts` (desktop + mobile) |
+| C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
 | C01–C03,C05–C08 | partial | Monotonic sweep, Cannon trajectory, `launch-preview.spec.ts`; `pointerTiming.ts` + Hz unit tests (C08); pouch/cancel-near-perch (C03/C04 partial) |
 | D01 | partial | Portrait center; multi-viewport e2e partial |
 | D02–D05 | open | Camera beats, pan/zoom gestures |
@@ -58,7 +58,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | E02 | **done** | `groundCrossSection.ts` |
 | E03 | partial | Softer parallax hills (spheres, lower contrast) |
 | E04 | partial | Grok shell contrast/emissive tuned (readable sphere) |
-| E05–E09 | open | Targets/material kit polish |
+| E06 | partial | Stone/glass canvas kit in `abTextures.ts`; wood/TNT tiles; damage states **open** |
+| E05,E07–E09 | open | Pig faces, sling polish, lighting pass, manifest |
 | F01–F06 | open | Juice burst clones material (F04 partial) |
 | G01–G08 | open | Synth audio only; listening **unverified** |
 | H01–H07 | partial | Stars, progress, flow overlay |
@@ -74,7 +75,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass (2026-09-20)
 npm test           → 20 pass (9 files)
-npx playwright test tests/e2e → 24/24 pass (desktop + mobile)
+npx playwright test tests/e2e → 26/26 pass (desktop + mobile; pending re-run this session)
 ```
 
 ## Next actions

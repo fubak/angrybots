@@ -6,6 +6,8 @@ import { enforcePlanarMotion } from '../physics/planar';
 import type { JuiceSystem } from '../systems/JuiceSystem';
 import {
   explosiveBlockMaterial,
+  glassBlockMaterial,
+  stoneBlockMaterial,
   woodBlockMaterial,
 } from '../visuals/abTextures';
 
@@ -59,15 +61,16 @@ export class Block {
     let surface: THREE.MeshStandardMaterial;
     if (materialType === 'wood') {
       surface = woodBlockMaterial();
+    } else if (materialType === 'stone') {
+      surface = stoneBlockMaterial();
+    } else if (materialType === 'glass') {
+      surface = glassBlockMaterial();
     } else if (materialType === 'explosive') {
       surface = explosiveBlockMaterial();
     } else {
       surface = new THREE.MeshStandardMaterial({
         color: def.color,
-        roughness: materialType === 'glass' ? 0.1 : 0.85,
-        metalness: materialType === 'stone' ? 0.2 : 0,
-        transparent: materialType === 'glass',
-        opacity: materialType === 'glass' ? 0.75 : 1,
+        roughness: 0.85,
       });
     }
     this.mesh = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), surface);
