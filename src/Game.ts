@@ -1160,7 +1160,9 @@ export class Game {
       this.sling.phase,
       botPos,
       botVel,
-      this.sling.isDragging
+      this.sling.isDragging,
+      this.gameState === 'resolving',
+      this.resolveTimer
     );
     this.updateParallax();
     this.renderer.render(this.scene, this.camera);

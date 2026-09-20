@@ -231,6 +231,13 @@ export class SlingSystem {
       (e) => {
       if (overlayBlocksInput()) return;
       if (this.phase !== 'ready' && this.phase !== 'aiming') return;
+      if (
+        this.pointerDown &&
+        this.activePointerId !== null &&
+        e.pointerId !== this.activePointerId
+      ) {
+        return;
+      }
       const hit = this.pointerOnPlane(e, canvas);
       if (!hit) return;
       const grabX = this.anchor.x + this.perchOffset.x;

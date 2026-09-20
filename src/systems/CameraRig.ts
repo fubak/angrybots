@@ -74,7 +74,9 @@ export class CameraRig {
     phase: SlingPhase,
     focus: THREE.Vector3,
     velocity?: THREE.Vector3,
-    slingDragging = false
+    slingDragging = false,
+    destructionHold = false,
+    resolveTimer = 0
   ) {
     const vel = velocity ?? this.zeroVel;
     const speed = vel.length();
@@ -113,6 +115,15 @@ export class CameraRig {
 
       this.desiredPos.set(this.frameCenter.x + 0.8, this.frameCenter.y + 0.35, z);
       this.desiredLook.set(this.frameCenter.x, this.frameCenter.y - 0.15, 0);
+    }
+
+    if (destructionHold && phase !== 'flying') {
+      const hold = clamp(1 - (resolveTimer - 0.6) / 1.8, 0, 1);
+      const structX = STRUCTURE_FOCUS.x + 0.45;
+      const structY = STRUCTURE_FOCUS.y + 0.35;
+      this.desiredPos.x += (structX - this.desiredPos.x) * hold * 0.92;
+      this.desiredPos.y += (structY - this.desiredPos.y) * hold * 0.92;
+      this.desiredLook.lerp(STRUCTURE_FOCUS, hold * 0.88);
     }
 
     const lockAimCam =
