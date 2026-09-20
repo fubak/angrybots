@@ -96,7 +96,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | J01 | partial | `strict: true` in tsconfig |
 | J04 | partial | Pig dispose vitest; level reload clears entities in `Game.loadLevel` |
 | J05 | partial | `npm run perf:smoke` headless rAF; `docs/PERF_PROFILE.md` — **no phone session** |
-| J02–J03,J06–J07 | open/partial | CI; Game.ts monolith |
+| J02 | partial | CI: typecheck + **build** + unit + e2e (`.github/workflows/ci.yml`) |
+| J03,J06–J07 | open/partial | Game.ts monolith |
 | K01–K06 | partial | Vitest + e2e; no visual regression grid |
 | K07–K10 | unverified | Human AB, phone touch, listening |
 
@@ -104,8 +105,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 43 pass (22 files)
-npx playwright test tests/e2e → 64 passed, 2 skipped (66 specs)
+npm test           → 45 pass (23 files)
+npm run build      → pass (2026-09-20)
+npx playwright test tests/e2e → 65 passed, 2 skipped (67 specs)
 npm run gauntlet       → PASS (2026-09-20; ~12.8m; 64 e2e pass / 2 skip)
 ```
 
