@@ -10,7 +10,7 @@
 
 | Gate | State | Notes |
 |------|--------|--------|
-| **1** Mechanics & lifecycle | **in progress** | R01–R10 largely verified; Gate 1 still needs pull sweep, Hz/stress, full A/B scenario matrix |
+| **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Gate 1 still needs preview/live trajectory compare, Hz/stress matrix |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
 | **3** 30 levels / 4 bots | **not started** | 3 benchmark levels (I04 partial) |
 | **4** Production reliability | **in progress** | CI + 16 e2e; strict TS / perf / disposal **unverified** |
@@ -24,9 +24,9 @@
 |----|--------|----------|
 | R01 Portrait framing | **verified** | e2e portrait + `perchNdc` |
 | R02 Pause/resume | **verified** | `tests/e2e/lifecycle.spec.ts` |
-| R03 Roof drop / crush | **verified** | `ContactSystem` + `glass-arch.spec.ts` (physics fixture; pointer Glass Arch **TODO**) |
+| R03 Roof drop / crush | **verified** | Pointer `glass-arch.spec.ts`; physics fixture in `physics-launch.spec.ts` |
 | R04 Support collapse | **verified** | Gauntlet: blocks unpin/break after first pointer shot |
-| R05 Misleading tests | **verified** | Pointer gauntlet; debug only in `physics-launch` / `glass-arch` |
+| R05 Misleading tests | **verified** | Player e2e pointer-only; debug hooks only in `physics-launch.spec.ts` |
 | R06 Victory assertion | **verified** | Exact `Victory!` heading |
 | R07 Level reset | **verified** | `lifecycle.spec.ts` level-select |
 | R08 HUD live updates | **verified** | `tests/e2e/hud.spec.ts` (pointer); `debugSnapshot.score` |
@@ -50,7 +50,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
 | B06–B13 | open/partial | No CCD suite; level-layout validator (B12 partial) |
-| C01–C08 | partial | Monotonic unit test; full sweep **open** |
+| C01–C08 | partial | 20-point monotonic `launchCurve.test.ts`; preview/live compare **open** |
 | D01 | partial | Portrait center; multi-viewport e2e partial |
 | D02–D05 | open | Camera beats, pan/zoom gestures |
 | E01 | **done** | `docs/ART_SPEC.md` |
@@ -71,12 +71,12 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass
 npm test           → 10 pass (6 files)
-npx playwright test tests/e2e → 16/16 pass (desktop + mobile)
+npx playwright test tests/e2e → 18/18 pass (desktop + mobile)
 ```
 
 ## Next actions
 
-1. Gate 1: 20-point pull sweep test; pointer-based Glass Arch win (replace dev-only R03 path).
+1. Gate 1: trajectory preview vs live comparison test; multi-Hz input sampling.
 2. Gate 2: E04–E08 character/material pass; G listening notes; D02 camera beats.
 3. Gate 3: I02 four bots + level authoring pipeline after slice sign-off.
 
