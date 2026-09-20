@@ -55,14 +55,15 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B09 | partial | Material thresholds in `config`; `material-damage.test.ts` |
 | B06–B08,B10–B11,B13 | open | No CCD suite |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
-| C03 | partial | Active pointer ID; secondary touch ignored; `sling-secondary-pointer.spec.ts` |
+| C03 | partial | Active pointer + secondary ignore; fort-side pan / wheel zoom (`camera-inspect.spec.ts`) |
 | C01 | partial | 20-point monotonic pull in `launchCurve.test.ts` |
 | C02 | partial | Preview vs snap documented in `sling-preview-snap.test.ts` + trajectory parity |
 | C05–C08 | partial | Trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
 | D01 | partial | Portrait center; `viewports.spec.ts` NDC framing |
 | D05 | partial | Five target sizes in `viewports.spec.ts` (390–1920) |
 | D02 | partial | Reveal + destruction hold + `returnToSlingFraming` after shot |
-| D03–D05 | open | Pan/zoom gestures, bounds polish |
+| D04 | partial | Deliberate pan/zoom without launch; inspect reset on level load / sling return |
+| D03,D05 | open | Bounds polish |
 | E01 | **done** | `docs/ART_SPEC.md` |
 | E02 | **done** | `groundCrossSection.ts` |
 | E03 | partial | Softer parallax hills (spheres, lower contrast) |
@@ -102,8 +103,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass (2026-09-20)
 npm test           → 38 pass (19 files)
-npx playwright test tests/e2e → 51 passed, 1 skipped (52 specs @ `4d5a217`)
-npm run gauntlet       → PASS (2026-09-20; ~8.4m; physics fixture stable)
+npx playwright test tests/e2e → 54 passed, 2 skipped (56 specs; camera-inspect)
+npm run gauntlet       → PASS (2026-09-20; ~9.3m)
 ```
 
 ## Next actions
