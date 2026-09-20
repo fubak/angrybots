@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; `ballistic-hz.test.ts` (30/60/120 step parity); full Hz soak open |
 | **2** Three-level quality slice | **started** | E01–E02 done; F01 pig threat + D02 sling return partial; G notes inventory |
 | **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
-| **4** Production reliability | **in progress** | CI + **68** e2e pass / 2 skip; disposal vitest; physics fixture resolve stable |
+| **4** Production reliability | **in progress** | CI + **70** e2e pass / 2 skip (72 specs); disposal vitest; physics fixture resolve stable |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -107,10 +107,10 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 50 pass (26 files)
+npm test           → 51 pass (26 files)
 npm run build      → pass (in CI + gauntlet script)
-npx playwright test tests/e2e → 68 passed, 2 skipped (70 specs)
-npm run gauntlet       → PASS (2026-09-20; ~13.6m incl. build; 68 e2e pass / 2 skip)
+npx playwright test tests/e2e → 70 passed, 2 skipped (72 specs)
+npm run gauntlet       → PASS (2026-09-20; ~14.5m incl. build; 70 e2e pass / 2 skip)
 ```
 
 ## Next actions
