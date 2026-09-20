@@ -10,7 +10,7 @@
 
 | Gate | State | Notes |
 |------|--------|--------|
-| **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
+| **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; `ballistic-hz.test.ts` (30/60/120 step parity); full Hz soak open |
 | **2** Three-level quality slice | **started** | E01–E02 done; F01 pig threat + D02 sling return partial; G notes inventory |
 | **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
 | **4** Production reliability | **in progress** | CI + 52 e2e; disposal vitest; physics fixture no longer early-resets resolve |
@@ -42,7 +42,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | ID | Status | Notes / evidence |
 |----|--------|------------------|
 | A01 | partial | Explicit `GameState` + sling phases; not fully isolated from render |
-| A02 | partial | Shot consumption in sling; `ammunition.test.ts` + debug launch shot delta e2e |
+| A02 | partial | `inputGate` blocks aim at 0 shots; `ammunition-exhaustion.spec.ts` + vitest |
 | A03 | partial | `resolving` + `sceneHasMeaningfulMotion`; `scene-quiescence.test.ts` |
 | A04 | partial | Win after pig clear; chain win path e2e on Training Yard |
 | A05 | partial | Win/loss **Retry** resets fort + ammo; pause/level-select; win input guard (`lifecycle.spec.ts`) |
@@ -56,7 +56,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B09 | partial | Material thresholds in `config`; `material-damage.test.ts` |
 | B06–B08,B10–B11,B13 | open | No CCD suite |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
-| C03 | partial | Active pointer + secondary ignore; fort-side pan / wheel zoom (`camera-inspect.spec.ts`) |
+| C03 | partial | Secondary ignore; pan / wheel / pinch inspect (`camera-inspect.spec.ts`) |
 | C01 | partial | 20-point monotonic pull in `launchCurve.test.ts` |
 | C02 | partial | Preview vs snap documented in `sling-preview-snap.test.ts` + trajectory parity |
 | C05–C08 | partial | Trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
@@ -104,8 +104,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 42 pass (21 files)
-npx playwright test tests/e2e → 61 passed, 2 skipped (63 specs; grok tutorial + next level)
+npm test           → 43 pass (22 files)
+npx playwright test tests/e2e → 64 passed, 2 skipped (66 specs; A02 exhaustion + pinch)
 npm run gauntlet       → PASS (2026-09-20; ~13.3m; 61 e2e pass / 2 skip)
 ```
 
