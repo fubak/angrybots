@@ -103,10 +103,10 @@ Primary files: src/systems/CameraRig.ts, src/Game.ts, src/style.css.
 - [ ] E02: Replace the edge-on terrain with a continuous illustrated ground cross-section: grass rim, earth body, readable surface contact, and decorative foreground details. Align visible surfaces with colliders.
 - [ ] E03: Replace dominant triangular hills and faceted clouds with composed, softer background layers. Reduce background contrast and detail so targets, beams, and the bot remain the focal points.
 - [ ] E04: Rework the Grok bot into a recognizable character at actual gameplay size: strong silhouette, readable eyes, expressive face, controlled highlights, and consistent proportions. The current dark sphere loses detail.
-- [ ] E05: Improve target faces, silhouettes, damage appearance, and placement. Resolve mesh overlap and strange shading so damage states are understandable at phone scale.
+- [ ] E05: Improve target faces, silhouettes, damage appearance, and placement. Resolve mesh overlap and strange shading so damage states are understandable at phone scale. *(partial: pig silhouette rim + eye contrast)*
 - [ ] E06: Create a coherent material kit: proportioned wooden beams/end grain, stone blocks, glass edges/cracks, and unmistakable explosive crates. Include healthy, damaged, and breaking states. Avoid uniform texture stamps and generic color changes as the whole damage language. *(partial: tiled wood + procedural stone/glass/TNT surfaces)*
 - [ ] E07: Build a polished slingshot/pouch, bot queue, terrain props, and chapter themes. Ensure these share the same art style rather than mixing realistic tiles with primitive low-poly props.
-- [ ] E08: Tune lighting, color management, contact shadows, and contrast. Keep the cartoon image bright and legible; avoid crushed black faces and shadows that obscure expressions.
+- [ ] E08: Tune lighting, color management, contact shadows, and contrast. Keep the cartoon image bright and legible; avoid crushed black faces and shadows that obscure expressions. *(partial: hemi/sun/fill + exposure pass)*
 - [ ] E09: Establish an asset manifest, consistent dimensions, naming, source/license records, compression, and caching. Use sprites/atlases or stylized meshes where appropriate; choose by final appearance and performance.
 
 Acceptance: Review idle, aiming, impact, destruction, and results frames at native desktop and phone sizes. Identify every material and character without zooming. No visible prototype assets, accidental seams, clipping, stretched textures, or mismatched styles in the quality slice.
@@ -125,7 +125,7 @@ Acceptance: Effects explain cause and consequence without hiding the next target
 ## G. Sound and music — P1
 
 - [ ] G01: Define an audio palette and cue list. Audition the existing synthesized effects before deciding which to retain; evaluate character and material identity, not merely whether a cue plays.
-- [ ] G02: Add sling grab, tension/creak, cancel, snap, flight, ground bounce, and bot voice cues. Tension should vary smoothly with pull.
+- [ ] G02: Add sling grab, tension/creak, cancel, snap, flight, ground bounce, and bot voice cues. Tension should vary smoothly with pull. *(partial: `slingCancel` + bucketed `slingTension`; listen unverified)*
 - [ ] G03: Supply distinct light/heavy impact, scrape, crack, and break variations for wood/glass/stone; add TNT ignition/explosion/tail. Use several variations with restrained random pitch and volume.
 - [ ] G04: Add target idle/reaction/damage/defeat voices and bot anticipation/impact/celebration. Character sounds should create personality rather than reading as interchangeable beeps.
 - [ ] G05: Add appropriate menu/game ambience, optional music, button feedback, scoring ticks, star reveals, victory, and defeat cues.
