@@ -25,6 +25,42 @@ export class AudioSystem {
     if (c.state === 'suspended') void c.resume();
   }
 
+  /** Aim cancelled — soft rubber relax (distinct from release). */
+  slingCancel() {
+    const c = this.ensure();
+    const t = c.currentTime;
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(95, t + 0.12);
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.055, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    osc.connect(g);
+    g.connect(this.out());
+    osc.start(t);
+    osc.stop(t + 0.15);
+  }
+
+  /** Stretch cue while drawing (sparse buckets to avoid spam). */
+  slingTension(tension01: number) {
+    const c = this.ensure();
+    const t = c.currentTime;
+    const p = Math.min(Math.max(tension01, 0), 1);
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(90 + p * 110, t);
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.028 + p * 0.035, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    osc.connect(g);
+    g.connect(this.out());
+    osc.start(t);
+    osc.stop(t + 0.1);
+  }
+
   /** Slingshot release: rubber snap + rising whoosh. */
   launch(power = 1) {
     const c = this.ensure();

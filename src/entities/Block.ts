@@ -155,6 +155,9 @@ export class Block {
       mat.color.copy(this.splinterColor).lerp(this.healthyColor, t);
     } else if (this.materialType === 'explosive') {
       mat.emissiveIntensity = 0.28 + (1 - t) * 0.55 + Math.sin(performance.now() * 0.008) * 0.08;
+    } else if (this.materialType === 'stone') {
+      this.mesh.scale.setScalar(0.97 + t * 0.03);
+      mat.color.copy(this.splinterColor).lerp(this.healthyColor, t);
     } else {
       this.mesh.scale.setScalar(0.99 + t * 0.01);
     }

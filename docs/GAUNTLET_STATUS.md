@@ -51,17 +51,20 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B05 | partial | `enforcePlanarMotion` |
 | B06–B13 | open/partial | No CCD suite; level-layout validator (B12 partial) |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
-| C01–C03,C05–C08 | partial | Monotonic sweep, Cannon trajectory, `launch-preview.spec.ts`; `pointerTiming.ts` + Hz unit tests (C08); pouch/cancel-near-perch (C03/C04 partial) |
+| C01–C03,C05–C08 | partial | Monotonic sweep, Cannon trajectory, `launch-preview.spec.ts`; `pointerTiming.ts` + Hz unit tests (C08); active pointer + `lostpointercapture` cancel (C03 partial) |
 | D01 | partial | Portrait center; multi-viewport e2e partial |
 | D02–D05 | open | Camera beats, pan/zoom gestures |
 | E01 | **done** | `docs/ART_SPEC.md` |
 | E02 | **done** | `groundCrossSection.ts` |
 | E03 | partial | Softer parallax hills (spheres, lower contrast) |
 | E04 | partial | Grok shell contrast/emissive tuned (readable sphere) |
-| E06 | partial | Stone/glass canvas kit in `abTextures.ts`; wood/TNT tiles; damage states **open** |
-| E05,E07–E09 | open | Pig faces, sling polish, lighting pass, manifest |
+| E05 | partial | Pig silhouette rim + brighter eyes (phone readability) |
+| E06 | partial | Stone/glass kit + stone/wood HP color lerp |
+| E08 | partial | Brighter hemi/sun/fill + exposure 1.12 |
+| E07,E09 | open | Sling mesh polish, asset manifest |
 | F01–F06 | open | Juice burst clones material (F04 partial) |
-| G01–G08 | open | Synth audio only; listening **unverified** |
+| G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
+| G04–G08 | open | Sample assets, mix buses, mute persistence; listen **unverified** |
 | H01–H07 | partial | Stars, progress, flow overlay |
 | I01 | partial | Level registry data-driven |
 | I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
@@ -81,8 +84,8 @@ npm run gauntlet       → PASS (2026-09-20)
 
 ## Next actions
 
-1. Gate 1: cancel-near-perch (C04 remainder); C03 pointer capture matrix; remaining A/B scenario matrix.
-2. Gate 2: E04–E08 character/material pass; G listening notes; D02 camera beats.
+1. Gate 1: C03 secondary-touch matrix; remaining A/B scenario tests.
+2. Gate 2: E07 sling art; fill `AUDIO_LISTENING_NOTES.md`; D02 camera beats.
 3. Gate 3: I02 four bots + level authoring pipeline after slice sign-off.
 
 ## Explicitly unverified

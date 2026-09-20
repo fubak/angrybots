@@ -30,6 +30,9 @@ const _v3c = new THREE.Vector3();
 
 export class SlingSystem {
   phase: SlingPhase = 'ready';
+  onAimCancelled?: () => void;
+  onAimTension?: (tension01: number) => void;
+  private tensionCueBucket = 0;
   /** World offset from anchor; at rest equals perch offset. */
   pull = new THREE.Vector2(SLING_PERCH_OFFSET.x, SLING_PERCH_OFFSET.y);
   readonly anchor = new THREE.Vector3(
@@ -248,7 +251,7 @@ export class SlingSystem {
       } catch {
         /* ok */
       }
-      this.resetPull();
+      this.resetPull(true);
     };
 
     const release = (e: PointerEvent) => {
@@ -276,11 +279,12 @@ export class SlingSystem {
         this.bandRecoil = 1;
         this.phase = 'coiling';
       } else {
-        this.resetPull();
+        this.resetPull(true);
       }
     };
     canvas.addEventListener('pointerup', release);
     canvas.addEventListener('pointercancel', cancelDrag);
+    canvas.addEventListener('lostpointercapture', cancelDrag);
   }
 
   /** Displacement from perch — zero when bird sits on the fork. */
@@ -436,9 +440,12 @@ export class SlingSystem {
     lineMat.opacity = 0.45 + t * 0.35;
   }
 
-  resetPull() {
+  resetPull(userCancelled = false) {
+    const wasAiming = this.phase === 'aiming';
     this.pull.set(this.perchOffset.x, this.perchOffset.y);
     this.phase = 'ready';
+    this.tensionCueBucket = 0;
+    if (userCancelled && wasAiming) this.onAimCancelled?.();
     this.trajectory.visible = false;
     this.trajectoryOutline.visible = false;
     this.trajectoryLine.visible = false;
@@ -548,6 +555,13 @@ export class SlingSystem {
 
     this.pull.set(effX + this.perchOffset.x, effY + this.perchOffset.y);
     this.phase = 'aiming';
+
+    const tension = clamp(newLen / SLING_MAX_PULL, 0, 1);
+    const bucket = Math.min(3, Math.floor(tension * 4));
+    if (bucket > this.tensionCueBucket && tension >= 0.22) {
+      this.tensionCueBucket = bucket;
+      this.onAimTension?.(tension);
+    }
   }
 
   /** Keep stretch in the backward arc (away from structure, +X is forward). */

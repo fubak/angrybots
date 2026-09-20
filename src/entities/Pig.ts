@@ -42,17 +42,22 @@ export class Pig {
     this.restQuat.copy(this.body.quaternion);
     world.addBody(this.body);
 
-    const bodyMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(r, 24, 24),
-      new THREE.MeshStandardMaterial({
-        color: 0x6ecf5a,
-        roughness: 0.58,
-        emissive: 0x1a5010,
-        emissiveIntensity: 0.12,
-      })
-    );
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x6ecf5a,
+      roughness: 0.52,
+      emissive: 0x245018,
+      emissiveIntensity: 0.18,
+    });
+    const bodyMesh = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 24), bodyMat);
     bodyMesh.castShadow = true;
     this.group.add(bodyMesh);
+    const silhouette = new THREE.Mesh(
+      new THREE.SphereGeometry(r * 1.045, 20, 20),
+      new THREE.MeshBasicMaterial({ color: 0x1a4010 })
+    );
+    silhouette.scale.set(1, 1, 0.55);
+    silhouette.renderOrder = -1;
+    this.group.add(silhouette);
 
     const earMat = new THREE.MeshStandardMaterial({
       color: 0x5fc04a,
@@ -91,7 +96,7 @@ export class Pig {
     const eyeWhiteMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       emissive: 0xffffff,
-      emissiveIntensity: 0.15,
+      emissiveIntensity: 0.32,
     });
     const pupilMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
     for (const sx of [-0.2, 0.2] as const) {

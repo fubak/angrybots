@@ -118,10 +118,12 @@ export class Game {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.toneMappingExposure = 1.12;
     container.appendChild(this.renderer.domElement);
 
     this.sling = new SlingSystem(this.scene, this.camera);
+    this.sling.onAimCancelled = () => this.audio.slingCancel();
+    this.sling.onAimTension = (t) => this.audio.slingTension(t);
     this.sling.bind(this.renderer.domElement);
     this.cameraRig = new CameraRig(this.camera);
     this.juice = new JuiceSystem(this.scene);
@@ -200,9 +202,9 @@ export class Game {
   }
 
   private setupLights() {
-    const hemi = new THREE.HemisphereLight(0xb8dcff, 0x4a8a3a, 0.42);
+    const hemi = new THREE.HemisphereLight(0xc8e8ff, 0x5a9a48, 0.5);
     this.scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xfff4e8, 1.28);
+    const sun = new THREE.DirectionalLight(0xfff6ee, 1.38);
     sun.position.set(-4, 8, 18);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
@@ -211,7 +213,7 @@ export class Game {
     sun.shadow.camera.top = 15;
     sun.shadow.camera.bottom = -5;
     this.scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xc8e0ff, 0.22);
+    const fill = new THREE.DirectionalLight(0xd4e8ff, 0.28);
     fill.position.set(10, 6, 14);
     this.scene.add(fill);
     const rim = new THREE.DirectionalLight(0xffddbb, 0.18);
