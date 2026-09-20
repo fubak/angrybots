@@ -1,23 +1,39 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
+import type { MaterialRegistry } from '../physics/materials';
+import { enforcePlanarMotion } from '../physics/planar';
+import { clamp } from '../math';
 
 export class Pig {
   readonly group = new THREE.Group();
   readonly body: CANNON.Body;
   dead = false;
-  /** Sleeping at nest pose until the Grok bot strikes this pig. */
+  private popTime = 0;
+  private popDuration = 0.95;
+  private popActive = false;
+  private popDone = false;
+  private readonly popOrigin = new THREE.Vector3();
+  /** Static at nest pose until struck by the bot or falling debris. */
   private anchored = true;
+  private readonly dynamicMass: number;
   private readonly restPos = new CANNON.Vec3();
   private readonly restQuat = new CANNON.Quaternion();
   readonly radius = 0.55;
 
-  constructor(world: CANNON.World, scene: THREE.Scene, x: number, y: number) {
+  constructor(
+    world: CANNON.World,
+    scene: THREE.Scene,
+    x: number,
+    y: number,
+    materials: MaterialRegistry
+  ) {
     const r = this.radius;
     this.body = new CANNON.Body({
       mass: 1.5,
       shape: new CANNON.Sphere(r),
-      material: new CANNON.Material('pig'),
+      material: materials.pig,
     });
+    this.dynamicMass = this.body.mass;
     this.body.position.set(x, y, 0);
     this.restPos.set(x, y, 0);
     this.restQuat.copy(this.body.quaternion);
@@ -106,7 +122,7 @@ export class Pig {
     this.restQuat.copy(this.body.quaternion);
     this.body.velocity.set(0, 0, 0);
     this.body.angularVelocity.set(0, 0, 0);
-    this.body.sleep();
+    this.body.type = CANNON.Body.STATIC;
   }
 
   wakeFromBotHit() {
@@ -116,6 +132,9 @@ export class Pig {
   forceWake() {
     if (!this.anchored) return;
     this.anchored = false;
+    this.body.type = CANNON.Body.DYNAMIC;
+    this.body.mass = this.dynamicMass;
+    this.body.updateMassProperties();
     this.body.wakeUp();
   }
 
@@ -131,9 +150,78 @@ export class Pig {
     return this.anchored;
   }
 
-  sync() {
+  private bodyRemovalQueued = false;
+
+  beginDefeatPop() {
     if (this.dead) return;
+    this.dead = true;
+    this.popActive = true;
+    this.popTime = this.popDuration;
+    this.popOrigin.set(
+      this.body.position.x,
+      this.body.position.y,
+      this.body.position.z
+    );
+    this.bodyRemovalQueued = true;
+  }
+
+  consumeBodyRemovalQueue() {
+    if (!this.bodyRemovalQueued) return false;
+    this.bodyRemovalQueued = false;
+    return true;
+  }
+
+  isPopping() {
+    return this.popActive;
+  }
+
+  isDefeatVisualDone() {
+    return this.popDone;
+  }
+
+  updateDefeatPop(dt: number) {
+    if (!this.popActive) return;
+    this.popTime -= dt;
+    const u = 1 - clamp(this.popTime / this.popDuration, 0, 1);
+
+    let scale = 1;
+    if (u < 0.22) scale = 1 + (u / 0.22) * 0.45;
+    else if (u < 0.55) scale = 1.45 - ((u - 0.22) / 0.33) * 0.95;
+    else scale = 0.5 - ((u - 0.55) / 0.45) * 0.28;
+
+    this.group.position.set(
+      this.popOrigin.x,
+      this.popOrigin.y + Math.sin(u * Math.PI) * 0.12,
+      this.popOrigin.z
+    );
+    this.group.rotation.z += dt * (6 + u * 4);
+    this.group.scale.set(scale, Math.max(scale * 0.65, 0.15), scale);
+
+    const fade =
+      u < 0.7 ? 1 : 1 - ((u - 0.7) / 0.3) * 0.35;
+    this.group.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh)) return;
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const m of mats) {
+        if (!('opacity' in m)) continue;
+        const std = m as THREE.MeshStandardMaterial;
+        std.transparent = true;
+        std.opacity = fade;
+      }
+    });
+
+    if (this.popTime <= 0) {
+      this.popActive = false;
+      this.popDone = true;
+      this.group.scale.set(0.42, 0.22, 0.42);
+      this.group.rotation.z = 0;
+    }
+  }
+
+  sync() {
+    if (this.dead || this.popActive) return;
     this.pinIfAnchored();
+    enforcePlanarMotion(this.body);
     this.group.position.copy(this.body.position as unknown as THREE.Vector3);
     this.group.quaternion.copy(this.body.quaternion as unknown as THREE.Quaternion);
   }
@@ -141,5 +229,13 @@ export class Pig {
   dispose(world: CANNON.World, scene: THREE.Scene) {
     world.removeBody(this.body);
     scene.remove(this.group);
+    this.group.traverse((obj) => {
+      if (obj instanceof THREE.Mesh) {
+        obj.geometry.dispose();
+        const m = obj.material;
+        if (Array.isArray(m)) m.forEach((mat) => mat.dispose());
+        else m.dispose();
+      }
+    });
   }
 }

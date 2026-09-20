@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { clamp, damp } from '../math';
+import type { MaterialRegistry } from '../physics/materials';
+import { enforcePlanarMotion } from '../physics/planar';
 
 export type GrokMood = 'idle' | 'aim' | 'fly' | 'hit';
 
@@ -33,13 +35,13 @@ export class GrokBot {
   private animTime = 0;
   private lookDir = new THREE.Vector2(0, 0);
 
-  constructor(world: CANNON.World) {
+  constructor(world: CANNON.World, materials: MaterialRegistry) {
     this.body = new CANNON.Body({
       mass: 1.2,
       shape: new CANNON.Sphere(RADIUS),
       linearDamping: 0.02,
       angularDamping: 0.08,
-      material: new CANNON.Material('grok'),
+      material: materials.grok,
     });
     this.body.position.set(-8.05, 2.35, 0);
     this.body.collisionResponse = true;
@@ -201,6 +203,7 @@ export class GrokBot {
 
   update(dt: number, camera?: THREE.Camera) {
     this.animTime += dt;
+    enforcePlanarMotion(this.body);
     this.group.position.copy(this.body.position as unknown as THREE.Vector3);
     this.rotator.quaternion.copy(
       this.body.quaternion as unknown as THREE.Quaternion

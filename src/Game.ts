@@ -7,27 +7,32 @@ import { PhysicsWorld } from './systems/PhysicsWorld';
 import { SlingSystem } from './systems/SlingSystem';
 import { CameraRig } from './systems/CameraRig';
 import { JuiceSystem } from './systems/JuiceSystem';
+import { DebrisSystem } from './systems/DebrisSystem';
 import { AudioSystem } from './systems/AudioSystem';
-import { LEVEL_1, blockVector } from './levels/level1';
+import { blockVector } from './levels/level1';
+import { LEVELS, nextLevelId } from './levels/registry';
+import type { LevelDef } from './levels/types';
 import {
   GROK_BOT_RADIUS,
   MATERIAL,
+  PORTRAIT_FRUSTUM_HEIGHT,
   SLING_ANCHOR,
   SIDE_VIEW,
   type BlockMaterial,
 } from './config';
 import { clamp } from './math';
 import { grassMaterial, loadAbTextures } from './visuals/abTextures';
-
-function blockAtBody(blocks: Block[], body: CANNON.Body): Block | undefined {
-  return blocks.find((b) => !b.dead && b.body === body);
-}
-
-function pigAtBody(pigs: Pig[], body: CANNON.Body): Pig | undefined {
-  return pigs.find((p) => !p.dead && p.body === body);
-}
-
-const MAX_SHOTS = 3;
+import {
+  bindBodyContacts,
+  beginContactFrame,
+  type ContactContext,
+} from './game/ContactSystem';
+import { canAim, isTerminal, type GameState } from './game/GameState';
+import { sceneHasMeaningfulMotion } from './game/SceneQuiescence';
+import { computeScore, starsForScore } from './game/Scoring';
+import { loadProgress, recordLevelResult } from './game/ProgressStore';
+import { applyImpulseAtCenter } from './physics/planar';
+import { FlowOverlay } from './ui/FlowOverlay';
 
 type ParallaxLayer = {
   root: THREE.Object3D;
@@ -43,16 +48,24 @@ export class Game {
   private sling: SlingSystem;
   private cameraRig: CameraRig;
   private juice: JuiceSystem;
+  private debris: DebrisSystem;
   private audio = new AudioSystem();
   private bot: GrokBot;
   private blocks: Block[] = [];
   private pigs: Pig[] = [];
   private hud: HTMLElement;
+  private gameState: GameState = 'title';
+  private levelDef: LevelDef = LEVELS[0];
+  private maxShots = 3;
   private settledTimer = 0;
+  private resolveTimer = 0;
   private shotsLeft = 3;
-  private won = false;
-  private pendingBlockRemovals: Block[] = [];
-  private pendingPigRemovals: Pig[] = [];
+  private shotsConsumed = 0;
+  private score = 0;
+  private blocksBroken = 0;
+  private pigsCleared = 0;
+  private pendingExplosions = 0;
+  private explosiveDetonated = new Set<Block>();
   private launchedThisShot = false;
   /** Suppress spawn settle from triggering break/damage logic. */
   private structureWarmup = 1.8;
@@ -62,15 +75,18 @@ export class Game {
   private lastFlightPeakX: number | null = null;
   private parallax: ParallaxLayer[] = [];
   private readonly cameraHomeX = SIDE_VIEW.centerX;
-  private readonly pigGoal = LEVEL_1.pigs.length;
+  private pigGoal = 0;
+  private overlay: FlowOverlay;
+  private contactCtx!: ContactContext;
+  private readonly mount: HTMLElement;
 
   constructor(container: HTMLElement) {
+    this.mount = container;
     this.scene.background = this.makeSkyGradient();
     // Side camera sits at z≈42; linear fog near 22–48 washed the whole playfield.
     this.scene.fog = null;
 
-    const aspect = window.innerWidth / window.innerHeight;
-    const fh = SIDE_VIEW.frustumHeight;
+    const { w, h, fh, aspect } = this.viewportMetrics();
     this.camera = new THREE.OrthographicCamera(
       (-fh * aspect) / 2,
       (fh * aspect) / 2,
@@ -85,9 +101,12 @@ export class Game {
       SIDE_VIEW.cameraZ
     );
     this.camera.lookAt(SIDE_VIEW.centerX, SIDE_VIEW.centerY, 0);
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance',
+    });
+    this.renderer.setPixelRatio(this.effectivePixelRatio());
+    this.renderer.setSize(w, h, false);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -99,27 +118,62 @@ export class Game {
     this.sling.bind(this.renderer.domElement);
     this.cameraRig = new CameraRig(this.camera);
     this.juice = new JuiceSystem(this.scene);
+    this.debris = new DebrisSystem();
 
     loadAbTextures();
     this.setupLights();
     this.setupParallax();
     this.setupEnvironment();
-    this.buildLevel();
-    this.lockCastle();
-    this.bot = new GrokBot(this.physics.world);
+    this.bot = new GrokBot(this.physics.world, this.physics.materials);
     this.scene.add(this.bot.group);
-    this.physics.setupMaterials(this.blocks, this.pigs);
     this.bindCollisions();
 
     this.hud = document.createElement('div');
     this.hud.id = 'hud';
     container.appendChild(this.hud);
-    this.updateHud();
+
+    this.overlay = new FlowOverlay(container, {
+      onStart: () => this.startPlay(),
+      onRetry: () => this.retryLevel(),
+      onNext: () => this.advanceLevel(),
+      onMenu: () => this.showLevelSelect(),
+      onPause: () => this.pauseGame(),
+      onResume: () => this.resumeGame(),
+    });
+    (this.overlay as unknown as { pickLevel?: (id: string) => void }).pickLevel =
+      (id: string) => {
+        const def = LEVELS.find((l) => l.id === id);
+        if (def) this.loadLevel(def);
+        this.startPlay();
+      };
+
+    this.loadLevel(this.levelDef);
+    this.gameState = 'title';
+    this.overlay.showTitle();
 
     window.addEventListener('resize', () => this.onResize());
-    this.renderer.domElement.addEventListener('pointerdown', () =>
-      this.audio.unlock()
-    );
+    window.visualViewport?.addEventListener('resize', () => this.onResize());
+    window.visualViewport?.addEventListener('scroll', () => this.onResize());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.gameState !== 'paused' && !isTerminal(this.gameState)) {
+        this.pauseGame();
+      }
+    });
+    this.renderer.domElement.addEventListener('pointerdown', () => {
+      this.audio.unlock();
+      if (this.overlay.isVisible() && this.gameState === 'title') {
+        this.startPlay();
+      }
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (this.gameState === 'paused') this.resumeGame();
+        else if (!isTerminal(this.gameState) && this.gameState !== 'title') {
+          this.pauseGame();
+        }
+      }
+    });
+    this.onResize();
   }
 
   private makeSkyGradient() {
@@ -303,8 +357,32 @@ export class Game {
     for (const p of this.pigs) p.lockPhysics();
   }
 
-  private buildLevel() {
-    for (const b of LEVEL_1.blocks) {
+  private clearLevelEntities() {
+    for (const b of this.blocks) b.dispose(this.physics.world, this.scene);
+    for (const p of this.pigs) p.dispose(this.physics.world, this.scene);
+    this.blocks = [];
+    this.pigs = [];
+    this.debris.clear(this.physics.world, this.scene);
+    this.explosiveDetonated.clear();
+  }
+
+  loadLevel(def: LevelDef) {
+    this.clearLevelEntities();
+    this.levelDef = def;
+    this.maxShots = def.shots;
+    this.shotsLeft = def.shots;
+    this.shotsConsumed = 0;
+    this.pigGoal = def.pigs.length;
+    this.score = 0;
+    this.blocksBroken = 0;
+    this.pigsCleared = 0;
+    this.playerHasShot = false;
+    this.structureWarmup = 1.8;
+    this.gameState = 'ready';
+    this.sling.resetPull();
+    this.sling.phase = 'ready';
+
+    for (const b of def.blocks) {
       const { size, pos, rot } = blockVector(b);
       this.blocks.push(
         new Block(
@@ -313,13 +391,134 @@ export class Game {
           b.material,
           size,
           pos,
-          rot
+          rot,
+          this.physics.materials
         )
       );
     }
-    for (const [x, y] of LEVEL_1.pigs) {
-      this.pigs.push(new Pig(this.physics.world, this.scene, x, y));
+    for (const [x, y] of def.pigs) {
+      this.pigs.push(
+        new Pig(this.physics.world, this.scene, x, y, this.physics.materials)
+      );
     }
+    this.lockCastle();
+    this.rebindStructureContacts();
+    this.resetBotToSlingshot();
+    this.updateHud();
+  }
+
+  private rebindStructureContacts() {
+    for (const b of this.blocks) bindBodyContacts(b.body, this.contactCtx);
+    for (const p of this.pigs) bindBodyContacts(p.body, this.contactCtx);
+  }
+
+  private startPlay() {
+    this.overlay.hide();
+    this.gameState = 'ready';
+    this.sling.phase = 'ready';
+    this.sling.resetPull();
+    this.onResize();
+    this.updateHud();
+  }
+
+  private viewportMetrics() {
+    const vv = window.visualViewport;
+    const w = Math.max(
+      1,
+      Math.floor(vv?.width ?? this.mount.clientWidth)
+    );
+    const h = Math.max(
+      1,
+      Math.floor(vv?.height ?? this.mount.clientHeight)
+    );
+    const portrait = h > w;
+    const fh = portrait ? PORTRAIT_FRUSTUM_HEIGHT : SIDE_VIEW.frustumHeight;
+    const aspect = w / h;
+    return { w, h, fh, aspect, portrait };
+  }
+
+  private effectivePixelRatio() {
+    return Math.min(window.devicePixelRatio || 1, 2.5);
+  }
+
+  private pauseGame() {
+    if (isTerminal(this.gameState) || this.gameState === 'title') return;
+    this.gameState = 'paused';
+    this.sling.resetPull();
+    this.overlay.showPaused();
+  }
+
+  private resumeGame() {
+    if (this.gameState !== 'paused') return;
+    this.overlay.hide();
+    this.gameState = this.sling.phase === 'flying' ? 'flying' : 'ready';
+    this.sling.phase = this.gameState === 'flying' ? 'flying' : 'ready';
+  }
+
+  private retryLevel() {
+    this.overlay.hide();
+    this.loadLevel(this.levelDef);
+  }
+
+  private advanceLevel() {
+    const next = nextLevelId(this.levelDef.id);
+    if (!next) {
+      this.showLevelSelect();
+      return;
+    }
+    const def = LEVELS.find((l) => l.id === next);
+    if (def) this.loadLevel(def);
+    this.overlay.hide();
+    this.gameState = 'ready';
+  }
+
+  private showLevelSelect() {
+    const save = loadProgress();
+    this.overlay.showLevelSelect(
+      LEVELS.map((l) => ({
+        id: l.id,
+        name: l.name,
+        unlocked: save.levels[l.id]?.unlocked ?? l.id === 'training-yard',
+        stars: save.levels[l.id]?.stars ?? 0,
+      })),
+      this.levelDef.id
+    );
+  }
+
+  private finishRound(won: boolean) {
+    this.gameState = won ? 'won' : 'lost';
+    const alive = this.pigs.filter((p) => !p.dead).length;
+    this.pigsCleared = this.pigGoal - alive;
+    const breakdown = computeScore(
+      this.pigsCleared,
+      this.blocksBroken,
+      won ? this.shotsLeft : 0
+    );
+    this.score = breakdown.total;
+    const stars = won
+      ? starsForScore(this.score, this.levelDef.starScores)
+      : 0;
+    if (won) {
+      recordLevelResult(
+        this.levelDef.id,
+        this.score,
+        stars,
+        nextLevelId(this.levelDef.id)
+      );
+    }
+    this.overlay.showResults({
+      won,
+      score: this.score,
+      stars,
+      hasNext: Boolean(nextLevelId(this.levelDef.id)),
+    });
+    this.updateHud();
+  }
+
+  private resetBotToSlingshot() {
+    const restX = this.sling.anchor.x + this.sling.perchOffset.x;
+    const restY = this.sling.anchor.y + this.sling.perchOffset.y;
+    this.bot.reset(new CANNON.Vec3(restX, restY, 0));
   }
 
   private audioImpactForMaterial(material: BlockMaterial, impulse: number) {
@@ -363,6 +562,7 @@ export class Game {
     );
 
     if (block.dead) {
+      this.blocksBroken += 1;
       this.breakBlock(block, hitPos, effectiveImpulse, chainFromBreak);
     }
   }
@@ -374,9 +574,25 @@ export class Game {
     skipChain = false
   ) {
     const wasExplosive = block.materialType === 'explosive';
-    this.pendingBlockRemovals.push(block);
+    this.debris.spawnFromBlock(
+      this.physics.world,
+      this.scene,
+      this.physics.materials,
+      {
+        materialType: block.materialType,
+        halfExtents: block.halfExtents,
+        position: block.body.position,
+        quaternion: block.body.quaternion,
+        linearVelocity: block.body.velocity,
+        angularVelocity: block.body.angularVelocity,
+        impulse,
+      }
+    );
+    block.retireFromPlay();
     block.playBreakJuice(this.juice, hitPos, impulse);
-    this.audio.breakBlock(block.materialType);
+    if (!wasExplosive) {
+      this.audio.breakBlock(block.materialType);
+    }
     this.cameraRig.addShake(
       block.materialType === 'glass'
         ? 0.28
@@ -387,7 +603,8 @@ export class Game {
             : 0.22
     );
 
-    if (wasExplosive) {
+    if (wasExplosive && !this.explosiveDetonated.has(block)) {
+      this.explosiveDetonated.add(block);
       this.detonateExplosive(hitPos);
     }
 
@@ -410,10 +627,11 @@ export class Game {
       );
       this.damageBlockFromHit(other, chainImpulse, otherPos, true);
 
+      other.forceWake();
       const push = chainImpulse * 0.08;
-      other.body.applyImpulse(
-        new CANNON.Vec3((dx / dist) * push, (dy / dist) * push, 0),
-        other.body.position
+      applyImpulseAtCenter(
+        other.body,
+        new CANNON.Vec3((dx / dist) * push, (dy / dist) * push, 0)
       );
       if (other.materialType === 'glass') {
         other.body.angularVelocity.z += (Math.random() - 0.5) * falloff * 4;
@@ -424,6 +642,7 @@ export class Game {
   /** AB-style TNT burst — wakes and shoves nearby bodies. */
   private detonateExplosive(center: THREE.Vector3) {
     const def = MATERIAL.explosive;
+    this.pendingExplosions += 1;
     this.audio.explosion();
     this.juice.burst(center, 0xff4400, 36);
     this.juice.burst(center, 0xffee88, 24);
@@ -431,10 +650,15 @@ export class Game {
 
     for (const block of this.blocks) {
       if (block.dead || block === undefined) continue;
-      const dx = block.body.position.x - center.x;
-      const dy = block.body.position.y - center.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist > def.blastRadius || dist < 0.02) continue;
+      let dx = block.body.position.x - center.x;
+      let dy = block.body.position.y - center.y;
+      let dist = Math.hypot(dx, dy);
+      if (dist > def.blastRadius) continue;
+      if (dist < 0.02) {
+        dx = 1;
+        dy = 0;
+        dist = 1;
+      }
       block.forceWake();
       const falloff = 1 - dist / def.blastRadius;
       const blastImpulse = def.blastImpulse * falloff;
@@ -444,9 +668,13 @@ export class Game {
         0
       );
       this.damageBlockFromHit(block, blastImpulse, pos, true);
-      block.body.applyImpulse(
-        new CANNON.Vec3((dx / dist) * blastImpulse * 0.12, (dy / dist) * blastImpulse * 0.12, 0),
-        block.body.position
+      applyImpulseAtCenter(
+        block.body,
+        new CANNON.Vec3(
+          (dx / dist) * blastImpulse * 0.12,
+          (dy / dist) * blastImpulse * 0.12,
+          0
+        )
       );
     }
 
@@ -458,31 +686,38 @@ export class Game {
       if (dist > def.blastRadius) continue;
       pig.forceWake();
       const falloff = 1 - dist / def.blastRadius;
-      pig.body.applyImpulse(
+      applyImpulseAtCenter(
+        pig.body,
         new CANNON.Vec3(
           (dx / dist) * def.blastImpulse * 0.14 * falloff,
           (dy / dist) * def.blastImpulse * 0.14 * falloff,
           0
-        ),
-        pig.body.position
+        )
       );
       if (def.blastImpulse * falloff > 8) {
         this.killPig(pig);
       }
     }
+    this.pendingExplosions = Math.max(0, this.pendingExplosions - 1);
   }
 
   private killPig(pig: Pig) {
     if (pig.dead) return;
-    pig.dead = true;
-    this.pendingPigRemovals.push(pig);
-    this.juice.burst(
-      new THREE.Vector3(pig.body.position.x, pig.body.position.y, 0),
-      0x6ecf5a,
-      20
-    );
+    const px = pig.body.position.x;
+    const py = pig.body.position.y;
+    pig.beginDefeatPop();
+    this.juice.burst(new THREE.Vector3(px, py, 0), 0x6ecf5a, 20);
+    this.juice.burst(new THREE.Vector3(px, py, 0), 0xffffff, 8);
     this.audio.pigPop();
     this.cameraRig.addShake(0.45);
+    const alive = this.pigs.filter((p) => !p.dead).length;
+    this.pigsCleared = this.pigGoal - alive;
+    const breakdown = computeScore(
+      this.pigsCleared,
+      this.blocksBroken,
+      this.shotsLeft
+    );
+    this.score = breakdown.total;
     this.updateHud();
   }
 
@@ -510,77 +745,13 @@ export class Game {
     for (const p of this.pigs) p.pinIfAnchored();
   }
 
-  private sphereBoxOverlap2D(
-    cx: number,
-    cy: number,
-    radius: number,
-    bx: number,
-    by: number,
-    hx: number,
-    hy: number
-  ): boolean {
-    const dx = Math.abs(cx - bx);
-    const dy = Math.abs(cy - by);
-    const closestX = Math.max(0, dx - hx);
-    const closestY = Math.max(0, dy - hy);
-    return closestX * closestX + closestY * closestY < radius * radius;
-  }
-
-  /** Cannon often misses fast sphere vs sleeping stack — overlap wake while flying. */
-  private resolveFlyingBotHits() {
-    if (
-      this.sling.phase !== 'flying' ||
-      !this.launchedThisShot ||
-      this.structureWarmup > 0
-    ) {
-      return;
+  private flushQueuedBodyRemovals() {
+    const world = this.physics.world;
+    for (const b of this.blocks) {
+      if (b.consumeBodyRemovalQueue()) world.removeBody(b.body);
     }
-    const bot = this.bot.body;
-    const hitRadius = GROK_BOT_RADIUS * 1.08;
-    const speed = bot.velocity.length();
-    if (speed < 1.4) return;
-    const bx = bot.position.x;
-    const by = bot.position.y;
-
-    for (const block of this.blocks) {
-      if (block.dead || !block.isAnchored()) continue;
-      const he = block.halfExtents;
-      const p = block.body.position;
-      if (
-        !this.sphereBoxOverlap2D(
-          bx,
-          by,
-          hitRadius,
-          p.x,
-          p.y,
-          he.x,
-          he.y
-        )
-      ) {
-        continue;
-      }
-      block.forceWake();
-      this.transferBotStrike(block.body);
-      this.bot.onImpact(Math.min(speed * 3.5, 18));
-      const strike = this.botStrikeImpulse(speed * 3.2);
-      this.damageBlockFromHit(
-        block,
-        strike,
-        new THREE.Vector3(p.x, p.y, p.z)
-      );
-    }
-
-    for (const pig of this.pigs) {
-      if (pig.dead || !pig.isAnchored()) continue;
-      const p = pig.body.position;
-      const pr = pig.radius;
-      const dx = bx - p.x;
-      const dy = by - p.y;
-      if (dx * dx + dy * dy > (hitRadius + pr) * (hitRadius + pr)) continue;
-      pig.forceWake();
-      this.transferBotStrike(pig.body);
-      const strike = this.botStrikeImpulse(speed * 3.2);
-      if (strike > 6.5) this.killPig(pig);
+    for (const p of this.pigs) {
+      if (p.consumeBodyRemovalQueue()) world.removeBody(p.body);
     }
   }
 
@@ -591,83 +762,56 @@ export class Game {
   }
 
   private bindCollisions() {
+    this.contactCtx = {
+      structureWarmup: 0,
+      botBody: this.bot.body,
+      blocks: this.blocks,
+      pigs: this.pigs,
+      onBotImpact: (impulse) => this.bot.onImpact(impulse),
+      onBotStrikeStructure: (_other, block, pig) => {
+        if (block) {
+          block.forceWake();
+          this.transferBotStrike(block.body);
+        }
+        if (pig) {
+          pig.forceWake();
+          this.transferBotStrike(pig.body);
+        }
+      },
+      onBlockDamage: (block, impulse, botHit) => {
+        const p = block.body.position;
+        const strike = this.botStrikeImpulse(impulse);
+        this.damageBlockFromHit(
+          block,
+          botHit ? strike : impulse,
+          new THREE.Vector3(p.x, p.y, p.z)
+        );
+      },
+      onPigStrike: (pig, impulse) => {
+        if (impulse > 5.5) this.killPig(pig);
+      },
+    };
+
+    bindBodyContacts(this.bot.body, this.contactCtx);
+
     this.physics.world.addEventListener('postStep', () => {
+      beginContactFrame();
+      this.contactCtx.structureWarmup = this.structureWarmup;
+      this.contactCtx.blocks = this.blocks;
+      this.contactCtx.pigs = this.pigs;
       if (this.structureWarmup > 0) return;
       for (const pig of this.pigs) {
         if (pig.dead || pig.isAnchored()) continue;
         if (pig.body.position.y < -1) this.killPig(pig);
       }
     });
-
-    this.physics.world.addEventListener(
-      'collisionStart',
-      (e: { bodyA: CANNON.Body; bodyB: CANNON.Body; contact: CANNON.ContactEquation }) => {
-        const { bodyA, bodyB, contact } = e;
-        const relVel = contact.getImpactVelocityAlongNormal();
-        if (relVel > 0) return;
-        const impulse = -relVel;
-        const botA = bodyA === this.bot.body;
-        const botB = bodyB === this.bot.body;
-        const botHit = botA || botB;
-
-        if (botHit && impulse > 2.5) {
-          this.bot.onImpact(impulse);
-        }
-
-        const strike = this.botStrikeImpulse(impulse);
-
-        if (botHit && this.structureWarmup <= 0) {
-          const other = botA ? bodyB : bodyA;
-          const hitBlock = blockAtBody(this.blocks, other);
-          const hitPig = pigAtBody(this.pigs, other);
-          if (hitBlock) {
-            hitBlock.forceWake();
-            this.transferBotStrike(hitBlock.body);
-          }
-          if (hitPig) {
-            hitPig.forceWake();
-            this.transferBotStrike(hitPig.body);
-          }
-        }
-
-        const blockA = blockAtBody(this.blocks, bodyA);
-        const blockB = blockAtBody(this.blocks, bodyB);
-
-        if (blockA && !blockA.isAnchored()) {
-          const p = blockA.body.position;
-          this.damageBlockFromHit(
-            blockA,
-            botHit ? strike : impulse,
-            new THREE.Vector3(p.x, p.y, p.z)
-          );
-        }
-        if (blockB && !blockB.isAnchored()) {
-          const p = blockB.body.position;
-          this.damageBlockFromHit(
-            blockB,
-            botHit ? strike : impulse,
-            new THREE.Vector3(p.x, p.y, p.z)
-          );
-        }
-
-        const pigA = pigAtBody(this.pigs, bodyA);
-        const pigB = pigAtBody(this.pigs, bodyB);
-        const pig = pigA ?? pigB;
-        if (
-          pig &&
-          botHit &&
-          !pig.isAnchored() &&
-          impulse > 6.5 &&
-          this.structureWarmup <= 0
-        ) {
-          this.killPig(pig);
-        }
-      }
-    );
   }
 
   private hudPhaseLabel(): string {
-    if (this.won) return 'Cleared';
+    if (this.gameState === 'won') return 'Level cleared';
+    if (this.gameState === 'lost') return 'Try again';
+    if (this.gameState === 'resolving') return 'Watching destruction…';
+    if (this.gameState === 'paused') return 'Paused';
     if (this.shotsLeft <= 0 && this.sling.phase !== 'flying') return 'Out of shots';
     switch (this.sling.phase) {
       case 'aiming':
@@ -684,15 +828,15 @@ export class Game {
   }
 
   private renderShotPips(): string {
-    const used = MAX_SHOTS - this.shotsLeft;
+    const used = this.maxShots - this.shotsLeft;
     let html = '';
-    for (let i = 0; i < MAX_SHOTS; i++) {
+    for (let i = 0; i < this.maxShots; i++) {
       const spent = i < used;
       const active =
         !spent &&
         i === used &&
         this.sling.phase !== 'flying' &&
-        !this.won &&
+        !isTerminal(this.gameState) &&
         this.shotsLeft > 0;
       const cls = spent ? 'spent' : active ? 'active' : 'ready';
       html += `<span class="shot-pip ${cls}" title="Launch ${i + 1}"></span>`;
@@ -702,57 +846,97 @@ export class Game {
 
   private updateHud() {
     const alive = this.pigs.filter((p) => !p.dead).length;
-    const cleared = this.pigGoal - alive;
     const phase = this.hudPhaseLabel();
     this.hud.innerHTML = `
-      <div class="hud-card">
-        <div class="hud-title">${LEVEL_1.name}</div>
-        <div class="hud-sub">${LEVEL_1.subtitle}</div>
-        <div class="hud-stats">
-          <div class="hud-stat">
-            <span class="hud-label">Launches</span>
-            <div class="shot-row">${this.renderShotPips()}</div>
-            <span class="hud-meta">${this.shotsLeft} of ${MAX_SHOTS} left</span>
-          </div>
-          <div class="hud-stat">
-            <span class="hud-label">Rival pigs</span>
-            <strong class="hud-value">${alive}</strong>
-            <div class="pig-bar" role="progressbar" aria-valuenow="${cleared}" aria-valuemin="0" aria-valuemax="${this.pigGoal}">
-              <div class="pig-bar-fill" style="width:${(cleared / this.pigGoal) * 100}%"></div>
-            </div>
-          </div>
-        </div>
-        <div class="hud-phase">${phase}</div>
-        <div class="hud-hint">Drag the Grok bot backward on the slingshot · <a href="/progress.html">Progress</a></div>
+      <div class="hud-bar">
+        <button type="button" class="hud-icon-btn" id="hud-pause" aria-label="Pause">⏸</button>
+        <div class="hud-bar-title">${this.levelDef.name}</div>
+        <div class="hud-bar-score">${this.score.toLocaleString()}</div>
+        <div class="shot-row compact">${this.renderShotPips()}</div>
+        <div class="hud-bar-pigs">🐷 ${alive}</div>
       </div>
+      <div class="hud-phase-chip">${phase}</div>
     `;
+    this.hud.querySelector('#hud-pause')?.addEventListener('click', () => {
+      if (!isTerminal(this.gameState)) this.pauseGame();
+    });
   }
 
   private onResize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const fh = SIDE_VIEW.frustumHeight;
-    const aspect = w / h;
+    const { w, h, fh, aspect } = this.viewportMetrics();
     this.camera.left = (-fh * aspect) / 2;
     this.camera.right = (fh * aspect) / 2;
     this.camera.top = fh / 2;
     this.camera.bottom = -fh / 2;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h);
+    const dpr = this.effectivePixelRatio();
+    this.renderer.setPixelRatio(dpr);
+    this.renderer.setSize(w, h, false);
+    const canvas = this.renderer.domElement;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+  }
+
+  /** Intro dismissed without Play leaves title + settled sling — unblock play. */
+  private reconcilePlayability() {
+    if (!this.overlay.isVisible() && this.gameState === 'title') {
+      this.gameState = 'ready';
+      this.sling.phase = 'ready';
+      this.sling.resetPull();
+    }
+    if (
+      this.shotsLeft > 0 &&
+      this.sling.phase === 'settled' &&
+      !isTerminal(this.gameState) &&
+      this.gameState !== 'paused' &&
+      this.gameState !== 'resolving' &&
+      !this.overlay.isVisible()
+    ) {
+      this.sling.phase = 'ready';
+      this.sling.resetPull();
+      this.gameState = 'ready';
+    }
   }
 
   private resetShot() {
-    const restX = this.sling.anchor.x + this.sling.perchOffset.x;
-    const restY = this.sling.anchor.y + this.sling.perchOffset.y;
-    this.bot.reset(new CANNON.Vec3(restX, restY, 0));
+    this.resetBotToSlingshot();
     this.sling.resetPull();
     this.launchedThisShot = false;
-    this.shotsLeft -= 1;
+    this.gameState = 'ready';
     this.updateHud();
   }
 
+  private syncGameStateFromSling() {
+    if (isTerminal(this.gameState) || this.gameState === 'paused' || this.gameState === 'title') {
+      return;
+    }
+    if (this.gameState === 'resolving') return;
+    if (this.sling.phase === 'aiming') this.gameState = 'aiming';
+    else if (this.sling.phase === 'coiling') this.gameState = 'coiling';
+    else if (this.sling.phase === 'flying') this.gameState = 'flying';
+    else if (this.sling.phase === 'ready') this.gameState = 'ready';
+  }
+
   tick(dt: number) {
+    this.reconcilePlayability();
+
+    if (this.gameState === 'paused' || isTerminal(this.gameState)) {
+      this.bot.update(dt, this.camera);
+      this.juice.update(dt);
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+
     this.sling.tick(dt);
+    this.syncGameStateFromSling();
+
+    if (
+      !this.overlay.isVisible() &&
+      !canAim(this.gameState, this.shotsLeft) &&
+      this.sling.phase === 'ready'
+    ) {
+      this.sling.phase = 'settled';
+    }
 
     const onSlingshot =
       this.sling.phase === 'ready' ||
@@ -799,6 +983,10 @@ export class Game {
         );
         this.launchedThisShot = true;
         this.playerHasShot = true;
+        if (this.shotsLeft > 0) {
+          this.shotsLeft -= 1;
+          this.shotsConsumed += 1;
+        }
         this.flightTimer = 0;
         this.flightPeakX = this.bot.body.position.x;
         this.sling.trajectory.visible = false;
@@ -811,18 +999,13 @@ export class Game {
     }
 
     this.pinAnchoredStructures();
-    this.physics.step(dt);
-    this.resolveFlyingBotHits();
+    if (this.gameState !== 'resolving') {
+      this.physics.step(dt);
+    }
+    this.flushQueuedBodyRemovals();
     this.pinAnchoredStructures();
 
-    for (const block of this.pendingBlockRemovals) {
-      block.dispose(this.physics.world, this.scene);
-    }
-    this.pendingBlockRemovals = [];
-    for (const pig of this.pendingPigRemovals) {
-      pig.dispose(this.physics.world, this.scene);
-    }
-    this.pendingPigRemovals = [];
+    this.debris.update();
 
     const botPos = new THREE.Vector3(
       this.bot.body.position.x,
@@ -839,7 +1022,10 @@ export class Game {
     this.sling.updateTrajectory(botPos, this.sling.previewLaunchImpulse());
 
     for (const b of this.blocks) b.sync(dt);
-    for (const p of this.pigs) p.sync();
+    for (const p of this.pigs) {
+      if (p.isPopping()) p.updateDefeatPop(dt);
+      else p.sync();
+    }
 
     if (this.sling.phase === 'flying' && this.launchedThisShot) {
       this.flightTimer += dt;
@@ -850,37 +1036,59 @@ export class Game {
       const outOfPlay =
         this.bot.body.position.x > 17 ||
         this.bot.body.position.x < -11 ||
-        this.flightTimer > 5.5;
+        this.flightTimer > 8;
       if ((onGround && v < 0.85) || asleep || outOfPlay) {
         this.settledTimer += dt;
-        if (this.settledTimer > 0.65) {
+        if (this.settledTimer > 0.45) {
           this.lastFlightPeakX = this.flightPeakX;
           this.sling.phase = 'settled';
+          this.gameState = 'resolving';
           this.settledTimer = 0;
           this.flightTimer = 0;
-          if (this.shotsLeft > 1) this.resetShot();
-          else {
-            this.shotsLeft = 0;
-            this.sling.resetPull();
-            this.sling.phase = 'ready';
-            this.launchedThisShot = false;
-            this.updateHud();
-          }
+          this.resolveTimer = 0;
+          this.launchedThisShot = false;
         }
       } else {
         this.settledTimer = 0;
       }
     }
 
-    const alive = this.pigs.filter((p) => !p.dead).length;
-    if (alive === 0 && !this.won) {
-      this.won = true;
-      this.audio.win();
-      this.updateHud();
-      const win = document.createElement('div');
-      win.className = 'hud-win-banner';
-      win.textContent = 'Structure cleared!';
-      this.hud.appendChild(win);
+    if (this.gameState === 'resolving') {
+      this.physics.step(dt);
+      this.flushQueuedBodyRemovals();
+      this.pinAnchoredStructures();
+      this.resolveTimer += dt;
+      const moving =
+        sceneHasMeaningfulMotion(
+          this.bot.body,
+          this.blocks,
+          this.pigs,
+          this.pendingExplosions
+        ) || this.debris.hasMotion();
+      const alive = this.pigs.filter((p) => !p.dead).length;
+      if (alive === 0 && !moving && this.resolveTimer > 0.5) {
+        this.audio.win();
+        this.finishRound(true);
+      } else if (
+        !moving &&
+        this.resolveTimer > 1.2 &&
+        this.resolveTimer < 12
+      ) {
+        if (this.shotsLeft > 0) {
+          this.resetShot();
+        } else if (alive > 0) {
+          this.finishRound(false);
+        }
+      } else if (this.resolveTimer > 14) {
+        if (alive === 0) {
+          this.audio.win();
+          this.finishRound(true);
+        } else if (this.shotsLeft > 0) {
+          this.resetShot();
+        } else {
+          this.finishRound(false);
+        }
+      }
     }
 
     this.juice.update(dt);
@@ -893,6 +1101,29 @@ export class Game {
     );
     this.updateParallax();
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Dev/E2E: reliable launch into fort when synthetic mouse drag is flaky. */
+  debugLaunchIntoFort() {
+    this.reconcilePlayability();
+    if (this.overlay.isVisible()) this.startPlay();
+    if (this.shotsLeft <= 0 || this.sling.phase === 'flying') return false;
+
+    this.resetBotToSlingshot();
+    this.sling.phase = 'flying';
+    this.bot.body.type = CANNON.Body.DYNAMIC;
+    const impulse = new CANNON.Vec3(13.5, 9.5, 0);
+    this.bot.launch(impulse);
+    this.audio.launch(impulse.length());
+    this.launchedThisShot = true;
+    this.playerHasShot = true;
+    this.shotsLeft -= 1;
+    this.shotsConsumed += 1;
+    this.gameState = 'flying';
+    this.flightTimer = 0;
+    this.flightPeakX = this.bot.body.position.x;
+    this.sling.trajectory.visible = false;
+    return true;
   }
 
   /** Dev-only playtest hook (see main.ts `window.__game`). */
@@ -936,6 +1167,15 @@ export class Game {
         ? this.flightPeakX
         : this.lastFlightPeakX,
       shotsLeft: this.shotsLeft,
+      gameState: this.gameState,
+      pigsAlive: this.pigs.filter((p) => !p.dead).length,
+      debrisFragments: this.debris.fragmentCount,
+      blocks: this.blocks.map((b) => ({
+        dead: b.dead,
+        anchored: b.isAnchored(),
+        x: b.body.position.x,
+        y: b.body.position.y,
+      })),
     };
   }
 }

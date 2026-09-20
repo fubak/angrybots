@@ -7,35 +7,22 @@ import {
   SLING_ANCHOR,
   SLING_AIM_CONE_DEG,
   SLING_GRAB_RADIUS,
-  SLING_MAX_DRAG_ALONG_BONUS,
-  SLING_MAX_DRAG_NDC_MIN,
-  SLING_SHALLOW_ALONG_BONUS,
-  SLING_SHALLOW_TIER_CAP_TRIM,
-  SLING_SCREEN_MID_ALONG_CAP,
-  SLING_SCREEN_MID_LEN_FRAC,
-  SLING_SCREEN_SHALLOW_LEN_FRAC,
-  SLING_SCREEN_PULL_CURVE,
-  SLING_SCREEN_PULL_GAIN,
-  SLING_TRUE_MAX_DRAW_BOOST,
   SLING_LINEAR_DAMPING,
-  SLING_HALF_DRAW_CAP_TRIM,
-  SLING_UPPER_MID_CAP_TRIM,
-  SLING_QUARTER_MID_CAP_TRIM,
   SLING_LAUNCH_SPEED_FLOOR,
   SLING_MIN_LAUNCH_LIFT,
   SLING_MAX_LAUNCH_SPEED,
   SLING_MAX_PULL,
   SLING_MAX_PULL_DOWN,
-  SLING_MAX_PULL_DOWN_DEEP_MUL,
   SLING_MIN_EFFECTIVE_PULL,
   SLING_PERCH_OFFSET,
   SLING_POWER,
   SLING_POWER_EXPONENT,
   SLING_COIL_HOLD_SEC,
   SLING_SNAP_BOOST,
-  SLING_SOFT_CLAMP_START,
+  SLING_SCREEN_PULL_GAIN,
   WORLD_BOUNDS,
 } from '../config';
+import { launchSpeedFromPull } from '../sling/launchCurve';
 import { clamp, vec2Len } from '../math';
 
 export type SlingPhase = 'ready' | 'aiming' | 'coiling' | 'flying' | 'settled';
@@ -79,7 +66,9 @@ export class SlingSystem {
   private readonly dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   private readonly planeHit = new THREE.Vector3();
   private pointerDown = false;
+  private activePointerId: number | null = null;
   private peakScreenNdcMag = 0;
+  private lastPointerDt = 1 / 60;
 
   /** Peak NDC drag magnitude this aim (screen pulls only). */
   get screenDragPeakNdc() {
@@ -188,10 +177,16 @@ export class SlingSystem {
         ? 0.42
         : 0.28;
 
+    const overlayBlocksInput = () => {
+      const el = document.getElementById('flow-overlay');
+      return el != null && !el.hidden;
+    };
+
     canvas.addEventListener(
       'pointerdown',
       (e) => {
-      if (this.phase !== 'ready') return;
+      if (overlayBlocksInput()) return;
+      if (this.phase !== 'ready' && this.phase !== 'aiming') return;
       const hit = this.pointerOnPlane(e, canvas);
       if (!hit) return;
       const grabX = this.anchor.x + this.perchOffset.x;
@@ -205,6 +200,7 @@ export class SlingSystem {
       if (onBird || inSlingshotZone) {
         if (e.pointerType === 'touch') e.preventDefault();
         this.pointerDown = true;
+        this.activePointerId = e.pointerId;
         this.releaseSnapMul = 1;
         this.pullFromScreen = inSlingshotZone;
         this.dragStartHit.set(hit.x, hit.y);
@@ -222,12 +218,14 @@ export class SlingSystem {
       (e) => {
       if (
         !this.pointerDown ||
+        (this.activePointerId !== null && e.pointerId !== this.activePointerId) ||
         this.phase === 'coiling' ||
         this.phase === 'flying' ||
         this.phase === 'settled'
       )
         return;
       if (e.pointerType === 'touch') e.preventDefault();
+      this.lastPointerDt = Math.min(Math.max(e.timeStamp ? 0.001 : 1 / 60, 1 / 120), 0.05);
       const hit = this.pointerOnPlane(e, canvas);
       if (!hit) return;
       if (this.pullFromScreen) {
@@ -238,13 +236,28 @@ export class SlingSystem {
           Math.hypot(dNdcX, dNdcY)
         );
       }
-      this.applyPointerPullFromHit(hit.x, hit.y, 1 / 60);
+      this.applyPointerPullFromHit(hit.x, hit.y, this.lastPointerDt);
       },
       { passive: false }
     );
+    const cancelDrag = (e: PointerEvent) => {
+      if (!this.pointerDown) return;
+      if (this.activePointerId !== null && e.pointerId !== this.activePointerId) return;
+      this.pointerDown = false;
+      this.activePointerId = null;
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ok */
+      }
+      this.resetPull();
+    };
+
     const release = (e: PointerEvent) => {
       if (!this.pointerDown) return;
+      if (this.activePointerId !== null && e.pointerId !== this.activePointerId) return;
       this.pointerDown = false;
+      this.activePointerId = null;
       try {
         canvas.releasePointerCapture(e.pointerId);
       } catch {
@@ -269,7 +282,7 @@ export class SlingSystem {
       }
     };
     canvas.addEventListener('pointerup', release);
-    canvas.addEventListener('pointercancel', release);
+    canvas.addEventListener('pointercancel', cancelDrag);
   }
 
   /** Displacement from perch — zero when bird sits on the fork. */
@@ -287,30 +300,15 @@ export class SlingSystem {
       return new CANNON.Vec3(0, 0, 0);
     }
     const t = clamp(len / SLING_MAX_PULL, 0, 1);
-    const curve = Math.pow(t, SLING_POWER_EXPONENT);
-    const rawSpeed = SLING_POWER * curve * this.releaseSnapMul;
-    let speedCap =
-      SLING_LAUNCH_SPEED_FLOOR +
-      (SLING_MAX_LAUNCH_SPEED - SLING_LAUNCH_SPEED_FLOOR) *
-        Math.pow(t, 0.72);
-    const shallowScreen =
-      this.pullFromScreen &&
-      this.peakScreenNdcMag > 0.02 &&
-      this.peakScreenNdcMag < 0.45;
-    if (shallowScreen) {
-      /** t≈0.55–0.57: skip half-draw (and quarter-mid) caps; shallow trim only vs h/m. */
-      speedCap *= SLING_SHALLOW_TIER_CAP_TRIM;
-    } else if (t >= 0.28 && t < 0.55) {
-      speedCap *= SLING_QUARTER_MID_CAP_TRIM;
-    } else if (t >= 0.5 && t <= 0.72) {
-      speedCap *= SLING_HALF_DRAW_CAP_TRIM;
-    } else if (t >= 0.69 && t < 0.85) {
-      speedCap *= SLING_UPPER_MID_CAP_TRIM;
-    }
-    if (t >= 0.875) {
-      speedCap *= SLING_TRUE_MAX_DRAW_BOOST;
-    }
-    const speed = Math.min(rawSpeed, speedCap, SLING_MAX_LAUNCH_SPEED);
+    let speed = launchSpeedFromPull(
+      t,
+      SLING_POWER,
+      SLING_POWER_EXPONENT,
+      SLING_MAX_LAUNCH_SPEED,
+      SLING_LAUNCH_SPEED_FLOOR
+    );
+    speed *= this.releaseSnapMul;
+    speed = Math.min(speed, SLING_MAX_LAUNCH_SPEED);
     let nx = -eff.x / len;
     let ny = -eff.y / len;
     if (nx > 0.35 && ny < SLING_MIN_LAUNCH_LIFT && t > 0.15) {
@@ -512,31 +510,20 @@ export class SlingSystem {
       : null;
   }
 
-  /** Screen-space AB pull (bottom-left drag) → stretch length; readable quarter/half/max. */
+  /** Screen-space pull → monotonic stretch along aim cone. */
   private effFromScreenDrag(): { x: number; y: number } {
     const dNdcX = this.ndc.x - this.dragStartNdc.x;
     const dNdcY = this.ndc.y - this.dragStartNdc.y;
     const ndcMag = Math.hypot(dNdcX, dNdcY);
-    const isDeepMax = ndcMag >= SLING_MAX_DRAG_NDC_MIN;
-    let along = (-dNdcX - dNdcY) * 0.5 * SLING_SCREEN_PULL_GAIN;
-    if (isDeepMax) {
-      along += SLING_MAX_DRAG_ALONG_BONUS;
-    } else if (ndcMag < 0.45) {
-      along += SLING_SHALLOW_ALONG_BONUS;
-      along = Math.min(along, SLING_SCREEN_MID_ALONG_CAP);
-    } else {
-      along = Math.min(along, SLING_SCREEN_MID_ALONG_CAP);
-    }
-    const raw = clamp(along, 0, SLING_MAX_PULL * 1.12);
-    const tr = raw / SLING_MAX_PULL;
-    let len = clamp(
-      SLING_MAX_PULL * Math.pow(tr, SLING_SCREEN_PULL_CURVE),
+    const along = clamp((-dNdcX - dNdcY) * 0.5 * SLING_SCREEN_PULL_GAIN, 0, SLING_MAX_PULL);
+    const len = clamp(
+      SLING_MAX_PULL * Math.pow(along / SLING_MAX_PULL, 1.05),
       0,
       SLING_MAX_PULL
     );
     const center = (-3 * Math.PI) / 4;
     let angle = center;
-    if (Math.hypot(dNdcX, dNdcY) > 0.015) {
+    if (ndcMag > 0.015) {
       angle = Math.atan2(dNdcY, dNdcX);
       const halfRad = (SLING_AIM_CONE_DEG * Math.PI) / 360;
       let delta = angle - center;
@@ -575,37 +562,12 @@ export class SlingSystem {
       effY = soft.y;
     }
 
-    const preDownLen = vec2Len(effX, effY);
-    const pullT = clamp(preDownLen / SLING_MAX_PULL, 0, 1);
-    let maxDown = SLING_MAX_PULL_DOWN * (0.35 + 0.65 * pullT);
-    const deepTier =
-      this.pullFromScreen && this.peakScreenNdcMag >= SLING_MAX_DRAG_NDC_MIN;
-    if (this.pullFromScreen) {
-      if (deepTier) {
-        maxDown *= SLING_MAX_PULL_DOWN_DEEP_MUL;
-      } else {
-        maxDown *= 0.96;
-      }
-    }
+    const pullT = clamp(vec2Len(effX, effY) / SLING_MAX_PULL, 0, 1);
+    const maxDown = SLING_MAX_PULL_DOWN * (0.35 + 0.65 * pullT);
     if (effY < -maxDown) {
       const s = -maxDown / effY;
       effX *= s;
       effY = -maxDown;
-    }
-
-    if (this.pullFromScreen) {
-      const lenCap = deepTier
-        ? SLING_MAX_PULL
-        : SLING_MAX_PULL *
-          (this.peakScreenNdcMag < 0.45
-            ? SLING_SCREEN_SHALLOW_LEN_FRAC
-            : SLING_SCREEN_MID_LEN_FRAC);
-      const len = vec2Len(effX, effY);
-      if (len > lenCap) {
-        const s = lenCap / len;
-        effX *= s;
-        effY *= s;
-      }
     }
 
     const newLen = vec2Len(effX, effY);
@@ -640,10 +602,7 @@ export class SlingSystem {
 
     // Fort reach: enforce back-X only on deep draws so half/quarter pulls stay distinct.
     const minBackX = len * 0.36;
-    const deepScreen =
-      this.pullFromScreen &&
-      this.peakScreenNdcMag >= SLING_MAX_DRAG_NDC_MIN;
-    if (len >= SLING_MAX_PULL * 0.72 && x > -minBackX && !deepScreen) {
+    if (len >= SLING_MAX_PULL * 0.72 && x > -minBackX) {
       x = -minBackX;
       const rem = Math.sqrt(Math.max(0, len * len - x * x));
       y = y <= 0 ? -rem : rem;
@@ -656,7 +615,7 @@ export class SlingSystem {
     if (len < 1e-6) return { x: 0, y: 0 };
 
     const max = SLING_MAX_PULL;
-    const softStart = max * SLING_SOFT_CLAMP_START;
+    const softStart = max * 0.8;
     if (len <= softStart) return { x: effX, y: effY };
 
     const hardCap = max;

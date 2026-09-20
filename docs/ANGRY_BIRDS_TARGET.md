@@ -1,22 +1,28 @@
-# Angry Birds Classic — visual & gameplay target
+# Angry Birds Classic — product target
 
-Reference for gauntlet critics and builders (POC side-view).
+Full execution backlog: [ANGRYBOTS_PARITY_BACKLOG.md](./ANGRYBOTS_PARITY_BACKLOG.md).
 
 ## Gameplay pillars
 
-- **Side-on 2D plane** with depth only for readability (orthographic camera on +Z).
-- **Slingshot**: pull opposite launch direction; trajectory preview honest to release impulse.
-- **Materials**: wood (weak, splinters), stone (tough), glass (fragile), **TNT/explosive** (radius blast).
-- **Pigs**: stay in structure until force from bird or chain reaction; pop when heavily damaged.
-- **Three birds per level** mental model; clear win/lose HUD.
+- Side-on 2D plane (orthographic camera on +Z).
+- Slingshot: pull opposite launch; monotonic power; honest trajectory preview.
+- Materials: wood, stone, glass, TNT with distinct tuning.
+- Pigs defeated by direct hits, crushing, and chain reactions.
+- Level data drives shot budget, layout, and star thresholds.
+- Explicit game states: title → play → resolve → results; retry and level select.
 
 ## Visual pillars
 
-- Bright **cartoon sky** gradient, soft **parallax hills**, tileable **grass**.
-- **Wood** planks readable at distance; stone/glass/TNT silhouettes distinct.
-- **Character**: simple body + **expressive eyes** (Grok: vertical pill eyes).
-- **Juice**: impact particles, camera shake, audio punch on launch/break/explosion.
+- Cartoon readability at phone scale; Grok bot with expressive eyes.
+- Illustrated ground cross-section (ongoing art pass).
+- Juice: particles, shake, material break feedback.
 
-## Not in scope for POC
+## Quality slice (current milestone)
 
-- Full level map UI, star scores, bird roster, licensing-accurate art.
+Three benchmark levels in `src/levels/`: Training Yard, Glass Arch, Blast Yard.
+
+## Out of scope until slice passes
+
+- 30-level / three-chapter release content
+- Four distinct bot abilities (data hooks reserved)
+- Licensed AB art or audio

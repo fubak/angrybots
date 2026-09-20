@@ -9,7 +9,13 @@ lerna-debug.log*
 
 node_modules
 .playwright-mcp/
+test-results/
+playwright-report/
 .critic-*.png
+critic-*.png
+r7-*.png
+sling-critic-*.png
+docs/critic-*.png
 dist
 dist-ssr
 *.local

@@ -42,7 +42,8 @@ export class JuiceSystem {
 
   burst(position: THREE.Vector3, color: number, count = 12) {
     for (let i = 0; i < count; i++) {
-      const mesh = new THREE.Mesh(this.debrisGeo, this.materialFor(color));
+      const mat = this.materialFor(color).clone();
+      const mesh = new THREE.Mesh(this.debrisGeo, mat);
       mesh.position.copy(position);
       mesh.rotation.set(
         Math.random() * Math.PI,
@@ -55,7 +56,7 @@ export class JuiceSystem {
         Math.random() * 6 + 2,
         (Math.random() - 0.5) * 2.5
       );
-      const life = 0.55 + Math.random() * 0.45;
+      const life = 1.1 + Math.random() * 0.65;
       this.particles.push({
         mesh,
         vel,
@@ -169,12 +170,15 @@ export class JuiceSystem {
         p.mesh.scale.setScalar(fade * 1.2);
         mat.opacity = fade;
       } else {
-        p.mesh.scale.setScalar(0.35 + fade * 0.85);
-        mat.opacity = 0.85 + fade * 0.15;
+        p.mesh.scale.setScalar(0.45 + fade * 0.75);
+        mat.opacity = 0.55 + fade * 0.45;
       }
 
       if (p.life <= 0) {
         this.scene.remove(p.mesh);
+        const mat = p.mesh.material;
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else mat.dispose();
         this.particles.splice(i, 1);
       }
     }

@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { MATERIAL, type BlockMaterial } from '../config';
+import type { MaterialRegistry } from '../physics/materials';
+import { enforcePlanarMotion } from '../physics/planar';
 import type { JuiceSystem } from '../systems/JuiceSystem';
 import {
   explosiveBlockMaterial,
@@ -14,7 +16,10 @@ export class Block {
   readonly maxHp: number;
   readonly materialType: BlockMaterial;
   dead = false;
+  /** Main collider removed; shards or fade handled separately. */
+  private retiredFromPlay = false;
   private anchored = true;
+  private readonly dynamicMass: number;
   private readonly restPos = new CANNON.Vec3();
   private readonly restQuat = new CANNON.Quaternion();
   readonly halfExtents: CANNON.Vec3;
@@ -28,7 +33,8 @@ export class Block {
     materialType: BlockMaterial,
     size: THREE.Vector3,
     position: THREE.Vector3,
-    rotation = 0
+    rotation: number,
+    materials: MaterialRegistry
   ) {
     const def = MATERIAL[materialType];
     this.materialType = materialType;
@@ -40,9 +46,10 @@ export class Block {
       shape: new CANNON.Box(
         new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2)
       ),
-      material: new CANNON.Material(materialType),
+      material: materials.forBlock(materialType),
     });
     this.halfExtents = new CANNON.Vec3(size.x / 2, size.y / 2, size.z / 2);
+    this.dynamicMass = this.body.mass;
     this.body.position.set(position.x, position.y, position.z);
     this.body.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 0, 1), rotation);
     this.restPos.copy(this.body.position);
@@ -78,7 +85,7 @@ export class Block {
     this.restQuat.copy(this.body.quaternion);
     this.body.velocity.set(0, 0, 0);
     this.body.angularVelocity.set(0, 0, 0);
-    this.body.sleep();
+    this.body.type = CANNON.Body.STATIC;
   }
 
   wakeFromBotHit() {
@@ -88,6 +95,9 @@ export class Block {
   forceWake() {
     if (!this.anchored) return;
     this.anchored = false;
+    this.body.type = CANNON.Body.DYNAMIC;
+    this.body.mass = this.dynamicMass;
+    this.body.updateMassProperties();
     this.body.wakeUp();
   }
 
@@ -103,8 +113,29 @@ export class Block {
     return this.anchored;
   }
 
+  private bodyRemovalQueued = false;
+
+  /** Hide mesh immediately; body removed after physics step (avoids Cannon mid-step crashes). */
+  retireFromPlay() {
+    if (this.retiredFromPlay) return;
+    this.retiredFromPlay = true;
+    this.bodyRemovalQueued = true;
+    this.mesh.visible = false;
+  }
+
+  isRetired() {
+    return this.retiredFromPlay;
+  }
+
+  consumeBodyRemovalQueue() {
+    if (!this.bodyRemovalQueued) return false;
+    this.bodyRemovalQueued = false;
+    return true;
+  }
+
   sync(dt: number) {
-    if (this.dead) return;
+    if (this.dead || this.retiredFromPlay) return;
+    enforcePlanarMotion(this.body);
     this.mesh.position.copy(this.body.position as unknown as THREE.Vector3);
     this.mesh.quaternion.copy(this.body.quaternion as unknown as THREE.Quaternion);
 
