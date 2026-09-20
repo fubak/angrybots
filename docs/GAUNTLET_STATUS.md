@@ -89,7 +89,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 npm run typecheck  → pass (2026-09-20)
 npm test           → 23 pass (12 files)
 npx playwright test tests/e2e → 28/28 pass (desktop + mobile)
-npm run gauntlet       → PASS (2026-09-20)
+npm run gauntlet       → PASS 28/28 (2026-09-20, post 30-level + level-select scroll)
 ```
 
 ## Next actions
