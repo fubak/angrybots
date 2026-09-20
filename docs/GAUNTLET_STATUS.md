@@ -4,7 +4,7 @@
 **Branch:** main  
 **Commit:** `0c83b69`  
 **Environment:** Linux, Node 22, Playwright Chromium  
-**Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
+**Commands:** `npm run typecheck` · `npm run build` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
 ## Milestone summary
 
@@ -49,7 +49,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | A06 | partial | HUD via overlay results; `hud.spec.ts` |
 | A07 | partial | Tab hidden → auto pause; e2e visibility + pause-during-flight |
 | B01 | partial | `ContactSystem` + pair dedupe; `contact-dedupe.test.ts` |
-| B02–B03 | partial | Impact sign + material pairs |
+| B02 | partial | Impact sign + `impactFromContact` test |
+| B03 | partial | Shared `MaterialRegistry`; `materials-registry.test.ts` |
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
 | B12 | **done** | `validateLevelLayout` on all **30** levels (`levels-registry.test.ts`) |
@@ -77,8 +78,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 | F01 | partial | Grok blink/aim; pig `computePigThreat` worry; `pig-threat.test.ts` |
 | F04 | **done** | Per-particle juice materials (burst/dust/spark clone) |
 | F06 | partial | HUD score pop animation on increases |
-| F02 | partial | Grok `celebrate` mood on win (bounce + eyes) |
-| F03,F05 | open/partial | Timeline polish, pooling |
+| F02 | partial | Grok `celebrate` / `defeat` moods; loss e2e checks `bot.mood` |
+| F03 | partial | Impact strength thresholds; `juice-system.test.ts` |
+| F05 | open/partial | Pooling |
 | G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
 | G07 | **done** | TNT: `breakBlock` skips explosive; `detonateExplosive` owns mix |
 | G08 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
@@ -105,8 +107,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 45 pass (23 files)
-npm run build      → pass (2026-09-20)
+npm test           → 49 pass (25 files)
+npm run build      → pass (in CI + gauntlet script)
 npx playwright test tests/e2e → 65 passed, 2 skipped (67 specs)
 npm run gauntlet       → PASS (2026-09-20; ~13.7m; 66 e2e pass / 2 skip)
 ```
