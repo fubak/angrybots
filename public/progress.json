@@ -1,6 +1,6 @@
 {
   "title": "AngryBots v2",
-  "updatedAt": "2026-09-20T16:22:34.922Z",
+  "updatedAt": "2026-09-20T16:22:38.672Z",
   "devUrl": "http://localhost:5173/",
   "overall": "Phase 0 complete — starting Phase 1",
   "log": [],
@@ -30,10 +30,10 @@
       "status": "done"
     },
     "LVL-02": {
-      "status": "done"
+      "status": "todo"
     },
     "PHY-02": {
-      "status": "done"
+      "status": "todo"
     },
     "PHY-03": {
       "status": "todo"

@@ -118,3 +118,24 @@ function isConvex(pts: Point[]): boolean {
 export function totalPolyArea(polys: Point[][]): number {
   return polys.reduce((s, p) => s + polyArea(p), 0);
 }
+
+import planck from 'planck';
+
+export function applyFragmentSpawnImpulse(
+  body: import('planck').Body,
+  linearVel: { x: number; y: number },
+  angularVel: number,
+  offsetX: number,
+  offsetY: number
+): void {
+  const mass = body.getMass();
+  const dist = Math.hypot(offsetX, offsetY) || 1;
+  const dx = offsetX / dist;
+  const dy = offsetY / dist;
+  body.applyLinearImpulse(
+    planck.Vec2(linearVel.x * mass + dx * 0.15 * mass, linearVel.y * mass + dy * 0.15 * mass),
+    body.getWorldCenter(),
+    true
+  );
+  body.applyAngularImpulse(angularVel * body.getInertia(), true);
+}

@@ -5,6 +5,8 @@ import { expandLevel } from '../levels/expand';
 import { PhysicsWorld } from '../physics/PhysicsWorld';
 import { EntityRegistry } from '../entities/EntityRegistry';
 import { createBlock, createPig, createTerrain } from '../entities/bodies';
+import { spawnBot } from '../entities/Bot';
+import { applyFragmentSpawnImpulse } from '../physics/fragments';
 import { attachDamagePipeline } from '../physics/damage';
 import { defaultTntExplosion } from '../physics/explosions';
 import { isOutOfBounds, shouldRemoveOob } from '../physics/bounds';
@@ -15,13 +17,12 @@ import {
 } from '../physics/fragments';
 import { filterBits, CAT, MASK } from '../physics/categories';
 import type { BlockEntity, BotEntity, FragmentEntity, PigEntity } from '../entities/types';
-import { entityUserData } from '../entities/types';
 import { SCORE, damagePoints } from './Scoring';
 import { rng as makeRng } from '../core/rng';
 import { EventBus } from '../core/EventBus';
 import type { GameEvents } from './events';
 
-const { Circle, Polygon } = planck;
+const { Polygon } = planck;
 
 export type LevelSimHooks = {
   score: number;
@@ -35,6 +36,8 @@ export class Level {
   readonly registry = new EntityRegistry();
   readonly bus = new EventBus<GameEvents>();
   damageEnabled = false;
+  /** Headless validation matches reference/sim.mjs (no fragment bodies). */
+  fragmentsEnabled = false;
   readonly hooks: LevelSimHooks;
   private tntNextStep: BlockEntity[] = [];
   private fragmentSeq = 0;
@@ -189,7 +192,7 @@ export class Level {
     if (entity.kind === 'block' && reason !== 'oob') {
       if (entity.material === 'tnt') {
         defaultTntExplosion(this.pw, pos, this.explosionHooks());
-      } else {
+      } else if (this.fragmentsEnabled) {
         this.spawnFragments(entity, pos, angle, body);
       }
     }
@@ -274,16 +277,7 @@ export class Level {
       };
       fb.setUserData(frag);
       this.registry.add(frag);
-      const dx = wx - pos.x;
-      const dy = wy - pos.y;
-      const dist = Math.hypot(dx, dy) || 1;
-      const mass = fb.getMass();
-      fb.applyLinearImpulse(
-        PVec2(lv.x * mass + (dx / dist) * 0.15 * mass, lv.y * mass + (dy / dist) * 0.15 * mass),
-        fb.getWorldCenter(),
-        true
-      );
-      fb.applyAngularImpulse(av * fb.getInertia(), true);
+      applyFragmentSpawnImpulse(fb, lv, av, wx - pos.x, wy - pos.y);
     }
   }
 
@@ -317,32 +311,13 @@ export class Level {
   }
 
   launchBot(angleDeg: number, speed: number, kind: BotKind = 'grok'): BotEntity {
-    const prof = TUNING.bots[kind];
-    const a = (angleDeg * Math.PI) / 180;
-    const body = this.pw.world.createBody({
-      type: 'dynamic',
-      position: PVec2(TUNING.sling.x, TUNING.sling.y),
-      bullet: true,
-    });
-    body.setAngularDamping(0.4);
-    body.createFixture(Circle(prof.r), {
-      density: prof.density,
-      friction: TUNING.bot.friction,
-      restitution: TUNING.bot.restitution,
-      ...filterBits(CAT.BOT, MASK.BOT),
-    });
-    body.setLinearVelocity(PVec2(Math.cos(a) * speed, Math.sin(a) * speed));
-    const bot: BotEntity = {
-      kind: 'bot',
-      id: `bot-${kind}-${this.simTime}`,
-      botKind: kind,
-      r: prof.r,
-      body,
-      alive: true,
-      abilityUsed: false,
-      firstImpactAt: null,
-    };
-    body.setUserData(bot);
+    const bot = spawnBot(
+      this.pw.world,
+      angleDeg,
+      speed,
+      kind,
+      `bot-${kind}-${this.simTime}`
+    );
     this.registry.add(bot);
     return bot;
   }
@@ -356,10 +331,7 @@ export class Level {
       t += TUNING.dt;
       let moving = false;
       for (let b = this.pw.world.getBodyList(); b; b = b.getNext()) {
-        if (b === bot.body) continue;
-        const e = entityUserData(b);
-        if (e?.kind === 'fragment') continue;
-        if (b.isDynamic() && b.isAwake() && b.getLinearVelocity().length() > 0.05) {
+        if (b.isDynamic() && b.isAwake() && b.getLinearVelocity().length() > 0.15) {
           moving = true;
           break;
         }
@@ -372,15 +344,9 @@ export class Level {
           bot.body = null;
           break;
         }
-        if (bot.body.getLinearVelocity().length() > 0.05) moving = true;
       }
       quiet = moving ? 0 : quiet + TUNING.dt;
-      if (t > 1 && quiet > 0.6) {
-        const blocksAlive = this.registry.all().filter((e) => e.kind === 'block' && e.alive).length;
-        if (this.pigsAlive() > 0) break;
-        if (blocksAlive === 0) break;
-      }
-      if (t >= 14) break;
+      if (quiet > 0.6 && t > 1) break;
     }
     if (bot.body) {
       bot.alive = false;

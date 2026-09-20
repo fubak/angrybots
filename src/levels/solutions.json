@@ -20,8 +20,8 @@
     "source": "solver"
   },
   "hilltop": {
-    "shots": [{ "angleDeg": 31, "speed": 23 }, { "angleDeg": 67, "speed": 20 }],
-    "score": 42900,
+    "shots": [{ "angleDeg": 31, "speed": 23 }, { "angleDeg": 16, "speed": 22 }],
+    "score": 42650,
     "source": "solver"
   }
 }

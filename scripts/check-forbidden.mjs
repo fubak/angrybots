@@ -154,6 +154,7 @@ export function checkPaths(paths, opts = {}) {
     const content = readFileSync(file, 'utf8');
     const lines = content.split('\n');
     const r = relOverride[file] ?? rel(file);
+    if (opts.skipForbiddenFixtures && r.startsWith('tests/fixtures/forbidden/')) continue;
     for (const rule of RULES) {
       if (!inScopeRel(r, rule.scope)) continue;
       if (allowedRel(r, rule)) continue;
@@ -185,7 +186,7 @@ function main() {
   const paths = distMode
     ? walk(join(ROOT, 'dist'))
     : walk(join(ROOT, 'src')).concat(walk(join(ROOT, 'tests')));
-  const hits = checkPaths(paths, { dist: distMode });
+  const hits = checkPaths(paths, { dist: distMode, skipForbiddenFixtures: true });
   for (const h of hits) {
     console.error(`${h.file}:${h.line} [${h.rule}] ${h.text}`);
   }
