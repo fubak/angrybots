@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
 | **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
-| **4** Production reliability | **in progress** | CI + 28 e2e; `strict` TS; perf / disposal **unverified** |
+| **4** Production reliability | **in progress** | CI + 30 e2e; `strict` TS; perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
@@ -88,7 +88,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass (2026-09-20)
 npm test           → 26 pass (13 files)
-npx playwright test tests/e2e → 30 specs (29 prior + bot-tutorial); re-run gauntlet after commit
+npx playwright test tests/e2e → 30/30 pass (1 flaky desktop physics fixture)
+npm run gauntlet       → PASS (2026-09-20)
 ```
 
 ## Next actions
