@@ -57,11 +57,11 @@ export class GrokBot {
     this.shell = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS, 32, 32),
       new THREE.MeshStandardMaterial({
-        color: 0x242430,
-        metalness: 0.55,
-        roughness: 0.42,
-        emissive: 0x120804,
-        emissiveIntensity: 0.22,
+        color: 0x353545,
+        metalness: 0.48,
+        roughness: 0.38,
+        emissive: 0x1a0c06,
+        emissiveIntensity: 0.28,
       })
     );
     this.shell.castShadow = true;

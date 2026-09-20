@@ -50,13 +50,14 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
 | B06–B13 | open/partial | No CCD suite; level-layout validator (B12 partial) |
-| C01–C08 | partial | Monotonic sweep + `trajectory-preview.test.ts` (Cannon integrator); Hz input **open** |
+| C01–C08 | partial | Monotonic sweep, Cannon trajectory, `launch-preview.spec.ts` (pointer preview vs release); Hz input **open** |
 | D01 | partial | Portrait center; multi-viewport e2e partial |
 | D02–D05 | open | Camera beats, pan/zoom gestures |
 | E01 | **done** | `docs/ART_SPEC.md` |
 | E02 | **done** | `groundCrossSection.ts` |
 | E03 | partial | Softer parallax hills (spheres, lower contrast) |
-| E04–E09 | open | Character/material polish |
+| E04 | partial | Grok shell contrast/emissive tuned (readable sphere) |
+| E05–E09 | open | Targets/material kit polish |
 | F01–F06 | open | Juice burst clones material (F04 partial) |
 | G01–G08 | open | Synth audio only; listening **unverified** |
 | H01–H07 | partial | Stars, progress, flow overlay |
@@ -71,13 +72,13 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass
-npm test           → 15 pass (7 files)
-npx playwright test tests/e2e → 20/20 pass (desktop + mobile)
+npm test           → 18 pass (8 files)
+npx playwright test tests/e2e → 22/22 pass (desktop + mobile)
 ```
 
 ## Next actions
 
-1. Gate 1: multi-Hz pointer sampling; preview vs in-game `launchAtRelease` e2e.
+1. Gate 1: multi-Hz pointer sampling (C08); remaining A/B scenario matrix.
 2. Gate 2: E04–E08 character/material pass; G listening notes; D02 camera beats.
 3. Gate 3: I02 four bots + level authoring pipeline after slice sign-off.
 
