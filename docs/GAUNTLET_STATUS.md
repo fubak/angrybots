@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `fd0e34e`  
+**Commit:** (pending push — after `fd0e34e`)  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -75,7 +75,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 ```
 npm run typecheck  → pass (2026-09-20)
 npm test           → 20 pass (9 files)
-npx playwright test tests/e2e → 26/26 pass (desktop + mobile; pending re-run this session)
+npx playwright test tests/e2e → 26/26 pass (desktop + mobile)
+npm run gauntlet       → PASS (2026-09-20)
 ```
 
 ## Next actions
