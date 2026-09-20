@@ -101,4 +101,65 @@ test.describe('lifecycle regressions', () => {
     expect(after.shotsLeft).toBe(shotsBefore);
     expect(after.phase).not.toBe('flying');
   });
+
+  test('retry after win resets shots and fort (A05)', async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Play' }).click();
+
+    for (let i = 0; i < 6; i++) {
+      const state = await page.evaluate(() => window.__game!.debugSnapshot().gameState);
+      if (state === 'won') break;
+      await page.evaluate(() => {
+        const g = window.__game!;
+        g.debugPrepareNextFixtureShot?.();
+        g.debugLaunchIntoFort();
+      });
+      await waitForShotSettle(page, 28_000);
+    }
+
+    await expect(
+      page.getByRole('heading', { name: 'Victory!', exact: true })
+    ).toBeVisible({ timeout: 15_000 });
+
+    const mid = await snapshot(page);
+    expect(mid.score).toBeGreaterThan(0);
+
+    await page.getByRole('button', { name: 'Retry' }).click();
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+
+    const reset = await snapshot(page);
+    expect(reset.gameState).toBe('ready');
+    expect(reset.shotsLeft).toBe(3);
+    expect(reset.score).toBe(0);
+    expect(reset.pigsAlive).toBe(3);
+    expect(reset.blocks.every((b) => b.anchored && !b.dead)).toBe(true);
+  });
+
+  test('retry after loss restores ammunition (A05)', async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Play' }).click();
+
+    for (let shot = 0; shot < 3; shot++) {
+      await page.evaluate(() => {
+        const g = window.__game!;
+        g.debugPrepareNextFixtureShot?.();
+        g.debugLaunchWithImpulse!(1.5, -4);
+      });
+      await waitForShotSettle(page, 30_000);
+    }
+
+    await expect(
+      page.getByRole('heading', { name: 'Out of bots', exact: true })
+    ).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('button', { name: 'Retry' }).click();
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+
+    const reset = await snapshot(page);
+    expect(reset.gameState).toBe('ready');
+    expect(reset.shotsLeft).toBe(3);
+    expect(reset.pigsAlive).toBe(3);
+  });
 });
