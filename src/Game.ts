@@ -230,9 +230,9 @@ export class Game {
     addLayer(0.08, (g) => {
       g.position.set(0, 0, -22);
       const hillMat = new THREE.MeshStandardMaterial({
-        color: 0x6aab62,
+        color: 0x5a9460,
         roughness: 1,
-        flatShading: true,
+        flatShading: false,
       });
       for (const [x, s] of [
         [-14, 1.4],
@@ -253,9 +253,9 @@ export class Game {
     addLayer(0.14, (g) => {
       g.position.set(0, 0, -16);
       const hillMat = new THREE.MeshStandardMaterial({
-        color: 0x4f9a48,
+        color: 0x4a8552,
         roughness: 1,
-        flatShading: true,
+        flatShading: false,
       });
       for (const [x, s] of [
         [-10, 1.1],
@@ -1216,7 +1216,9 @@ export class Game {
         ? this.flightPeakX
         : this.lastFlightPeakX,
       shotsLeft: this.shotsLeft,
+      score: this.score,
       gameState: this.gameState,
+      hudPhase: this.hudPhaseLabel(),
       pigsAlive: this.pigs.filter((p) => !p.dead).length,
       debrisFragments: this.debris.fragmentCount,
       blocks: this.blocks.map((b) => ({

@@ -17,9 +17,10 @@ console.log('=== gauntlet: unit tests ===');
 run('npm', ['test']);
 
 console.log('=== gauntlet: Playwright e2e ===');
-run('npx', ['playwright', 'test', 'tests/e2e'], {
-  ...process.env,
-  CI: process.env.CI ?? '1',
-});
+const e2eEnv = { ...process.env };
+if (e2eEnv.CI === undefined) {
+  delete e2eEnv.CI;
+}
+run('npx', ['playwright', 'test', 'tests/e2e'], e2eEnv);
 
 console.log('=== gauntlet: PASS (automated gates) ===');
