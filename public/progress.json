@@ -1,57 +1,222 @@
 {
-  "title": "Angry Bots — Grok Edition",
-  "updatedAt": "2026-09-20T01:32:00.000Z",
+  "title": "AngryBots v2",
+  "updatedAt": "2026-09-20T13:25:52.474Z",
   "devUrl": "http://localhost:5173/",
-  "overall": "gauntlet automated PASS — full parity backlog not complete",
-  "wave": 5,
-  "parityBacklog": "docs/ANGRYBOTS_PARITY_BACKLOG.md",
-  "gauntlet": {
-    "status": "PASS",
-    "verifiedAt": "2026-09-20T01:32:00.000Z",
-    "command": "npm run gauntlet",
-    "lastFail": null,
-    "lastFix": "E2E gauntlet suite + deferred Cannon body removal + debugLaunchIntoFort for automation",
-    "checklist": "docs/GAUNTLET_PLAYABLE.md",
-    "e2e": {
-      "desktop": "6/6 pass",
-      "mobile": "6/6 pass (three-shot win occasionally flaky on retry)"
+  "overall": "Phase 0 — Foundation",
+  "log": [],
+  "tasks": {
+    "APP-01": {
+      "status": "done"
     },
-    "remainingForFullParity": [
-      "E art production pass (prototype visuals)",
-      "G audio listening / mix buses",
-      "I 30 levels + 4 bot types",
-      "K human AB compare + device perf profiling",
-      "C/D pan-zoom and camera beats"
-    ]
-  },
-  "pieces": [
-    {
-      "id": "gauntlet-automation",
-      "name": "Gauntlet verify (typecheck + unit + Playwright)",
-      "status": "done",
-      "criticVerdict": "PASS",
-      "gap": null
+    "APP-02": {
+      "status": "todo"
     },
-    {
-      "id": "physics-destruction",
-      "name": "Static castle, debris shards, pig pop",
-      "status": "done",
-      "criticVerdict": "PASS",
-      "gap": "Manual touch on LAN still recommended"
+    "QA-01": {
+      "status": "todo"
     },
-    {
-      "id": "parity-backlog",
-      "name": "Full ANGRYBOTS_PARITY_BACKLOG.md",
-      "status": "in_progress",
-      "criticVerdict": "FAIL",
-      "gap": "P1 art/audio/content/QA matrix open — see gauntlet.remainingForFullParity"
+    "QA-05": {
+      "status": "todo"
+    },
+    "LVL-01": {
+      "status": "todo"
+    },
+    "SLG-01": {
+      "status": "todo"
+    },
+    "CAM-01": {
+      "status": "todo"
+    },
+    "PHY-01": {
+      "status": "todo"
+    },
+    "LVL-02": {
+      "status": "todo"
+    },
+    "PHY-02": {
+      "status": "todo"
+    },
+    "PHY-03": {
+      "status": "todo"
+    },
+    "PHY-05": {
+      "status": "todo"
+    },
+    "PHY-06": {
+      "status": "todo"
+    },
+    "PHY-07": {
+      "status": "todo"
+    },
+    "PHY-08": {
+      "status": "todo"
+    },
+    "PHY-09": {
+      "status": "todo"
+    },
+    "LVL-03": {
+      "status": "todo"
+    },
+    "LVL-04": {
+      "status": "todo"
+    },
+    "GAME-01": {
+      "status": "todo"
+    },
+    "GAME-03": {
+      "status": "todo"
+    },
+    "QA-04": {
+      "status": "todo"
+    },
+    "REN-01": {
+      "status": "todo"
+    },
+    "SLG-02": {
+      "status": "todo"
+    },
+    "GAME-02": {
+      "status": "todo"
+    },
+    "CAM-02": {
+      "status": "todo"
+    },
+    "SLG-04": {
+      "status": "todo"
+    },
+    "APP-03": {
+      "status": "todo"
+    },
+    "PHY-04": {
+      "status": "todo"
+    },
+    "PERF-01": {
+      "status": "todo"
+    },
+    "SLG-03": {
+      "status": "todo"
+    },
+    "SLG-05": {
+      "status": "todo"
+    },
+    "CAM-03": {
+      "status": "todo"
+    },
+    "CAM-04": {
+      "status": "todo"
+    },
+    "GAME-04": {
+      "status": "todo"
+    },
+    "UI-01": {
+      "status": "todo"
+    },
+    "UI-02": {
+      "status": "todo"
+    },
+    "UI-03": {
+      "status": "todo"
+    },
+    "UI-04": {
+      "status": "todo"
+    },
+    "UI-05": {
+      "status": "todo"
+    },
+    "UI-06": {
+      "status": "todo"
+    },
+    "AUD-01": {
+      "status": "todo"
+    },
+    "AUD-02": {
+      "status": "todo"
+    },
+    "AUD-03": {
+      "status": "todo"
+    },
+    "QA-02": {
+      "status": "todo"
+    },
+    "REN-02": {
+      "status": "todo"
+    },
+    "REN-03": {
+      "status": "todo"
+    },
+    "REN-04": {
+      "status": "todo"
+    },
+    "REN-05": {
+      "status": "todo"
+    },
+    "REN-06": {
+      "status": "todo"
+    },
+    "REN-07": {
+      "status": "todo"
+    },
+    "REN-08": {
+      "status": "todo"
+    },
+    "REN-09": {
+      "status": "todo"
+    },
+    "QA-03": {
+      "status": "todo"
+    },
+    "AUD-04": {
+      "status": "todo"
+    },
+    "AUD-07": {
+      "status": "todo"
+    },
+    "AUD-05": {
+      "status": "todo"
+    },
+    "AUD-06": {
+      "status": "todo"
+    },
+    "AUD-08": {
+      "status": "todo"
+    },
+    "PERF-02": {
+      "status": "todo"
+    },
+    "PERF-03": {
+      "status": "todo"
+    },
+    "PERF-05": {
+      "status": "todo"
+    },
+    "PERF-04": {
+      "status": "todo"
+    },
+    "CNT-04": {
+      "status": "todo"
+    },
+    "CNT-01": {
+      "status": "todo"
+    },
+    "CNT-02": {
+      "status": "todo"
+    },
+    "CNT-03": {
+      "status": "todo"
+    },
+    "CNT-05": {
+      "status": "todo"
+    },
+    "CNT-06": {
+      "status": "todo"
+    },
+    "CNT-07": {
+      "status": "todo"
+    },
+    "CNT-08": {
+      "status": "todo"
+    },
+    "CNT-09": {
+      "status": "todo"
     }
-  ],
-  "log": [
-    "Wave 5 gauntlet: npm run gauntlet green (typecheck, 4 unit tests, 6 e2e desktop+mobile).",
-    "Playwright: static castle, shot reaches fort, 3-shot Training Yard victory (desktop); mobile win flaky once.",
-    "CI: .github/workflows/ci.yml runs typecheck, test, test:e2e.",
-    "Physics: bodies removed post-step; Cannon wakeUpAfterNarrowphase crash fixed.",
-    "Not done: full parity backlog E/F/G/I/J/K — art, audio listen, 30 levels, human playtests."
-  ]
+  }
 }

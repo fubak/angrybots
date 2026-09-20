@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Angry Bots — Live Progress</title>
+    <title>AngryBots v2 — Progress</title>
     <style>
       :root {
         font-family: system-ui, sans-serif;
@@ -13,7 +13,7 @@
       body {
         margin: 0;
         padding: 1.5rem 2rem 3rem;
-        max-width: 960px;
+        max-width: 1100px;
       }
       h1 {
         font-size: 1.5rem;
@@ -27,58 +27,58 @@
       a {
         color: #6cf;
       }
-      .pieces {
-        display: grid;
-        gap: 0.75rem;
+      h2 {
+        font-size: 1.1rem;
+        margin: 2rem 0 0.5rem;
+        color: #ccc;
       }
-      .piece {
+      .gate {
+        font-size: 0.8rem;
+        color: #f96;
+        margin-left: 0.5rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+      }
+      th,
+      td {
         border: 1px solid #333;
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        background: #12121a;
+        padding: 0.4rem 0.6rem;
+        text-align: left;
       }
-      .piece header {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: 1rem;
-      }
-      .piece h2 {
-        font-size: 1rem;
-        margin: 0;
-        font-weight: 600;
+      th {
+        background: #1a1a24;
       }
       .status {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
-        padding: 0.15rem 0.5rem;
+        letter-spacing: 0.05em;
+        padding: 0.15rem 0.45rem;
         border-radius: 4px;
-        background: #333;
+        display: inline-block;
       }
-      .status.passed {
-        background: #1a4d2e;
-        color: #8f8;
-      }
-      .status.in_progress {
-        background: #4d3a1a;
-        color: #fc8;
-      }
-      .status.queued {
+      .status.todo {
         background: #222;
         color: #aaa;
       }
-      .status.failed {
-        background: #4d1a1a;
-        color: #f88;
+      .status.doing {
+        background: #4d3a1a;
+        color: #fc8;
       }
-      .detail {
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-        color: #aaa;
+      .status.done {
+        background: #1a4d2e;
+        color: #8f8;
       }
-      .gap {
-        color: #f96;
+      .status.blocked {
+        background: #4d1a4d;
+        color: #f8f;
+      }
+      .note {
+        color: #888;
+        font-size: 0.75rem;
       }
       .log {
         margin-top: 2rem;
@@ -93,43 +93,100 @@
     </style>
   </head>
   <body>
-    <h1 id="title">Angry Bots</h1>
+    <h1 id="title">AngryBots v2</h1>
     <p class="meta">
-      <span id="overall"></span> · Wave <span id="wave">1</span> ·
-      Updated <span id="updated">—</span> ·
+      <span id="overall"></span> · Updated <span id="updated">—</span> ·
       <a id="play-link" href="/">Play game</a>
     </p>
-    <div class="pieces" id="pieces"></div>
+    <div id="phases"></div>
     <ul class="log" id="log"></ul>
-    <script>
+    <script type="module">
+      const PHASES = [
+        { id: 0, name: 'Foundation', gate: null, tasks: [
+          ['APP-01', 'Branch, cleanup, tooling'],
+          ['APP-02', 'Core utilities'],
+          ['QA-01', 'Forbidden-pattern check'],
+          ['QA-05', 'Human gate kit'],
+          ['LVL-01', 'Schema, kit, loader'],
+          ['SLG-01', 'Launch math'],
+          ['CAM-01', 'fitRect and clampView'],
+        ]},
+        { id: 1, name: 'Headless core', gate: null, tasks: [
+          ['PHY-01', 'Planck world'], ['LVL-02', 'Static validator'], ['PHY-02', 'Entities'],
+          ['PHY-03', 'Contact damage'], ['PHY-05', 'Support collapse'], ['PHY-06', 'Fragments'],
+          ['PHY-07', 'Explosions'], ['PHY-08', 'Quiet detection'], ['PHY-09', 'Determinism'],
+          ['LVL-03', 'Physics validator'], ['LVL-04', 'Registry'], ['GAME-01', 'GameSession'],
+          ['GAME-03', 'Scoring'], ['QA-04', 'CI pipeline'],
+        ]},
+        { id: 2, name: 'Playable rebuild', gate: 'G1', tasks: [
+          ['REN-01', 'Renderer'], ['SLG-02', 'SlingModel'], ['GAME-02', 'State machine'],
+          ['CAM-02', 'CameraDirector'], ['SLG-04', 'Abilities'], ['APP-03', 'App wiring'],
+          ['PHY-04', 'Remove anchoring'], ['PERF-01', 'Bench'],
+        ]},
+        { id: 3, name: 'Core loop and UI', gate: 'G2', tasks: [
+          ['SLG-03', 'Shot trail'], ['SLG-05', 'Bot queue'], ['CAM-03', 'Manual look'],
+          ['CAM-04', 'Shake / slow-mo'], ['GAME-04', 'Save v2'], ['UI-01', 'HUD'],
+          ['UI-02', 'Pause / settings'], ['UI-03', 'Results'], ['UI-04', 'Title / level select'],
+          ['UI-05', 'Rotate / a11y'], ['UI-06', 'Remove overlay'], ['AUD-01', 'SoundBank'],
+          ['AUD-02', 'Audio settings'], ['AUD-03', 'Event mapping'], ['QA-02', 'E2E suite'],
+        ]},
+        { id: 4, name: 'Art and audio', gate: 'G3', tasks: [
+          ['REN-02', 'Blocks'], ['REN-03', 'Characters'], ['REN-04', 'Slingshot view'],
+          ['REN-05', 'Environment'], ['REN-06', 'Particles'], ['REN-07', 'Fragments view'],
+          ['REN-08', 'Popups / trail'], ['REN-09', 'Remove old visuals'], ['QA-03', 'Visual baselines'],
+          ['AUD-04', 'Generated SFX'], ['AUD-07', 'Voices (HUMAN)'], ['AUD-05', 'Remove synth'],
+          ['AUD-06', 'Music (HUMAN)'], ['AUD-08', 'Listening gate (HUMAN)'],
+        ]},
+        { id: 5, name: 'Hardening', gate: 'G4', tasks: [
+          ['PERF-02', 'Pools'], ['PERF-03', 'Disposal soak'], ['PERF-05', 'Load budget'],
+          ['PERF-04', 'Device session (HUMAN)'],
+        ]},
+        { id: 6, name: 'Content', gate: 'G5', tasks: [
+          ['CNT-04', 'Terrain'], ['CNT-01', 'Wheel / triangle kit'], ['CNT-02', 'Hat / king pigs'],
+          ['CNT-03', 'Blast bot'], ['CNT-05', 'Chapter theming'], ['CNT-06', 'Ch1 L6–10'],
+          ['CNT-07', 'Chapter 2'], ['CNT-08', 'Chapter 3'], ['CNT-09', 'Balance pass'],
+        ]},
+      ];
+
       async function refresh() {
         const res = await fetch('/progress.json?' + Date.now());
         const data = await res.json();
         document.getElementById('title').textContent = data.title;
         document.getElementById('overall').textContent = data.overall;
-        document.getElementById('wave').textContent = data.wave;
         document.getElementById('updated').textContent = new Date(
           data.updatedAt
         ).toLocaleString();
-        const play = document.getElementById('play-link');
-        play.href = data.devUrl || '/';
+        document.getElementById('play-link').href = data.devUrl || '/';
 
-        const container = document.getElementById('pieces');
+        const tasks = data.tasks || {};
+        const container = document.getElementById('phases');
         container.innerHTML = '';
-        for (const p of data.pieces) {
-          const el = document.createElement('article');
-          el.className = 'piece';
-          el.innerHTML = `
-            <header>
-              <h2>${p.name}</h2>
-              <span class="status ${p.status}">${p.status.replace('_', ' ')}</span>
-            </header>
-            <div class="detail">
-              Owner: ${p.owner} · Round ${p.round}
-              ${p.criticVerdict ? `<br/>Critic: ${p.criticVerdict}` : ''}
-              ${p.gap ? `<br/><span class="gap">Gap: ${p.gap}</span>` : ''}
-            </div>`;
-          container.appendChild(el);
+        for (const phase of PHASES) {
+          const h = document.createElement('h2');
+          h.textContent = `Phase ${phase.id} — ${phase.name}`;
+          if (phase.gate) {
+            const g = document.createElement('span');
+            g.className = 'gate';
+            g.textContent = `Gate ${phase.gate}`;
+            h.appendChild(g);
+          }
+          container.appendChild(h);
+          const table = document.createElement('table');
+          table.innerHTML =
+            '<thead><tr><th>ID</th><th>Task</th><th>Status</th><th>Note</th></tr></thead>';
+          const tbody = document.createElement('tbody');
+          for (const [id, title] of phase.tasks) {
+            const t = tasks[id] || { status: 'todo' };
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><code>${id}</code></td>
+              <td>${title}</td>
+              <td><span class="status ${t.status}">${t.status}</span></td>
+              <td class="note">${t.note || ''}</td>`;
+            tbody.appendChild(tr);
+          }
+          table.appendChild(tbody);
+          container.appendChild(table);
         }
 
         const logEl = document.getElementById('log');
