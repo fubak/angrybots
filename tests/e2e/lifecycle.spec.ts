@@ -122,6 +122,11 @@ test.describe('lifecycle regressions', () => {
       page.getByRole('heading', { name: 'Victory!', exact: true })
     ).toBeVisible({ timeout: 15_000 });
 
+    await expect(page.locator('.flow-stars')).toHaveAttribute(
+      'aria-label',
+      /[1-3] stars/
+    );
+
     const mid = await snapshot(page);
     expect(mid.score).toBeGreaterThan(0);
     expect(mid.bot.mood).toBe('celebrate');

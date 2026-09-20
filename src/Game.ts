@@ -1164,6 +1164,7 @@ export class Game {
   }
 
   private onResize() {
+    this.sling.abortPointerAim();
     const { w, h, fh, aspect, portrait } = this.viewportMetrics();
     const centerX = portrait ? -3.85 : SIDE_VIEW.centerX;
     const centerY = portrait ? 2.05 : SIDE_VIEW.centerY;

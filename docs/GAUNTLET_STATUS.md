@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `a19c546`  
+**Commit:** `db19853` (pending push)  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm run build` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -47,7 +47,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | A04 | partial | Win after pig clear; chain win path e2e on Training Yard |
 | A05 | partial | Win/loss **Retry** resets fort + ammo; pause/level-select; win input guard (`lifecycle.spec.ts`) |
 | A06 | partial | HUD via overlay results; `hud.spec.ts` |
-| A07 | partial | Tab hidden → auto pause; e2e visibility + pause-during-flight |
+| A07 | partial | Tab hidden → auto pause; resize aborts mid-aim (`orientation-resize.spec.ts`) |
 | B01 | partial | `ContactSystem` + pair dedupe; `contact-dedupe.test.ts` |
 | B02 | partial | Impact sign + `impactFromContact` test |
 | B03 | partial | Shared `MaterialRegistry`; `materials-registry.test.ts` |
@@ -57,7 +57,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B09 | partial | Material thresholds in `config`; `material-damage.test.ts` |
 | B06–B08,B10–B11,B13 | open | No CCD suite |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
-| C03 | partial | Secondary ignore; pan + wheel e2e; pinch in code (device verify TBD) |
+| C03 | partial | Secondary ignore; pan/wheel e2e; resize cancels aim; pinch in code (device TBD) |
 | C01 | partial | 20-point monotonic pull in `launchCurve.test.ts` |
 | C02 | partial | Preview vs snap documented in `sling-preview-snap.test.ts` + trajectory parity |
 | C05–C08 | partial | Trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
@@ -83,10 +83,11 @@ Status key: **done** · **partial** · **open** · **unverified**
 | F05 | open/partial | Pooling |
 | G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
 | G07 | **done** | TNT: `breakBlock` skips explosive; `detonateExplosive` owns mix |
-| G08 | partial | Volume/reduced motion persist; `settings-persist.spec.ts` + `settings-store.test.ts` |
+| G08 | partial | Settings persist + reduced-motion pan block (`reduced-motion.spec.ts`) |
 | G04–G06 | open | Sample assets, mix buses; listen **unverified** |
 | H01 | partial | Next level + save unlock + level select; `lifecycle.spec.ts`, `progress-store.test.ts` |
-| H02–H06 | partial | Stars, progress, flow overlay |
+| H02 | partial | Star thresholds vitest; results `aria-label` on win (`lifecycle.spec.ts`) |
+| H03–H06 | partial | Progress, flow overlay, level select |
 | H07 | partial | Escape pause/resume + Enter title start; `keyboard-access.spec.ts` |
 | I01 | partial | Level registry + `chapters.ts` metadata |
 | I02 | partial | 4 roles; dash strike boost; split burst on first hit + audio |

@@ -70,6 +70,7 @@ export class SlingSystem {
   private peakScreenNdcMag = 0;
   private lastPointerDt = 1 / 60;
   private lastPointerMoveMs = 0;
+  private canvas: HTMLCanvasElement | null = null;
 
   /** Peak NDC drag magnitude this aim (screen pulls only). */
   get screenDragPeakNdc() {
@@ -216,7 +217,24 @@ export class SlingSystem {
     scene.add(this.trajectoryLine);
   }
 
+  /** C03/A07: cancel mid-aim when layout/orientation changes (no shot consumed). */
+  abortPointerAim() {
+    if (!this.pointerDown) return;
+    const id = this.activePointerId;
+    this.pointerDown = false;
+    this.activePointerId = null;
+    if (id !== null && this.canvas) {
+      try {
+        this.canvas.releasePointerCapture(id);
+      } catch {
+        /* ok */
+      }
+    }
+    this.resetPull(true);
+  }
+
   bind(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
     const aimZoneNdcX = () =>
       typeof window !== 'undefined' &&
       window.matchMedia('(pointer: coarse)').matches
@@ -300,14 +318,7 @@ export class SlingSystem {
     const cancelDrag = (e: PointerEvent) => {
       if (!this.pointerDown) return;
       if (this.activePointerId !== null && e.pointerId !== this.activePointerId) return;
-      this.pointerDown = false;
-      this.activePointerId = null;
-      try {
-        canvas.releasePointerCapture(e.pointerId);
-      } catch {
-        /* ok */
-      }
-      this.resetPull(true);
+      this.abortPointerAim();
     };
 
     const release = (e: PointerEvent) => {
