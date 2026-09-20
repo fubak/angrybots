@@ -13,7 +13,7 @@
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
 | **3** 30 levels / 4 bots | **not started** | 3 benchmark levels (I04 partial) |
-| **4** Production reliability | **in progress** | CI + 20 e2e; strict TS / perf / disposal **unverified** |
+| **4** Production reliability | **in progress** | CI + 22 e2e; strict TS / perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
