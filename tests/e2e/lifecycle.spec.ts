@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { slingPullLaunch, snapshot, waitForShotSettle } from './helpers';
 
 test.describe('lifecycle regressions', () => {
   test('pause during flight preserves projectile state', async ({ page }) => {
@@ -47,5 +48,57 @@ test.describe('lifecycle regressions', () => {
     expect(snap.launchedThisShot).toBe(false);
     expect(snap.phase).toBe('ready');
     expect(snap.shotsLeft).toBe(3);
+  });
+
+  test('visibility loss auto-pauses active round', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Play' }).click();
+    await page.evaluate(() => window.__game!.debugLaunchIntoFort());
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => true,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await expect(page.getByRole('button', { name: 'Resume' })).toBeVisible();
+    const snap = await page.evaluate(() => window.__game!.debugSnapshot());
+    expect(snap.gameState).toBe('paused');
+  });
+
+  test('pointer sling cannot fire after win (A05)', async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Play' }).click();
+
+    for (let i = 0; i < 6; i++) {
+      const before = await snapshot(page);
+      if (before.gameState === 'won' || before.pigsAlive === 0) break;
+      await page.evaluate(() => {
+        const g = window.__game!;
+        g.debugPrepareNextFixtureShot?.();
+        g.debugLaunchIntoFort();
+      });
+      await waitForShotSettle(page, 28_000);
+    }
+
+    await page.waitForFunction(
+      () => window.__game!.debugSnapshot().gameState === 'won',
+      null,
+      { timeout: 20_000 }
+    );
+    const won = await snapshot(page);
+    expect(won.gameState).toBe('won');
+    const shotsBefore = won.shotsLeft;
+
+    await slingPullLaunch(page, 1);
+    await page.waitForTimeout(400);
+    const after = await snapshot(page);
+    expect(after.gameState).toBe('won');
+    expect(after.shotsLeft).toBe(shotsBefore);
+    expect(after.phase).not.toBe('flying');
   });
 });
