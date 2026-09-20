@@ -1,110 +1,13 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
-
-type GauntletSnap = {
-  blocks: { dead: boolean; anchored: boolean; x: number; y: number }[];
-  pigsAlive: number;
-  gameState: string;
-  phase: string;
-  debrisFragments: number;
-  shotsLeft: number;
-  score: number;
-  hudPhase: string;
-  flightPeakX: number | null;
-  bot: { x: number; y: number; vx: number; vy: number };
-  perchNdc?: { x: number; y: number };
-};
-
-declare global {
-  interface Window {
-    __game?: {
-      debugSnapshot: () => GauntletSnap;
-      debugLaunchIntoFort: () => boolean;
-    };
-  }
-}
-
-async function waitForGame(page: Page) {
-  await page.goto('/');
-  await page.waitForFunction(() => window.__game?.debugSnapshot, null, {
-    timeout: 30_000,
-  });
-}
-
-async function startPlay(page: Page) {
-  await page.getByRole('button', { name: 'Play' }).click();
-  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
-}
-
-async function snapshot(page: Page): Promise<GauntletSnap> {
-  return page.evaluate(() => window.__game!.debugSnapshot());
-}
-
-/** Real pointer drag on canvas — no debug launch fallback. */
-async function slingPullLaunch(page: Page, strength = 1) {
-  const canvas = page.locator('canvas');
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error('canvas missing');
-
-  const sx = box.x + box.width * 0.08;
-  const sy = box.y + box.height * 0.46;
-  const maxDx = box.width * 0.34 * strength;
-  const maxDy = box.height * 0.38 * strength;
-  const ex = sx - maxDx;
-  const ey = sy + maxDy;
-
-  await canvas.dispatchEvent('pointerdown', {
-    clientX: sx,
-    clientY: sy,
-    pointerId: 1,
-    pointerType: 'mouse',
-    bubbles: true,
-  });
-  for (let i = 1; i <= 20; i++) {
-    const u = i / 20;
-    await canvas.dispatchEvent('pointermove', {
-      clientX: sx + (ex - sx) * u,
-      clientY: sy + (ey - sy) * u,
-      pointerId: 1,
-      pointerType: 'mouse',
-      bubbles: true,
-    });
-  }
-  await page.waitForTimeout(60);
-  await canvas.dispatchEvent('pointerup', {
-    clientX: ex,
-    clientY: ey,
-    pointerId: 1,
-    pointerType: 'mouse',
-    bubbles: true,
-  });
-}
-
-async function waitForShotSettle(page: Page, maxMs = 16_000) {
-  const start = Date.now();
-  while (Date.now() - start < maxMs) {
-    const s = await snapshot(page);
-    if (s.phase === 'ready' || s.gameState === 'won' || s.gameState === 'lost') {
-      return s;
-    }
-    await page.waitForTimeout(200);
-  }
-  return snapshot(page);
-}
-
-function displacementMotion(before: GauntletSnap, after: GauntletSnap): boolean {
-  if (after.debrisFragments > before.debrisFragments) return true;
-  if (after.pigsAlive < before.pigsAlive) return true;
-  for (let i = 0; i < before.blocks.length; i++) {
-    const a = before.blocks[i];
-    const b = after.blocks[i];
-    if (!a || !b) continue;
-    if (!a.dead && b.dead) return true;
-    const dx = Math.abs(a.x - b.x);
-    const dy = Math.abs(a.y - b.y);
-    if (dx > 0.06 || dy > 0.06) return true;
-  }
-  return false;
-}
+import {
+  type GauntletSnap,
+  waitForGame,
+  startPlay,
+  snapshot,
+  slingPullLaunch,
+  waitForShotSettle,
+  displacementMotion,
+} from './helpers';
 
 async function assertFortVisible(page: Page) {
   const s = await snapshot(page);
@@ -143,47 +46,29 @@ test.describe('gauntlet playable', () => {
     ).toBe(true);
   });
 
-  async function fireUpToThreeShots(page: Page) {
+  test('three-shot loop clears training yard', async ({ page }) => {
+    test.setTimeout(120_000);
+    await waitForGame(page);
+    await startPlay(page);
+
     for (let shot = 0; shot < 3; shot++) {
       const before = await snapshot(page);
-      if (before.pigsAlive === 0 || before.gameState === 'won') return;
+      if (before.pigsAlive === 0 || before.gameState === 'won') break;
       await slingPullLaunch(page, 0.92 + shot * 0.03);
       let after = await waitForShotSettle(page, 22_000);
       if (after.shotsLeft === before.shotsLeft) {
         await slingPullLaunch(page, 1);
         after = await waitForShotSettle(page, 22_000);
       }
-      if (after.gameState === 'won' || after.pigsAlive === 0) return;
+      if (after.gameState === 'won' || after.pigsAlive === 0) break;
       expect(after.shotsLeft).toBeLessThanOrEqual(before.shotsLeft);
       if (after.shotsLeft === before.shotsLeft) {
         throw new Error(`Shot ${shot + 1} did not consume ammunition`);
       }
     }
-  }
 
-  test('three-shot loop clears training yard', async ({ page }) => {
-    test.setTimeout(120_000);
-    await waitForGame(page);
-    await startPlay(page);
-    await fireUpToThreeShots(page);
-
-    let final = await snapshot(page);
-    if (final.pigsAlive > 0 && final.gameState !== 'won') {
-      const retryVisible = await page
-        .getByRole('button', { name: 'Retry' })
-        .isVisible()
-        .catch(() => false);
-      if (retryVisible) {
-        await page.getByRole('button', { name: 'Retry' }).click();
-        await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
-        await fireUpToThreeShots(page);
-        final = await snapshot(page);
-      }
-    }
-
-    expect(final.pigsAlive, 'Training Yard must be clear within one retry').toBe(
-      0
-    );
+    const final = await snapshot(page);
+    expect(final.pigsAlive, 'Training Yard must be clear in ≤3 shots').toBe(0);
 
     const victoryHeading: Locator = page.getByRole('heading', {
       name: 'Victory!',

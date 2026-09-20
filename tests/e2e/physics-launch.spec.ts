@@ -13,3 +13,20 @@ test('debug launch reaches fort band', async ({ page }) => {
   expect(after.shotsLeft).toBe(before.shotsLeft - 1);
   expect(after.flightPeakX ?? -999).toBeGreaterThan(2.5);
 });
+
+test('physics fixture: glass arch roof pig dies after support break', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.goto('/');
+  await page.waitForFunction(
+    () => window.__game?.debugLoadLevel && window.__game?.debugLaunchWithImpulse
+  );
+  await page.evaluate(() => window.__game!.debugLoadLevel!('glass-arch'));
+  await page.waitForTimeout(2200);
+  await page.evaluate(() => window.__game!.debugLaunchWithImpulse!(14.2, 10.2));
+  await page.waitForFunction(
+    () => window.__game!.debugSnapshot().pigsAlive === 0,
+    { timeout: 90_000 }
+  );
+});

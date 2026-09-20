@@ -1,46 +1,14 @@
 import { test, expect } from '@playwright/test';
+import { waitForGame, startPlay, slingPullLaunch } from './helpers';
 
 test('HUD score and pig count update after pointer shot', async ({ page }) => {
-  await page.goto('/');
-  await page.waitForFunction(() => window.__game?.debugSnapshot);
-  await page.getByRole('button', { name: 'Play' }).click();
+  await waitForGame(page);
+  await startPlay(page);
 
   await expect(page.locator('.hud-bar-score')).toHaveText('0');
   await expect(page.locator('.hud-bar-pigs')).toContainText('3');
 
-  const canvas = page.locator('canvas');
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error('canvas missing');
-
-  const sx = box.x + box.width * 0.08;
-  const sy = box.y + box.height * 0.46;
-  const ex = sx - box.width * 0.34;
-  const ey = sy + box.height * 0.38;
-
-  await canvas.dispatchEvent('pointerdown', {
-    clientX: sx,
-    clientY: sy,
-    pointerId: 1,
-    pointerType: 'mouse',
-    bubbles: true,
-  });
-  for (let i = 1; i <= 18; i++) {
-    const u = i / 18;
-    await canvas.dispatchEvent('pointermove', {
-      clientX: sx + (ex - sx) * u,
-      clientY: sy + (ey - sy) * u,
-      pointerId: 1,
-      pointerType: 'mouse',
-      bubbles: true,
-    });
-  }
-  await canvas.dispatchEvent('pointerup', {
-    clientX: ex,
-    clientY: ey,
-    pointerId: 1,
-    pointerType: 'mouse',
-    bubbles: true,
-  });
+  await slingPullLaunch(page, 1);
 
   await page.waitForFunction(
     () => {
