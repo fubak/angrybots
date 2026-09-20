@@ -1,3 +1,6 @@
-import './style.css';
+import { App } from './app/App';
 
-/** Browser wiring is implemented in APP-03 (Phase 2). Phase 1 is headless-only. */
+const root = document.querySelector('#app');
+if (root) {
+  new App(root as HTMLElement);
+}
