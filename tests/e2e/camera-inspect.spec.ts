@@ -32,7 +32,11 @@ test('right-side drag pans camera without launching', async ({ page }) => {
   expect(Math.abs(after.cameraInspect?.x ?? 0)).toBeGreaterThan(0.35);
 });
 
-test('wheel over fort zooms without launching', async ({ page }) => {
+test('wheel over fort zooms without launching', async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name === 'mobile',
+    'Wheel zoom is desktop pointer; mobile uses pinch (not emulated here)'
+  );
   await waitForGame(page);
   await startPlay(page);
   await waitForAimFraming(page);
