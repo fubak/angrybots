@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-09-20 (local)  
 **Branch:** main  
-**Commit:** `876d0d5`  
+**Commit:** `HEAD`  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -43,9 +43,9 @@ Status key: **done** · **partial** · **open** · **unverified**
 |----|--------|------------------|
 | A01 | partial | Explicit `GameState` + sling phases; not fully isolated from render |
 | A02 | partial | Shot consumption in sling; `ammunition.test.ts` + debug launch shot delta e2e |
-| A03 | partial | `resolving` + quiescence; debris no longer blocks win |
+| A03 | partial | `resolving` + `sceneHasMeaningfulMotion`; `scene-quiescence.test.ts` |
 | A04 | partial | Win after pig clear; chain win path e2e on Training Yard |
-| A05 | partial | Retry/next/menu/pause; win blocks further pointer shots (`lifecycle.spec.ts`) |
+| A05 | partial | Win/loss **Retry** resets fort + ammo; pause/level-select; win input guard (`lifecycle.spec.ts`) |
 | A06 | partial | HUD via overlay results; `hud.spec.ts` |
 | A07 | partial | Tab hidden → auto pause; e2e visibility + pause-during-flight |
 | B01–B03 | partial | `ContactSystem` + body collide |
@@ -102,8 +102,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 38 pass (19 files)
-npx playwright test tests/e2e → 54 passed, 2 skipped (56 specs; camera-inspect)
+npm test           → 41 pass (20 files)
+npx playwright test tests/e2e → 56 passed, 2 skipped (58 specs; lifecycle retry A05)
 npm run gauntlet       → PASS (2026-09-20; ~9.3m)
 ```
 
