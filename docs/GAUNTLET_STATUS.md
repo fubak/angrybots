@@ -1,7 +1,8 @@
 # Gauntlet status ledger
 
 **Last updated:** 2026-09-20 (local)  
-**Branch:** main (pending push after this commit)  
+**Branch:** main  
+**Commit:** (pending this session’s push)  
 **Environment:** Linux, Node 22, Playwright Chromium  
 **Commands:** `npm run typecheck` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
 
@@ -9,11 +10,11 @@
 
 | Gate | State | Notes |
 |------|--------|--------|
-| **1** Mechanics & lifecycle | **in progress** | R02/R03/R07/R09 regression tests added; pointer gauntlet + lifecycle e2e green (desktop three-shot occasionally flaky; CI retry) |
-| **2** Three-level quality slice | **started** | E01 `docs/ART_SPEC.md`; E02 ground cross-section + softer parallax hills |
-| **3** 30 levels / 4 bots | **not started** | 3 levels only |
-| **4** Production reliability | **in progress** | CI + e2e; strict TS / perf / device profiling **unverified** |
-| **5** Independent QA | **awaiting verification** | No human AB, listening, or real-phone session recorded |
+| **1** Mechanics & lifecycle | **in progress** | R01–R10 largely verified; Gate 1 still needs pull sweep, Hz/stress, full A/B scenario matrix |
+| **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
+| **3** 30 levels / 4 bots | **not started** | 3 benchmark levels (I04 partial) |
+| **4** Production reliability | **in progress** | CI + 16 e2e; strict TS / perf / disposal **unverified** |
+| **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
 **Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
 
@@ -21,45 +22,65 @@
 
 | ID | Status | Evidence |
 |----|--------|----------|
-| R01 Portrait framing | **verified** | e2e `portrait framing` passes 390×844 |
-| R02 Pause/resume | **verified** | `tests/e2e/lifecycle.spec.ts` pause-during-flight |
-| R03 Pig crush / roof drop | **verified** | `ContactSystem` crush + fatal fall delta; `tests/e2e/glass-arch.spec.ts` (dev launch scenario) |
-| R04 Support collapse | **partial** | Pin until first shot; Glass Arch level roof on glass; no dedicated chain-collapse unit test |
-| R05 Misleading tests | **verified** | Debug launch isolated; gauntlet pointer-only |
+| R01 Portrait framing | **verified** | e2e portrait + `perchNdc` |
+| R02 Pause/resume | **verified** | `tests/e2e/lifecycle.spec.ts` |
+| R03 Roof drop / crush | **verified** | `ContactSystem` + `glass-arch.spec.ts` (physics fixture; pointer Glass Arch **TODO**) |
+| R04 Support collapse | **verified** | Gauntlet: blocks unpin/break after first pointer shot |
+| R05 Misleading tests | **verified** | Pointer gauntlet; debug only in `physics-launch` / `glass-arch` |
 | R06 Victory assertion | **verified** | Exact `Victory!` heading |
-| R07 Level reset lifecycle | **verified** | `lifecycle.spec.ts` level-select resets `launchedThisShot` |
-| R08 HUD live updates | **implemented-unverified** | `maybeUpdateHud`; no automated HUD assert |
-| R09 Level overlaps | **verified** | `tests/level-layout.test.ts` spawn validator |
+| R07 Level reset | **verified** | `lifecycle.spec.ts` level-select |
+| R08 HUD live updates | **verified** | `tests/e2e/hud.spec.ts` (pointer); `debugSnapshot.score` |
+| R09 Level overlaps | **verified** | `tests/level-layout.test.ts` |
 | R10 Defeat remnants | **verified** | Pig hidden after pop |
 
-## Backlog highlights (A01–K10)
+## Backlog snapshot (A01–K10)
 
-Full matrix: `docs/ANGRYBOTS_PARITY_BACKLOG.md`.
+Status key: **done** · **partial** · **open** · **unverified**
 
-| Area | Progress |
-|------|----------|
-| E01 Art spec | **done** — `docs/ART_SPEC.md` |
-| E02 Ground cross-section | **done** — `src/visuals/groundCrossSection.ts` |
-| B / physics | Pig sync pin fix; win when structure still; spawn-based fatal falls |
-| I Content | Glass Arch layout rework (roof on glass) |
+| ID | Status | Notes / evidence |
+|----|--------|------------------|
+| A01 | partial | Explicit `GameState` + sling phases; not fully isolated from render |
+| A02 | partial | Shot consumption in sling; e2e ammo checks |
+| A03 | partial | `resolving` + quiescence; debris no longer blocks win |
+| A04 | partial | Win after pig clear; chain win path e2e on Training Yard |
+| A05 | partial | Retry/next/menu/pause; e2e lifecycle |
+| A06 | partial | HUD via overlay results; `hud.spec.ts` |
+| A07 | partial | Visibility pause; e2e pause-during-flight |
+| B01–B03 | partial | `ContactSystem` + body collide |
+| B04 | partial | Sleep/pin until first shot; R04 e2e |
+| B05 | partial | `enforcePlanarMotion` |
+| B06–B13 | open/partial | No CCD suite; level-layout validator (B12 partial) |
+| C01–C08 | partial | Monotonic unit test; full sweep **open** |
+| D01 | partial | Portrait center; multi-viewport e2e partial |
+| D02–D05 | open | Camera beats, pan/zoom gestures |
+| E01 | **done** | `docs/ART_SPEC.md` |
+| E02 | **done** | `groundCrossSection.ts` |
+| E03 | partial | Softer parallax hills (spheres, lower contrast) |
+| E04–E09 | open | Character/material polish |
+| F01–F06 | open | Juice burst clones material (F04 partial) |
+| G01–G08 | open | Synth audio only; listening **unverified** |
+| H01–H07 | partial | Stars, progress, flow overlay |
+| I01 | partial | Level registry data-driven |
+| I02–I07 | open | 1 bot; 3 levels |
+| J01–J07 | open/partial | CI K05; Game.ts monolith |
+| K01–K06 | partial | Vitest + e2e; no visual regression grid |
+| K07–K10 | unverified | Human AB, phone touch, listening |
 
-## Latest verification (this session)
+## Latest verification
 
 ```
 npm run typecheck  → pass
-npm test           → 7 pass (5 files)
-npx playwright test tests/e2e → 14/14 pass (single run; desktop three-shot may flake without retry)
+npm test           → 10 pass (6 files)
+npx playwright test tests/e2e → 16/16 pass (desktop + mobile)
 ```
 
 ## Next actions
 
-1. Expand per-backlog-ID rows in this ledger as items complete.
-2. Gate 2: FX/audio/camera beats (F/G), reference captures (E03).
-3. Gate 3+ content and production hardening (strict TS, perf profile, human QA).
+1. Gate 1: 20-point pull sweep test; pointer-based Glass Arch win (replace dev-only R03 path).
+2. Gate 2: E04–E08 character/material pass; G listening notes; D02 camera beats.
+3. Gate 3: I02 four bots + level authoring pipeline after slice sign-off.
 
 ## Explicitly unverified
 
-- Real touch on physical phone
-- Audio listening pass (G01–G08)
-- Human AB parity (K07–K08)
-- 30 levels / four bot types (Gate 3)
+- Physical phone touch, headphones listening, human AB (K07–K09)
+- 30 levels, four bot abilities, strict TS, perf profile (J05)
