@@ -12,7 +12,7 @@
 |------|--------|--------|
 | **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; Cannon-matched trajectory preview + unit parity; Hz/stress matrix open |
 | **2** Three-level quality slice | **started** | E01–E02 done; E03 parallax softened; F/G/H largely open |
-| **3** 30 levels / 4 bots | **started** | 4 bot profiles + queue on slice levels; chapters scaffold |
+| **3** 30 levels / 4 bots | **started** | 5 levels; split/dash abilities; `validateLayout`; 30 **open** |
 | **4** Production reliability | **in progress** | CI + 28 e2e; `strict` TS; perf / disposal **unverified** |
 | **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
 
@@ -49,7 +49,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | B01–B03 | partial | `ContactSystem` + body collide |
 | B04 | partial | Sleep/pin until first shot; R04 e2e |
 | B05 | partial | `enforcePlanarMotion` |
-| B06–B13 | open/partial | No CCD suite; level-layout validator (B12 partial) |
+| B12 | partial | `validateLevelLayout` on full `LEVELS` registry |
+| B06–B11,B13 | open | No CCD suite |
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
 | C03 | partial | Active pointer ID; secondary touch ignored; `sling-secondary-pointer.spec.ts` |
 | C01–C02,C05–C08 | partial | Monotonic sweep, trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
@@ -71,10 +72,11 @@ Status key: **done** · **partial** · **open** · **unverified**
 | G04–G06,G08 | open | Sample assets, mix buses; listen **unverified** |
 | H01–H07 | partial | Stars, progress, flow overlay |
 | I01 | partial | Level registry + `chapters.ts` metadata |
-| I02 | partial | `bots/registry` (4 roles); mass/speed/visual queue; split ability **open** |
+| I02 | partial | 4 roles; dash strike boost; split burst on first hit + audio |
 | I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
 | I06 | partial | `docs/LEVEL_SOLUTIONS.md` star paths + e2e refs |
-| I03–I05,I07 | open | 30 levels; tutorials; full ability UX |
+| I03 | partial | 5 authored levels (`low-wall`, `twin-posts` in training chapter) |
+| I05,I07 | open | Tutorials; full ability UX polish |
 | J01 | partial | `strict: true` in tsconfig |
 | J02–J07 | open/partial | CI K05; Game.ts monolith; perf profile |
 | K01–K06 | partial | Vitest + e2e; no visual regression grid |
@@ -84,7 +86,7 @@ Status key: **done** · **partial** · **open** · **unverified**
 
 ```
 npm run typecheck  → pass (2026-09-20)
-npm test           → 22 pass (10 files)
+npm test           → 22 pass (11 files)
 npx playwright test tests/e2e → 28/28 pass (desktop + mobile)
 npm run gauntlet       → PASS (2026-09-20)
 ```
@@ -93,7 +95,7 @@ npm run gauntlet       → PASS (2026-09-20)
 
 1. Gate 1: C03 secondary-touch matrix; remaining A/B scenario tests.
 2. Gate 2: D02 impact/destruction hold; fill `AUDIO_LISTENING_NOTES.md`; E09 manifest.
-3. Gate 3: split-bot impact ability; level authoring pipeline toward 30 levels.
+3. Gate 3: bulk level authoring toward 30; tutorial beats per bot.
 
 ## Explicitly unverified
 
