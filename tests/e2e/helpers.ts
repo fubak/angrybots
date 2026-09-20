@@ -33,9 +33,7 @@ export function worldToScreen(
 export async function skipToPlay(page: Page, levelId = 'first-flight'): Promise<void> {
   await page.goto('/');
   await page.getByRole('button', { name: 'Play' }).click();
-  await page.getByRole('button', { name: new RegExp(`Level.*${levelId}`, 'i') }).click().catch(async () => {
-    await page.getByRole('button', { name: '1' }).click();
-  });
+  await page.locator(`button[data-level-id="${levelId}"]`).click();
   await page.waitForFunction(() => window.__debug?.snapshot().state === 'aim' || window.__debug?.snapshot().state === 'intro', null, {
     timeout: 15_000,
   });

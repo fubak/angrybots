@@ -27,6 +27,7 @@ export class LevelSelect {
       btn.className = 'ui-btn';
       btn.textContent = String(l.order);
       btn.disabled = !unlocked(l.id);
+      btn.dataset.levelId = l.id;
       btn.setAttribute('aria-label', `Level ${l.order} ${l.name}`);
       btn.addEventListener('click', () => this.onPick(l.id));
       this.grid.appendChild(btn);

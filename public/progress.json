@@ -1,8 +1,8 @@
 {
   "title": "AngryBots v2",
-  "updatedAt": "2026-09-20T20:54:11.173Z",
+  "updatedAt": "2026-09-20T21:02:26.126Z",
   "devUrl": "http://localhost:5173/",
-  "overall": "Phase 1 headless core — verify green; Phase 2+ not started",
+  "overall": "Phases 0–6 automatable work done on v2; verify + build + e2e green; human gates AUD-06/07/08 and PERF-04 blocked",
   "log": [],
   "tasks": {
     "APP-01": {

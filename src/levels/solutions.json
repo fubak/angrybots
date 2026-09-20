@@ -1,26 +1,325 @@
 {
   "first-flight": {
-    "shots": [{ "angleDeg": 34, "speed": 18 }],
+    "shots": [
+      {
+        "angleDeg": 34,
+        "speed": 18
+      }
+    ],
     "score": 31350,
     "source": "solver"
   },
   "powder-row": {
-    "shots": [{ "angleDeg": 43, "speed": 20 }],
+    "shots": [
+      {
+        "angleDeg": 43,
+        "speed": 20
+      }
+    ],
     "score": 46050,
     "source": "solver"
   },
   "glass-house": {
-    "shots": [{ "angleDeg": 40, "speed": 17 }],
+    "shots": [
+      {
+        "angleDeg": 40,
+        "speed": 17
+      }
+    ],
     "score": 41520,
     "source": "solver"
   },
   "stone-keep": {
-    "shots": [{ "angleDeg": 25, "speed": 23 }],
+    "shots": [
+      {
+        "angleDeg": 25,
+        "speed": 23
+      }
+    ],
     "score": 39230,
     "source": "solver"
   },
   "hilltop": {
-    "shots": [{ "angleDeg": 31, "speed": 23 }, { "angleDeg": 16, "speed": 22 }],
+    "shots": [
+      {
+        "angleDeg": 31,
+        "speed": 23
+      },
+      {
+        "angleDeg": 16,
+        "speed": 22
+      }
+    ],
+    "score": 42650,
+    "source": "solver"
+  },
+  "slice-6": {
+    "shots": [
+      {
+        "angleDeg": 55,
+        "speed": 18
+      }
+    ],
+    "score": 31380,
+    "source": "solver"
+  },
+  "slice-7": {
+    "shots": [
+      {
+        "angleDeg": 58,
+        "speed": 21
+      }
+    ],
+    "score": 45640,
+    "source": "solver"
+  },
+  "slice-8": {
+    "shots": [
+      {
+        "angleDeg": 40,
+        "speed": 17
+      }
+    ],
+    "score": 41550,
+    "source": "solver"
+  },
+  "slice-9": {
+    "shots": [
+      {
+        "angleDeg": 28,
+        "speed": 23
+      }
+    ],
+    "score": 39340,
+    "source": "solver"
+  },
+  "slice-10": {
+    "shots": [
+      {
+        "angleDeg": 31,
+        "speed": 23
+      },
+      {
+        "angleDeg": 16,
+        "speed": 22
+      }
+    ],
+    "score": 42650,
+    "source": "solver"
+  },
+  "slice-11": {
+    "shots": [
+      {
+        "angleDeg": 55,
+        "speed": 18
+      }
+    ],
+    "score": 31380,
+    "source": "solver"
+  },
+  "slice-12": {
+    "shots": [
+      {
+        "angleDeg": 58,
+        "speed": 21
+      }
+    ],
+    "score": 45640,
+    "source": "solver"
+  },
+  "slice-13": {
+    "shots": [
+      {
+        "angleDeg": 40,
+        "speed": 17
+      }
+    ],
+    "score": 41550,
+    "source": "solver"
+  },
+  "slice-14": {
+    "shots": [
+      {
+        "angleDeg": 28,
+        "speed": 23
+      }
+    ],
+    "score": 39340,
+    "source": "solver"
+  },
+  "slice-15": {
+    "shots": [
+      {
+        "angleDeg": 31,
+        "speed": 23
+      },
+      {
+        "angleDeg": 16,
+        "speed": 22
+      }
+    ],
+    "score": 42650,
+    "source": "solver"
+  },
+  "slice-16": {
+    "shots": [
+      {
+        "angleDeg": 55,
+        "speed": 18
+      }
+    ],
+    "score": 31380,
+    "source": "solver"
+  },
+  "slice-17": {
+    "shots": [
+      {
+        "angleDeg": 58,
+        "speed": 21
+      }
+    ],
+    "score": 45640,
+    "source": "solver"
+  },
+  "slice-18": {
+    "shots": [
+      {
+        "angleDeg": 40,
+        "speed": 17
+      }
+    ],
+    "score": 41550,
+    "source": "solver"
+  },
+  "slice-19": {
+    "shots": [
+      {
+        "angleDeg": 28,
+        "speed": 23
+      }
+    ],
+    "score": 39340,
+    "source": "solver"
+  },
+  "slice-20": {
+    "shots": [
+      {
+        "angleDeg": 31,
+        "speed": 23
+      },
+      {
+        "angleDeg": 16,
+        "speed": 22
+      }
+    ],
+    "score": 42650,
+    "source": "solver"
+  },
+  "slice-21": {
+    "shots": [
+      {
+        "angleDeg": 55,
+        "speed": 18
+      }
+    ],
+    "score": 31380,
+    "source": "solver"
+  },
+  "slice-22": {
+    "shots": [
+      {
+        "angleDeg": 58,
+        "speed": 21
+      }
+    ],
+    "score": 45640,
+    "source": "solver"
+  },
+  "slice-23": {
+    "shots": [
+      {
+        "angleDeg": 40,
+        "speed": 17
+      }
+    ],
+    "score": 41550,
+    "source": "solver"
+  },
+  "slice-24": {
+    "shots": [
+      {
+        "angleDeg": 28,
+        "speed": 23
+      }
+    ],
+    "score": 39340,
+    "source": "solver"
+  },
+  "slice-25": {
+    "shots": [
+      {
+        "angleDeg": 31,
+        "speed": 23
+      },
+      {
+        "angleDeg": 16,
+        "speed": 22
+      }
+    ],
+    "score": 42650,
+    "source": "solver"
+  },
+  "slice-26": {
+    "shots": [
+      {
+        "angleDeg": 55,
+        "speed": 18
+      }
+    ],
+    "score": 31380,
+    "source": "solver"
+  },
+  "slice-27": {
+    "shots": [
+      {
+        "angleDeg": 58,
+        "speed": 21
+      }
+    ],
+    "score": 45640,
+    "source": "solver"
+  },
+  "slice-28": {
+    "shots": [
+      {
+        "angleDeg": 40,
+        "speed": 17
+      }
+    ],
+    "score": 41550,
+    "source": "solver"
+  },
+  "slice-29": {
+    "shots": [
+      {
+        "angleDeg": 28,
+        "speed": 23
+      }
+    ],
+    "score": 39340,
+    "source": "solver"
+  },
+  "slice-30": {
+    "shots": [
+      {
+        "angleDeg": 31,
+        "speed": 23
+      },
+      {
+        "angleDeg": 16,
+        "speed": 22
+      }
+    ],
     "score": 42650,
     "source": "solver"
   }
