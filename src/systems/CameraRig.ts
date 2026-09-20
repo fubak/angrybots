@@ -28,6 +28,9 @@ export class CameraRig {
   private reducedMotion = false;
   /** Brief faster pan back to sling after a shot resolves (D02). */
   private slingReturnBoost = 0;
+  /** User inspect pan/zoom (right-side drag / wheel / pinch). */
+  private readonly inspectPan = new THREE.Vector2(0, 0);
+  private inspectZoom = 1;
   private readonly desiredPos = new THREE.Vector3();
   private readonly desiredLook = new THREE.Vector3();
   private readonly frameCenter = new THREE.Vector3();
@@ -61,6 +64,37 @@ export class CameraRig {
   returnToSlingFraming() {
     if (this.reducedMotion) return;
     this.slingReturnBoost = 1;
+    this.inspectPan.set(0, 0);
+    this.inspectZoom = 1;
+  }
+
+  resetInspect() {
+    this.inspectPan.set(0, 0);
+    this.inspectZoom = 1;
+  }
+
+  panInspect(worldDx: number, worldDy: number) {
+    if (this.reducedMotion) return;
+    this.inspectPan.x = clamp(this.inspectPan.x + worldDx, -5.5, 7);
+    this.inspectPan.y = clamp(this.inspectPan.y + worldDy, -2.5, 3.5);
+  }
+
+  zoomInspect(delta: number) {
+    if (this.reducedMotion) return;
+    this.inspectZoom = clamp(this.inspectZoom * (1 + delta), 0.72, 1.48);
+  }
+
+  setInspectZoom(z: number) {
+    if (this.reducedMotion) return;
+    this.inspectZoom = clamp(z, 0.72, 1.48);
+  }
+
+  getInspectZoom() {
+    return this.inspectZoom;
+  }
+
+  getInspectPan() {
+    return { x: this.inspectPan.x, y: this.inspectPan.y };
   }
 
   addShake(amount: number) {
@@ -89,8 +123,16 @@ export class CameraRig {
     const speed = vel.length();
     const z = SIDE_VIEW.cameraZ;
 
-    this.desiredPos.set(this.levelCenter.x, this.levelCenter.y, z);
-    this.desiredLook.copy(this.levelCenter);
+    this.desiredPos.set(
+      this.levelCenter.x + this.inspectPan.x,
+      this.levelCenter.y + this.inspectPan.y,
+      z
+    );
+    this.desiredLook.set(
+      this.levelCenter.x + this.inspectPan.x * 0.92,
+      this.levelCenter.y + this.inspectPan.y * 0.92,
+      0
+    );
 
     if (this.reveal < 1 && phase !== 'flying') {
       this.reveal = Math.min(1, this.reveal + dt * 0.72);

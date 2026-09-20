@@ -143,6 +143,7 @@ export class Game {
     this.sling.onAimCancelled = () => this.audio.slingCancel();
     this.sling.onAimTension = (t) => this.audio.slingTension(t);
     this.sling.bind(this.renderer.domElement);
+    this.bindCameraInspect(this.renderer.domElement);
     this.cameraRig = new CameraRig(this.camera);
     this.juice = new JuiceSystem(this.scene);
     this.debris = new DebrisSystem();
@@ -444,8 +445,123 @@ export class Game {
     this.lockCastle();
     this.rebindStructureContacts();
     this.resetBotToSlingshot();
+    this.cameraRig.resetInspect();
     this.refreshTutorialBanner();
     this.updateHud();
+  }
+
+  private bindCameraInspect(canvas: HTMLCanvasElement) {
+    const ndc = new THREE.Vector2();
+    const pointers = new Map<number, { x: number; y: number }>();
+    let panPointer: number | null = null;
+    let panLast = { x: 0, y: 0 };
+    let pinchStartDist = 0;
+    let pinchStartZoom = 1;
+
+    const eventToNdc = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      ndc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      ndc.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      return ndc;
+    };
+
+    const canInspect = () =>
+      !this.overlay.isVisible() &&
+      !isTerminal(this.gameState) &&
+      this.gameState !== 'paused' &&
+      this.gameState !== 'title' &&
+      this.sling.phase === 'ready' &&
+      !this.sling.isDragging;
+
+    const inAimZone = (x: number, y: number) => {
+      const coarse = window.matchMedia('(pointer: coarse)').matches;
+      const zoneX = coarse ? 0.42 : 0.28;
+      return x < zoneX && y > -0.82 && y < 0.82;
+    };
+
+    canvas.addEventListener(
+      'pointerdown',
+      (e) => {
+        const p = eventToNdc(e);
+        pointers.set(e.pointerId, { x: p.x, y: p.y });
+        if (!canInspect()) return;
+        if (pointers.size >= 2) {
+          panPointer = null;
+          const vals = [...pointers.values()];
+          pinchStartDist = Math.hypot(
+            vals[0]!.x - vals[1]!.x,
+            vals[0]!.y - vals[1]!.y
+          );
+          pinchStartZoom = this.cameraRig.getInspectZoom();
+          return;
+        }
+        if (inAimZone(p.x, p.y)) return;
+        panPointer = e.pointerId;
+        panLast = { x: p.x, y: p.y };
+        try {
+          canvas.setPointerCapture(e.pointerId);
+        } catch {
+          /* ok */
+        }
+      },
+      { passive: true }
+    );
+
+    canvas.addEventListener(
+      'pointermove',
+      (e) => {
+        if (!pointers.has(e.pointerId)) return;
+        const p = eventToNdc(e);
+        pointers.set(e.pointerId, { x: p.x, y: p.y });
+
+        if (pointers.size >= 2 && canInspect() && pinchStartDist > 0.02) {
+          const vals = [...pointers.values()];
+          const dist = Math.hypot(
+            vals[0]!.x - vals[1]!.x,
+            vals[0]!.y - vals[1]!.y
+          );
+          this.cameraRig.setInspectZoom(
+            pinchStartZoom * (dist / pinchStartDist)
+          );
+          this.onResize();
+          return;
+        }
+
+        if (panPointer !== e.pointerId || !canInspect()) return;
+        const dx = p.x - panLast.x;
+        const dy = p.y - panLast.y;
+        panLast = { x: p.x, y: p.y };
+        const { fh, aspect } = this.viewportMetrics();
+        this.cameraRig.panInspect(
+          (-dx * (fh * aspect)) / 2,
+          (-dy * fh) / 2
+        );
+      },
+      { passive: true }
+    );
+
+    const endPointer = (e: PointerEvent) => {
+      pointers.delete(e.pointerId);
+      if (panPointer === e.pointerId) panPointer = null;
+      if (pointers.size < 2) pinchStartDist = 0;
+    };
+    canvas.addEventListener('pointerup', endPointer);
+    canvas.addEventListener('pointercancel', endPointer);
+
+    canvas.addEventListener(
+      'wheel',
+      (e) => {
+        if (!canInspect()) return;
+        const rect = canvas.getBoundingClientRect();
+        const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+        if (inAimZone(nx, ny)) return;
+        e.preventDefault();
+        this.cameraRig.zoomInspect(-e.deltaY * 0.0012);
+        this.onResize();
+      },
+      { passive: false }
+    );
   }
 
   private rebindStructureContacts() {
@@ -1044,10 +1160,11 @@ export class Game {
     const centerX = portrait ? -3.85 : SIDE_VIEW.centerX;
     const centerY = portrait ? 2.05 : SIDE_VIEW.centerY;
     this.cameraRig.setFramingCenter(centerX, centerY);
-    this.camera.left = centerX - (fh * aspect) / 2;
-    this.camera.right = centerX + (fh * aspect) / 2;
-    this.camera.top = centerY + fh / 2;
-    this.camera.bottom = centerY - fh / 2;
+    const fhView = fh / this.cameraRig.getInspectZoom();
+    this.camera.left = centerX - (fhView * aspect) / 2;
+    this.camera.right = centerX + (fhView * aspect) / 2;
+    this.camera.top = centerY + fhView / 2;
+    this.camera.bottom = centerY - fhView / 2;
     this.camera.updateProjectionMatrix();
     const dpr = this.effectivePixelRatio();
     this.renderer.setPixelRatio(dpr);
@@ -1490,6 +1607,10 @@ export class Game {
       hudPhase: this.hudPhaseLabel(),
       pigsAlive: this.pigs.filter((p) => !p.dead).length,
       cameraRevealDone: this.cameraRig.isRevealComplete(),
+      cameraInspect: {
+        ...this.cameraRig.getInspectPan(),
+        zoom: this.cameraRig.getInspectZoom(),
+      },
       debrisFragments: this.debris.fragmentCount,
       blocks: this.blocks.map((b) => ({
         dead: b.dead,
