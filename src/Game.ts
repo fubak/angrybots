@@ -41,6 +41,7 @@ import { applyImpulseAtCenter } from './physics/planar';
 import { FlowOverlay } from './ui/FlowOverlay';
 import { botProfile, normalizeBotQueue } from './bots/registry';
 import type { BotKind } from './bots/types';
+import { splitBurstDirections } from './bots/splitBurst';
 
 type ParallaxLayer = {
   root: THREE.Object3D;
@@ -94,6 +95,8 @@ export class Game {
   private lastHudKey = '';
   private botQueue: BotKind[] = ['grok', 'grok', 'grok'];
   private activeBotKind: BotKind = 'grok';
+  private launchedBotKind: BotKind = 'grok';
+  private splitUsedThisShot = false;
 
   constructor(container: HTMLElement) {
     this.mount = container;
@@ -420,6 +423,8 @@ export class Game {
       );
     }
     this.botQueue = normalizeBotQueue(def.shots, def.bots);
+    this.launchedBotKind = 'grok';
+    this.splitUsedThisShot = false;
     this.lockCastle();
     this.rebindStructureContacts();
     this.resetBotToSlingshot();
@@ -817,8 +822,52 @@ export class Game {
 
   private botStrikeImpulse(contactImpulse: number): number {
     const botSpeed = this.bot.body.velocity.length();
-    const fromBot = botSpeed * this.bot.body.mass * 0.22;
+    let fromBot = botSpeed * this.bot.body.mass * 0.22;
+    if (this.launchedBotKind === 'dash') fromBot *= 1.28;
     return Math.max(contactImpulse, fromBot, 3);
+  }
+
+  private triggerSplitBurst(origin: THREE.Vector3, baseImpulse: number) {
+    if (this.splitUsedThisShot) return;
+    this.splitUsedThisShot = true;
+    const v = this.bot.body.velocity;
+    const [d0, d1] = splitBurstDirections(v.x, v.y);
+    const power = Math.max(baseImpulse, 6) * 0.72;
+    this.audio.splitPop();
+    this.juice.burst(origin, 0x66cc44, 16);
+    this.cameraRig.addShake(0.32);
+    v.x *= 0.45;
+    v.y *= 0.45;
+    this.bot.setSquashStretch(0.55, 1.35);
+
+    for (const dir of [d0, d1]) {
+      const hit = new THREE.Vector3(
+        origin.x + dir.x * 0.35,
+        origin.y + dir.y * 0.35,
+        0
+      );
+      for (const block of this.blocks) {
+        if (block.dead) continue;
+        const dx = block.body.position.x - hit.x;
+        const dy = block.body.position.y - hit.y;
+        if (Math.hypot(dx, dy) > 2.2) continue;
+        block.forceWake();
+        this.damageBlockFromHit(
+          block,
+          power,
+          new THREE.Vector3(block.body.position.x, block.body.position.y, 0),
+          true
+        );
+      }
+      for (const pig of this.pigs) {
+        if (pig.dead) continue;
+        const dx = pig.body.position.x - hit.x;
+        const dy = pig.body.position.y - hit.y;
+        if (Math.hypot(dx, dy) > 1.4) continue;
+        pig.forceWake();
+        if (power > 5) this.killPig(pig);
+      }
+    }
   }
 
   private bindCollisions() {
@@ -841,10 +890,18 @@ export class Game {
       onBlockDamage: (block, impulse, botHit) => {
         const p = block.body.position;
         const strike = this.botStrikeImpulse(impulse);
+        const hitPos = new THREE.Vector3(p.x, p.y, p.z);
+        if (
+          botHit &&
+          this.launchedBotKind === 'split' &&
+          !this.splitUsedThisShot
+        ) {
+          this.triggerSplitBurst(hitPos, strike);
+        }
         this.damageBlockFromHit(
           block,
           botHit ? strike : impulse,
-          new THREE.Vector3(p.x, p.y, p.z)
+          hitPos
         );
       },
       onPigStrike: (pig, impulse) => {
@@ -977,6 +1034,7 @@ export class Game {
     this.resetBotToSlingshot();
     this.sling.resetPull();
     this.launchedThisShot = false;
+    this.splitUsedThisShot = false;
     this.gameState = 'ready';
     this.updateHud();
   }
@@ -1055,6 +1113,8 @@ export class Game {
         const speedScale = this.bot.getSpeedScale();
         impulse.x *= speedScale;
         impulse.y *= speedScale;
+        this.launchedBotKind = this.activeBotKind;
+        this.splitUsedThisShot = false;
         this.bot.launch(impulse);
         this.audio.launch(impulse.length());
         this.cameraRig.addShake(

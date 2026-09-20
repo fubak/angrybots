@@ -54,6 +54,25 @@ export class AudioSystem {
   }
 
   /** Stretch cue while drawing (sparse buckets to avoid spam). */
+  splitPop() {
+    const c = this.ensure();
+    const t = c.currentTime;
+    for (let i = 0; i < 2; i++) {
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(420 + i * 80, t);
+      osc.frequency.exponentialRampToValueAtTime(180, t + 0.08);
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(0.06, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      osc.connect(g);
+      g.connect(this.out());
+      osc.start(t + i * 0.02);
+      osc.stop(t + 0.12);
+    }
+  }
+
   slingTension(tension01: number) {
     const c = this.ensure();
     const t = c.currentTime;
