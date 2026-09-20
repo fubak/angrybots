@@ -149,6 +149,30 @@ body {
   border-color: rgba(255, 120, 90, 0.35);
 }
 
+.flow-settings {
+  margin: 14px 0 8px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.flow-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.flow-setting input[type='range'] {
+  flex: 1;
+  min-height: 44px;
+}
+
+.flow-check {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
 .flow-btn {
   min-height: 44px;
   margin: 6px;

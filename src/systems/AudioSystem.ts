@@ -4,6 +4,16 @@ export class AudioSystem {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private lastImpactAt = 0;
+  private masterVolume = 1;
+  private sfxVolume = 1;
+
+  setVolumes(master: number, sfx = master) {
+    this.masterVolume = Math.min(Math.max(master, 0), 1);
+    this.sfxVolume = Math.min(Math.max(sfx, 0), 1);
+    if (this.master) {
+      this.master.gain.value = 0.9 * this.masterVolume * this.sfxVolume;
+    }
+  }
 
   private ensure() {
     if (!this.ctx) {

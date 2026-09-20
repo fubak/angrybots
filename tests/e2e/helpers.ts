@@ -16,6 +16,7 @@ export type GauntletSnap = {
   launchAtRelease: { vx: number; vy: number; speed: number } | null;
   effPull: { x: number; y: number; len: number };
   launchedThisShot: boolean;
+  cameraRevealDone?: boolean;
 };
 
 declare global {
@@ -28,6 +29,22 @@ declare global {
       debugLaunchWithImpulse?: (ix: number, iy: number) => boolean;
     };
   }
+}
+
+/** Wait for level-reveal camera to return to aim framing (R01 / D02). */
+export async function waitForAimFraming(page: Page, timeoutMs = 8000) {
+  await page.waitForFunction(
+    () => {
+      const s = window.__game!.debugSnapshot();
+      return (
+        s.cameraRevealDone !== false &&
+        s.perchNdc != null &&
+        s.perchNdc.x > -0.95 &&
+        s.perchNdc.x < 0
+      );
+    },
+    { timeout: timeoutMs }
+  );
 }
 
 export function unlockAllLevelsInitScript() {

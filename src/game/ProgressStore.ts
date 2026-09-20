@@ -44,6 +44,13 @@ export function saveProgress(data: SaveData) {
   }
 }
 
+export function updateSettings(partial: Partial<SaveData['settings']>) {
+  const data = loadProgress();
+  data.settings = { ...data.settings, ...partial };
+  saveProgress(data);
+  return data.settings;
+}
+
 export function recordLevelResult(
   levelId: string,
   score: number,

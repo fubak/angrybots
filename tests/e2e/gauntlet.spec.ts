@@ -7,9 +7,11 @@ import {
   slingPullLaunch,
   waitForShotSettle,
   displacementMotion,
+  waitForAimFraming,
 } from './helpers';
 
 async function assertFortVisible(page: Page) {
+  await waitForAimFraming(page);
   const s = await snapshot(page);
   expect(s.perchNdc?.x).toBeLessThan(0);
   expect(s.perchNdc?.x).toBeGreaterThan(-0.95);

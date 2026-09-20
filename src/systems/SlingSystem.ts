@@ -55,6 +55,7 @@ export class SlingSystem {
     0
   );
   readonly bandLines: THREE.Line[] = [];
+  private readonly frameRoot = new THREE.Group();
   readonly trajectory: THREE.Points;
   readonly trajectoryOutline: THREE.Points;
   readonly trajectoryLine: THREE.Line;
@@ -93,6 +94,51 @@ export class SlingSystem {
 
   constructor(scene: THREE.Scene, camera: THREE.Camera) {
     this.camera = camera;
+    scene.add(this.frameRoot);
+    const forkMat = new THREE.MeshStandardMaterial({
+      color: 0x6b4423,
+      roughness: 0.88,
+      metalness: 0.05,
+    });
+    const yokeMat = new THREE.MeshStandardMaterial({
+      color: 0x5a3818,
+      roughness: 0.9,
+    });
+    for (const [fx, fy] of [
+      [this.forkL.x, this.forkL.y],
+      [this.forkR.x, this.forkR.y],
+    ] as const) {
+      const post = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.11, 0.13, 1.05, 10),
+        forkMat
+      );
+      post.position.set(fx, fy - 0.52, 0);
+      post.castShadow = true;
+      this.frameRoot.add(post);
+    }
+    const yoke = new THREE.Mesh(
+      new THREE.BoxGeometry(0.82, 0.14, 0.22),
+      yokeMat
+    );
+    yoke.position.set(SLING_ANCHOR.x, SLING_ANCHOR.y + 0.52, 0.02);
+    yoke.castShadow = true;
+    this.frameRoot.add(yoke);
+    const pouch = new THREE.Mesh(
+      new THREE.TorusGeometry(0.34, 0.07, 10, 20),
+      new THREE.MeshStandardMaterial({
+        color: 0x9a7420,
+        roughness: 0.82,
+        metalness: 0.08,
+      })
+    );
+    pouch.position.set(
+      SLING_ANCHOR.x + SLING_PERCH_OFFSET.x,
+      SLING_ANCHOR.y + SLING_PERCH_OFFSET.y,
+      0.06
+    );
+    pouch.rotation.y = Math.PI / 2;
+    this.frameRoot.add(pouch);
+
     for (let i = 0; i < 2; i++) {
       const geo = new THREE.BufferGeometry();
       const positions = new Float32Array(3 * 3);
@@ -100,7 +146,7 @@ export class SlingSystem {
       const line = new THREE.Line(
         geo,
         new THREE.LineBasicMaterial({
-          color: 0x5c4033,
+          color: 0x3d2818,
           linewidth: 2,
         })
       );

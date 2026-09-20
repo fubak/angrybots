@@ -53,7 +53,8 @@ Status key: **done** · **partial** · **open** · **unverified**
 | C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
 | C01–C03,C05–C08 | partial | Monotonic sweep, Cannon trajectory, `launch-preview.spec.ts`; `pointerTiming.ts` + Hz unit tests (C08); active pointer + `lostpointercapture` cancel (C03 partial) |
 | D01 | partial | Portrait center; multi-viewport e2e partial |
-| D02–D05 | open | Camera beats, pan/zoom gestures |
+| D02 | partial | Level reveal pan (`playLevelReveal`); flight follow existing |
+| D03–D05 | open | Pan/zoom gestures, bounds polish |
 | E01 | **done** | `docs/ART_SPEC.md` |
 | E02 | **done** | `groundCrossSection.ts` |
 | E03 | partial | Softer parallax hills (spheres, lower contrast) |
@@ -61,14 +62,17 @@ Status key: **done** · **partial** · **open** · **unverified**
 | E05 | partial | Pig silhouette rim + brighter eyes (phone readability) |
 | E06 | partial | Stone/glass kit + stone/wood HP color lerp |
 | E08 | partial | Brighter hemi/sun/fill + exposure 1.12 |
-| E07,E09 | open | Sling mesh polish, asset manifest |
+| E07 | partial | Fork posts, yoke, leather pouch torus |
+| E09 | open | Asset manifest |
 | F01–F06 | open | Juice burst clones material (F04 partial) |
 | G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
-| G04–G08 | open | Sample assets, mix buses, mute persistence; listen **unverified** |
+| G07 | partial | Master volume + reduced motion in pause/title (`ProgressStore`) |
+| G04–G06,G08 | open | Sample assets, mix buses; listen **unverified** |
 | H01–H07 | partial | Stars, progress, flow overlay |
 | I01 | partial | Level registry data-driven |
 | I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
-| I02–I07 | open | 1 bot; 3 levels (benchmark trio playable) |
+| I06 | partial | `docs/LEVEL_SOLUTIONS.md` star paths + e2e refs |
+| I02–I05,I07 | open | 1 bot; 3 levels (benchmark trio playable) |
 | J01–J07 | open/partial | CI K05; Game.ts monolith |
 | K01–K06 | partial | Vitest + e2e; no visual regression grid |
 | K07–K10 | unverified | Human AB, phone touch, listening |

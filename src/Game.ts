@@ -32,7 +32,11 @@ import {
 import { canAim, isTerminal, type GameState } from './game/GameState';
 import { sceneHasMeaningfulMotion } from './game/SceneQuiescence';
 import { computeScore, starsForScore } from './game/Scoring';
-import { loadProgress, recordLevelResult } from './game/ProgressStore';
+import {
+  loadProgress,
+  recordLevelResult,
+  updateSettings,
+} from './game/ProgressStore';
 import { applyImpulseAtCenter } from './physics/planar';
 import { FlowOverlay } from './ui/FlowOverlay';
 
@@ -141,6 +145,13 @@ export class Game {
     this.hud.id = 'hud';
     container.appendChild(this.hud);
 
+    const progress = loadProgress();
+    this.audio.setVolumes(
+      progress.settings.masterVolume,
+      progress.settings.sfxVolume
+    );
+    this.cameraRig.setReducedMotion(progress.settings.reducedMotion);
+
     this.overlay = new FlowOverlay(container, {
       onStart: () => this.startPlay(),
       onRetry: () => this.retryLevel(),
@@ -148,6 +159,7 @@ export class Game {
       onMenu: () => this.showLevelSelect(),
       onPause: () => this.pauseGame(),
       onResume: () => this.resumeGame(),
+      onSettingsChange: (partial) => this.applyPlayerSettings(partial),
     });
     (this.overlay as unknown as { pickLevel?: (id: string) => void }).pickLevel =
       (id: string) => {
@@ -158,7 +170,7 @@ export class Game {
 
     this.loadLevel(this.levelDef);
     this.gameState = 'title';
-    this.overlay.showTitle();
+    this.overlay.showTitle(this.overlaySettings());
 
     window.addEventListener('resize', () => this.onResize());
     window.visualViewport?.addEventListener('resize', () => this.onResize());
@@ -419,6 +431,7 @@ export class Game {
     this.gameState = 'ready';
     this.sling.phase = 'ready';
     this.sling.resetPull();
+    this.cameraRig.playLevelReveal();
     this.onResize();
     this.updateHud();
   }
@@ -456,7 +469,20 @@ export class Game {
       this.sling.phase === 'aiming' ||
       this.sling.phase === 'coiling';
     if (cancelable) this.sling.resetPull();
-    this.overlay.showPaused();
+    this.overlay.showPaused(this.overlaySettings());
+  }
+
+  private overlaySettings() {
+    const s = loadProgress().settings;
+    return { masterVolume: s.masterVolume, reducedMotion: s.reducedMotion };
+  }
+
+  private applyPlayerSettings(
+    partial: Partial<{ masterVolume: number; reducedMotion: boolean }>
+  ) {
+    const next = updateSettings(partial);
+    this.audio.setVolumes(next.masterVolume, next.sfxVolume);
+    this.cameraRig.setReducedMotion(next.reducedMotion);
   }
 
   private resumeGame() {
@@ -1233,6 +1259,7 @@ export class Game {
       gameState: this.gameState,
       hudPhase: this.hudPhaseLabel(),
       pigsAlive: this.pigs.filter((p) => !p.dead).length,
+      cameraRevealDone: this.cameraRig.isRevealComplete(),
       debrisFragments: this.debris.fragmentCount,
       blocks: this.blocks.map((b) => ({
         dead: b.dead,

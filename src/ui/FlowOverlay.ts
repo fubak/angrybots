@@ -1,3 +1,8 @@
+export type OverlaySettings = {
+  masterVolume: number;
+  reducedMotion: boolean;
+};
+
 export type OverlayActions = {
   onRetry: () => void;
   onNext: () => void;
@@ -5,6 +10,7 @@ export type OverlayActions = {
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
+  onSettingsChange?: (partial: Partial<OverlaySettings>) => void;
 };
 
 export class FlowOverlay {
@@ -19,7 +25,7 @@ export class FlowOverlay {
     container.appendChild(this.root);
   }
 
-  showTitle() {
+  showTitle(settings: OverlaySettings) {
     this.root.hidden = false;
     this.root.dataset.mode = 'title';
     this.root.innerHTML = `
@@ -27,6 +33,7 @@ export class FlowOverlay {
         <h1>Angry Bots</h1>
         <p>Grok Edition — pull, aim, clear the rival pigs.</p>
         <p class="flow-hint">Drag the Grok bot backward on the left to aim.</p>
+        ${this.settingsMarkup(settings)}
         <button type="button" class="flow-btn primary" data-action="start">Play</button>
       </div>`;
     this.wire();
@@ -37,11 +44,12 @@ export class FlowOverlay {
     };
   }
 
-  showPaused() {
+  showPaused(settings: OverlaySettings) {
     this.root.hidden = false;
     this.root.innerHTML = `
       <div class="flow-panel">
         <h2>Paused</h2>
+        ${this.settingsMarkup(settings)}
         <button type="button" class="flow-btn primary" data-action="resume">Resume</button>
         <button type="button" class="flow-btn" data-action="menu">Level select</button>
       </div>`;
@@ -113,7 +121,36 @@ export class FlowOverlay {
     return !this.root.hidden;
   }
 
+  private settingsMarkup(settings: OverlaySettings) {
+    const pct = Math.round(settings.masterVolume * 100);
+    return `
+      <div class="flow-settings">
+        <label class="flow-setting">Volume
+          <input type="range" min="0" max="100" value="${pct}" data-setting="volume" />
+        </label>
+        <label class="flow-setting flow-check">
+          <input type="checkbox" data-setting="reduced-motion" ${settings.reducedMotion ? 'checked' : ''} />
+          Reduced motion
+        </label>
+      </div>`;
+  }
+
   private wire() {
+    const vol = this.root.querySelector('[data-setting="volume"]') as
+      | HTMLInputElement
+      | null;
+    vol?.addEventListener('input', () => {
+      this.actions.onSettingsChange?.({
+        masterVolume: Number(vol.value) / 100,
+      });
+    });
+    const motion = this.root.querySelector('[data-setting="reduced-motion"]') as
+      | HTMLInputElement
+      | null;
+    motion?.addEventListener('change', () => {
+      this.actions.onSettingsChange?.({ reducedMotion: motion.checked });
+    });
+
     this.root.querySelectorAll('[data-action]').forEach((el) => {
       el.addEventListener('click', () => {
         const a = (el as HTMLElement).dataset.action;

@@ -23,6 +23,9 @@ export class CameraRig {
   private shake = 0;
   private shakeSeed = 0;
   private zoomPulse = 0;
+  /** 0 → 1 level reveal pan from fort to sling framing. */
+  private reveal = 1;
+  private reducedMotion = false;
   private readonly desiredPos = new THREE.Vector3();
   private readonly desiredLook = new THREE.Vector3();
   private readonly frameCenter = new THREE.Vector3();
@@ -39,7 +42,22 @@ export class CameraRig {
     this.levelCenter.set(x, y, 0);
   }
 
+  setReducedMotion(enabled: boolean) {
+    this.reducedMotion = enabled;
+    if (enabled) this.reveal = 1;
+  }
+
+  /** Gate 2: brief level reveal before aiming (skipped when reduced motion). */
+  playLevelReveal() {
+    this.reveal = this.reducedMotion ? 1 : 0;
+  }
+
+  isRevealComplete() {
+    return this.reveal >= 1;
+  }
+
   addShake(amount: number) {
+    if (this.reducedMotion) return;
     this.shake = Math.min(1.2, this.shake + amount);
     this.shakeSeed += 1.7;
     this.zoomPulse = Math.max(this.zoomPulse, amount * 0.35);
@@ -64,6 +82,18 @@ export class CameraRig {
 
     this.desiredPos.set(this.levelCenter.x, this.levelCenter.y, z);
     this.desiredLook.copy(this.levelCenter);
+
+    if (this.reveal < 1 && phase !== 'flying') {
+      this.reveal = Math.min(1, this.reveal + dt * 0.72);
+    }
+    const revealU = this.reveal * this.reveal * (3 - 2 * this.reveal);
+    if (revealU < 1 && phase !== 'flying') {
+      const fromX = STRUCTURE_FOCUS.x + 0.6;
+      const fromY = STRUCTURE_FOCUS.y + 0.85;
+      this.desiredPos.x = fromX + (this.desiredPos.x - fromX) * revealU;
+      this.desiredPos.y = fromY + (this.desiredPos.y - fromY) * revealU;
+      this.desiredLook.lerp(STRUCTURE_FOCUS, 1 - revealU);
+    }
 
     if (phase === 'flying') {
       const lead = clamp(speed * 0.07, 0, 2);
