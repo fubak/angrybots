@@ -20,6 +20,7 @@
     "minY": 0,
     "maxY": 9
   },
+  "hint": "Pull back, then release. Return to the perch to cancel.",
   "sling": {
     "x": -7.5
   },

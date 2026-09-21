@@ -5,6 +5,8 @@ import type { GameEntity } from '../entities/types';
 import { toon } from './toon';
 import { addOutline } from './outline';
 import { SlingView } from './SlingView';
+import { Scenery } from './Scenery';
+import { Juice } from './Juice';
 import type { View } from '../camera/fitRect';
 import type { SlingModel } from '../sling/SlingModel';
 import type { ShotTrail } from '../sling/ShotTrail';
@@ -24,6 +26,7 @@ export class Renderer {
   private readonly camera: THREE.OrthographicCamera;
   private readonly entityMeshes = new Map<string, THREE.Object3D>();
   private readonly slingView: SlingView;
+  readonly juice: Juice;
   private aspect = 16 / 9;
   private fpsSamples: number[] = [];
   private lastFpsSample = 0;
@@ -47,22 +50,9 @@ export class Renderer {
     key.position.set(-4, 8, 10);
     this.scene.add(key);
 
-    const bg = new THREE.Color(PALETTE.sky.top);
-    this.scene.background = bg;
-
-    const ground = new THREE.Mesh(
-      new THREE.BoxGeometry(120, 2, 0.4),
-      toon(PALETTE.ground.grass)
-    );
-    ground.position.set(8, -1, DEPTH.ground);
-    this.scene.add(ground);
-    const dirt = new THREE.Mesh(
-      new THREE.BoxGeometry(120, 0.6, 0.35),
-      toon(PALETTE.ground.dirt)
-    );
-    dirt.position.set(8, -1.8, DEPTH.ground - 0.01);
-    this.scene.add(dirt);
+    new Scenery(this.scene);
     this.slingView = new SlingView(this.scene);
+    this.juice = new Juice(this.scene);
   }
 
   syncSling(
@@ -84,7 +74,7 @@ export class Renderer {
     const live = new Set<string>();
     if (level) {
       for (const e of level.registry.all()) {
-        if (!e.alive || e.kind === 'fragment' || e.kind === 'ground') continue;
+        if (!e.alive || e.kind === 'ground') continue;
         live.add(e.id);
         let mesh = this.entityMeshes.get(e.id);
         if (!mesh) {
@@ -97,6 +87,7 @@ export class Renderer {
           mesh.position.set(p.x, p.y, DEPTH.entities);
           mesh.rotation.z = e.body.getAngle();
         }
+        if (e.kind === 'block') this.tintDamage(mesh, e.hp / e.maxHp, e.material);
       }
     }
     for (const [id, mesh] of this.entityMeshes) {
@@ -123,7 +114,7 @@ export class Renderer {
               : PALETTE.tnt.base;
       const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(e.w, e.h, e.depth),
-        toon(color, e.material === 'glass' ? { transparent: true, opacity: 0.55 } : undefined)
+        toon(color, e.material === 'glass' ? { transparent: true, opacity: 0.55 } : undefined).clone()
       );
       addOutline(mesh, 'box');
       mesh.renderOrder = 10;
@@ -135,15 +126,23 @@ export class Renderer {
       addOutline(body, 'sphere');
       g.add(body);
       const snout = new THREE.Mesh(
-        new THREE.SphereGeometry(e.r * 0.38, 10, 8),
+        new THREE.SphereGeometry(e.r * 0.42, 10, 8),
         toon(PALETTE.pig.snout)
       );
-      snout.position.set(0, -e.r * 0.05, e.r * 0.75);
+      snout.position.set(0, -e.r * 0.02, e.r * 0.82);
       g.add(snout);
-      const eyeMat = toon(PALETTE.bot.eye);
       for (const side of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.16, 8, 6), eyeMat);
-        eye.position.set(side * e.r * 0.28, e.r * 0.22, e.r * 0.7);
+        const ear = new THREE.Mesh(
+          new THREE.SphereGeometry(e.r * 0.22, 8, 6),
+          toon(PALETTE.pig.ear)
+        );
+        ear.position.set(side * e.r * 0.42, e.r * 0.72, e.r * 0.15);
+        g.add(ear);
+        const eye = new THREE.Mesh(
+          new THREE.SphereGeometry(e.r * 0.2, 8, 6),
+          toon(PALETTE.bot.eye)
+        );
+        eye.position.set(side * e.r * 0.28, e.r * 0.22, e.r * 0.78);
         g.add(eye);
       }
       g.renderOrder = 10;
@@ -170,6 +169,22 @@ export class Renderer {
       g.renderOrder = 10;
       return g;
     }
+    if (e.kind === 'fragment') {
+      const color =
+        e.material === 'wood'
+          ? PALETTE.wood.base
+          : e.material === 'stone'
+            ? PALETTE.stone.base
+            : e.material === 'glass'
+              ? PALETTE.glass.base
+              : PALETTE.tnt.base;
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.28, 0.2, 0.2),
+        toon(color, e.material === 'glass' ? { transparent: true, opacity: 0.5 } : undefined)
+      );
+      mesh.renderOrder = 11;
+      return mesh;
+    }
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 0.5), toon(PALETTE.ground.dirt));
     mesh.renderOrder = 10;
     return mesh;
@@ -185,7 +200,18 @@ export class Renderer {
     this.camera.updateProjectionMatrix();
   }
 
+  private tintDamage(obj: THREE.Object3D, ratio: number, material: string): void {
+    const cracked = ratio < 0.55;
+    obj.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      const mat = mesh.material;
+      if (!(mat instanceof THREE.MeshToonMaterial) || !mat.emissive) return;
+      mat.emissive.set(cracked ? (material === 'tnt' ? '#3a1008' : '#2a1a10') : '#000000');
+    });
+  }
+
   render(_alpha: number, frameDt: number): void {
+    this.juice.update(frameDt);
     this.renderer.render(this.scene, this.camera);
     const now = performance.now();
     if (frameDt > 0) {

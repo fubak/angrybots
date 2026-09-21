@@ -2,9 +2,10 @@
 
 **Last updated:** 2026-09-21  
 **Starting commit:** `16170cf`  
+**Loop 1 commit:** `3cf1261`  
 **Working branch:** `main`  
 **Environment:** Linux, Node 22, Playwright Chromium  
-**Active loop:** Loop 1 exit met; Loop 2 next  
+**Active loop:** Loop 2 in progress after Loop 1  
 **Commands:** `npm run typecheck` · `npm run build` · `npm test` · `npx playwright test tests/e2e` · `npm run lint:forbidden`
 
 The previous ledger pointed at `5face02` and 74 browser tests from a removed implementation. Those claims are retired. This file is current evidence only.
@@ -14,7 +15,7 @@ The previous ledger pointed at `5face02` and 74 browser tests from a removed imp
 | Gate | State | Notes |
 |------|--------|--------|
 | **1** Mechanics & lifecycle | **implemented** | Loop 1 exit met on this revision. First Flight mouse+touch win/loss, ammo/cancel, pause freeze/resume, navigation, predecessor unlock. Remaining: CCD/Hz soak, hidden-tab e2e. |
-| **2** Three-level quality slice | **open** | Playable First Flight is not production art/audio. Placeholders remain. |
+| **2** Three-level quality slice | **in progress** | Scenery, juice, synth audio, tips on First Flight / Powder Row / Glass House. Listening and art parity unverified. |
 | **3** 30 levels / 4 bots | **partial** | 30 files exist; `docs/specs/ISSUES.md` I-01: 25 are duplicates. |
 | **4** Production reliability | **in progress** | Isolated e2e on port 5181; 31 pass / 1 skip (desktop portrait, ISSUE-1). |
 | **5** Independent QA | **unverified** | Human/device/listening not run. |
@@ -76,9 +77,13 @@ Evidence:
 
 ## Next actions
 
-1. Loop 2: replace placeholder characters/terrain; real audio; polish First Flight + two more levels.
-2. Keep Loop 1 e2e green while changing presentation.
+1. Finish Loop 2: inspect/listen First Flight, Powder Row, Glass House; replace remaining primitive character art; authored samples if synth is weak.
+2. Keep Loop 1 e2e green.
 3. Loop 3: replace 25 duplicate layouts after the slice is finished.
+
+## Continuation checkpoint
+
+If a later session resumes: pull `main`, read this ledger, reproduce Loop 2 weakest visual (aim + impact on First Flight and Powder Row), then author unique levels 6–30. Do not restart Loop 1. First command: `npx playwright test tests/e2e/win.spec.ts --project=desktop`.
 
 ## Explicitly unverified
 

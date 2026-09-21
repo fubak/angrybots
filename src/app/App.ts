@@ -104,10 +104,22 @@ export class App {
 
     this.bus.on('bot:firstImpact', (e) => {
       this.impactCenter = { x: e.x, y: e.y };
+      this.audio.play('impact');
+      this.renderer.juice.burst(e.x, e.y, 'dust', 6);
     });
     this.bus.on('bot:launched', () => {
       this.trail.onLaunch();
+      this.audio.play('launch');
+      this.audio.tension(0);
     });
+    this.bus.on('sling:aimUpdate', (e) => this.audio.tension(e.tension));
+    this.bus.on('sling:cancel', () => {
+      this.audio.tension(0);
+      this.audio.play('cancel');
+    });
+
+    const unlock = () => this.audio.unlock();
+    window.addEventListener('pointerdown', unlock, { once: true });
 
     window.addEventListener('keydown', (ev) => {
       if (ev.key === 'Escape') this.togglePause();
@@ -122,9 +134,11 @@ export class App {
       if (document.hidden) {
         this.backgrounded = true;
         this.sling.cancelActive();
+        this.audio.onPause();
         this.syncSimulationPause();
       } else {
         this.backgrounded = false;
+        this.audio.onResume();
         this.syncSimulationPause();
       }
     });
@@ -207,8 +221,12 @@ export class App {
     this.introElapsed = 0;
     this.impactCenter = null;
     this.session.loadLevel(def, this.save.settings.reducedMotion === true);
+    const sim = this.session.getSim();
+    if (sim) sim.fragmentsEnabled = true;
+    this.bindSimAudio();
     this.sling.resetForLevel();
     this.hud.show();
+    this.hud.setTip(def.hint ?? this.tipFor(def));
     this.hud.setShots(this.session.getBotQueue().length);
   }
 
@@ -238,7 +256,12 @@ export class App {
     if (this.phase !== 'play') return;
     if (this.results.isVisible()) return;
     this.paused = force ?? !this.paused;
-    if (this.paused) this.sling.cancelActive();
+    if (this.paused) {
+      this.sling.cancelActive();
+      this.audio.onPause();
+    } else {
+      this.audio.onResume();
+    }
     this.pauseMenu.toggle(this.paused);
     this.syncSimulationPause();
   }
@@ -261,6 +284,36 @@ export class App {
       this.save.recordLevel(this.levelId, score, stars, won);
     }
     this.results.show(won, score, stars);
+    this.audio.play(won ? 'victory' : 'defeat');
+  }
+
+  private tipFor(def: { id: string; bots: string[] }): string {
+    if (def.id === 'first-flight') return 'Pull back, then release. Return to the perch to cancel.';
+    if (def.bots[0] === 'dash') return 'Tap during flight to dash.';
+    if (def.bots.includes('split')) return 'Glass breaks easily. Tap to split in mid-air.';
+    return 'Clear every target.';
+  }
+
+  private bindSimAudio(): void {
+    const sim = this.session.getSim();
+    if (!sim) return;
+    sim.bus.on('block:destroyed', (e) => {
+      this.audio.play(`break:${e.material}`);
+      this.renderer.juice.burst(e.x, e.y, e.material, e.material === 'tnt' ? 16 : 8);
+      if (e.material === 'tnt') this.audio.play('explosion');
+    });
+    sim.bus.on('pig:destroyed', (e) => {
+      this.audio.play('pig');
+      this.renderer.juice.burst(e.x, e.y, 'pig', 10);
+    });
+    sim.bus.on('block:damaged', () => {
+      this.audio.play('impact');
+    });
+    sim.bus.on('bot:ability', () => this.audio.play('ability'));
+    sim.bus.on('bot:firstImpact', (e) => {
+      this.impactCenter = { x: e.x, y: e.y };
+      this.audio.play('impact');
+    });
   }
 
   private tick(dt: number): void {

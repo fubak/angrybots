@@ -12,7 +12,10 @@ export class LevelSelect {
     this.grid = document.createElement('div');
     this.grid.style.cssText =
       'display:grid;grid-template-columns:repeat(5,1fr);gap:8px;overflow:auto';
-    this.el.appendChild(this.grid);
+    const heading = document.createElement('h2');
+    heading.textContent = 'Select a level';
+    heading.style.margin = '0';
+    this.el.append(heading, this.grid);
     parent.appendChild(this.el);
     this.onPick = onPick;
   }

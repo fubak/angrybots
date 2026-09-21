@@ -23,7 +23,7 @@ export const PALETTE = {
     crown: '#ffcc33',
   },
   bot: {
-    grok: '#3a3d4a',
+    grok: '#4a5160',
     dash: '#f2a51f',
     split: '#37b6ff',
     heavy: '#6b5b95',

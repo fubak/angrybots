@@ -41,7 +41,7 @@ Status: **verified** · **partial** · **open** · **unverified**
 | D05 | partial |
 | E01 | verified |
 | E02 | verified |
-| E03 | partial |
+| E03 | verified |
 | E04 | partial |
 | E05 | partial |
 | E06 | partial |

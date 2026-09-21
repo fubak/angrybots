@@ -20,6 +20,7 @@
     "minY": 0,
     "maxY": 10
   },
+  "hint": "Glass snaps first. Save Split for a cluster.",
   "sling": {
     "x": -7.5
   },

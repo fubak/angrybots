@@ -122,7 +122,7 @@ export class GameSession {
       level: this.sim,
       simTime: this.sim.getSimTime(),
       launchTime: this.launchTime,
-      emit: () => {},
+      emit: (_name, payload) => this.sim!.bus.emit('bot:ability', payload),
     };
     activate(bot, ctx);
   }

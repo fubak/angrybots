@@ -10,13 +10,16 @@ export class TitleScreen {
     title.textContent = 'Angry Bots';
     title.style.fontSize = '48px';
     title.style.transform = 'rotate(-3deg)';
+    const sub = document.createElement('p');
+    sub.textContent = 'Pull. Launch. Clear the yard.';
+    sub.style.margin = '0';
     const play = document.createElement('button');
     play.type = 'button';
     play.className = 'ui-btn';
     play.textContent = 'Play';
     play.setAttribute('aria-label', 'Play');
     play.addEventListener('click', onPlay);
-    this.el.append(title, play);
+    this.el.append(title, sub, play);
     parent.appendChild(this.el);
   }
 

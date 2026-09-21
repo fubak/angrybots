@@ -3,6 +3,7 @@ export class Hud {
   private scoreEl: HTMLElement;
   private shotsEl: HTMLElement;
   private bestEl: HTMLElement;
+  private tipEl: HTMLElement;
   constructor(parent: HTMLElement, onPause: () => void, onRestart: () => void) {
     this.root = document.createElement('div');
     this.root.className = 'hud-top';
@@ -15,12 +16,14 @@ export class Hud {
         <div class="hud-score" aria-live="polite">0</div>
         <div class="hud-shots" aria-live="polite">Shots: 0</div>
         <div class="hud-best" style="font-size:14px">Best: 0</div>
+        <div class="hud-tip" style="font-size:14px;max-width:220px;text-align:right"></div>
       </div>
     `;
     parent.appendChild(this.root);
     this.scoreEl = this.root.querySelector('.hud-score')!;
     this.shotsEl = this.root.querySelector('.hud-shots')!;
     this.bestEl = this.root.querySelector('.hud-best')!;
+    this.tipEl = this.root.querySelector('.hud-tip')!;
     this.root.querySelector('[aria-label="Pause"]')!.addEventListener('click', onPause);
     this.root.querySelector('[aria-label="Restart"]')!.addEventListener('click', onRestart);
   }
@@ -32,6 +35,10 @@ export class Hud {
 
   setShots(n: number): void {
     this.shotsEl.textContent = `Shots: ${n}`;
+  }
+
+  setTip(text: string): void {
+    this.tipEl.textContent = text;
   }
 
   hide(): void {
