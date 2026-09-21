@@ -1,5 +1,15 @@
 # Start or resume the AngryBots production gauntlet
 
+For Cursor with Grok 4.6, use [CURSOR_GROK_MASTER_GAUNTLET.md](./CURSOR_GROK_MASTER_GAUNTLET.md). It starts with syncing the repository and orchestrates all three implementation loops through all five production gates. The latest reviewed baseline is [FRESH_REVIEW_1dc4a50.md](./FRESH_REVIEW_1dc4a50.md); revalidate findings after pulling.
+
+Copy this into Cursor to start or resume:
+
+```text
+First pull the latest updates from https://github.com/fubak/angrybots, preserving existing changes and following repository instructions. On clean main use git pull --ff-only origin main; on this task's existing branch fetch and integrate upstream/main while preserving completed work; otherwise use an isolated branch/worktree from origin/main without discarding existing work. Then read docs/CURSOR_GROK_MASTER_GAUNTLET.md in full and execute it. You are authorized to implement, verify, commit and push cohesive changes. Run all three loops in order, maintain docs/GAUNTLET_STATUS.md, and continue between gates without waiting for another instruction. Do not declare completion until every required production gate has current evidence; record a precise continuation checkpoint if a real blocker or session limit intervenes.
+```
+
+## Original general-purpose startup prompt
+
 Copy the prompt below into a coding session with access to https://github.com/fubak/angrybots.
 
 ---
