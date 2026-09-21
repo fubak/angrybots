@@ -1,3 +1,4 @@
+import { CHAPTERS } from '../levels/chapters';
 import type { LevelV2 } from '../levels/schema';
 
 export class LevelSelect {
@@ -8,10 +9,9 @@ export class LevelSelect {
     this.el = document.createElement('div');
     this.el.className = 'ui-panel';
     this.el.style.cssText =
-      'position:fixed;inset:10% 15%;display:none;flex-direction:column;gap:12px;z-index:15';
+      'position:fixed;inset:6% 8%;display:none;flex-direction:column;gap:8px;z-index:15;overflow:auto';
     this.grid = document.createElement('div');
-    this.grid.style.cssText =
-      'display:grid;grid-template-columns:repeat(5,1fr);gap:8px;overflow:auto';
+    this.grid.style.cssText = 'display:flex;flex-direction:column;gap:10px';
     const heading = document.createElement('h2');
     heading.textContent = 'Select a level';
     heading.style.margin = '0';
@@ -24,16 +24,29 @@ export class LevelSelect {
 
   populate(levels: readonly LevelV2[], unlocked: (id: string) => boolean): void {
     this.grid.replaceChildren();
-    for (const l of levels) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ui-btn';
-      btn.textContent = String(l.order);
-      btn.disabled = !unlocked(l.id);
-      btn.dataset.levelId = l.id;
-      btn.setAttribute('aria-label', `Level ${l.order} ${l.name}`);
-      btn.addEventListener('click', () => this.onPick(l.id));
-      this.grid.appendChild(btn);
+    let n = 0;
+    for (const chapter of CHAPTERS) {
+      const group = levels.filter((l) => l.chapter === chapter.id);
+      if (!group.length) continue;
+      const title = document.createElement('h3');
+      title.textContent = chapter.name;
+      title.style.cssText = `margin:0;padding:6px 4px;color:${chapter.color};font-size:1.05rem;position:sticky;top:0;background:rgba(43,58,85,0.96);z-index:1`;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:grid;grid-template-columns:repeat(10,minmax(48px,1fr));gap:6px';
+      for (const l of group) {
+        n += 1;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ui-btn';
+        btn.textContent = `${n}`;
+        btn.disabled = !unlocked(l.id);
+        btn.dataset.levelId = l.id;
+        btn.setAttribute('aria-label', `Level ${n} ${l.name}`);
+        btn.title = l.name;
+        btn.addEventListener('click', () => this.onPick(l.id));
+        row.appendChild(btn);
+      }
+      this.grid.append(title, row);
     }
   }
 

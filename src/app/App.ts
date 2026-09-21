@@ -221,6 +221,7 @@ export class App {
     this.introElapsed = 0;
     this.impactCenter = null;
     this.session.loadLevel(def, this.save.settings.reducedMotion === true);
+    this.renderer.setChapter(def.chapter);
     const sim = this.session.getSim();
     if (sim) sim.fragmentsEnabled = true;
     this.bindSimAudio();

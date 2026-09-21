@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "id": "hat-row",
+  "name": "Hat Row",
+  "chapter": "workshop",
+  "order": 7,
+  "bots": [
+    "grok",
+    "grok",
+    "heavy"
+  ],
+  "stars": [
+    12000,
+    22000,
+    30000
+  ],
+  "camera": {
+    "minX": -11,
+    "maxX": 20,
+    "minY": 0,
+    "maxY": 11
+  },
+  "hint": "Hats soak a hit. Line them up.",
+  "sling": {
+    "x": -7.5
+  },
+  "terrain": [],
+  "blocks": [
+    {
+      "id": "stub",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 11.2,
+      "y": 0
+    },
+    {
+      "id": "stub2",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 13.6,
+      "y": 0
+    }
+  ],
+  "pigs": [
+    {
+      "id": "pig1",
+      "size": "M",
+      "x": 10,
+      "y": 0,
+      "helmet": "hat"
+    },
+    {
+      "id": "pig2",
+      "size": "M",
+      "x": 12.4,
+      "y": 0,
+      "helmet": "hat"
+    },
+    {
+      "id": "pig3",
+      "size": "M",
+      "x": 14.8,
+      "y": 0,
+      "helmet": "hat"
+    }
+  ]
+}

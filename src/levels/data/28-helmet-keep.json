@@ -1,0 +1,74 @@
+{
+  "version": 2,
+  "id": "helmet-keep",
+  "name": "Helmet Keep",
+  "chapter": "citadel",
+  "order": 8,
+  "bots": [
+    "heavy",
+    "dash",
+    "grok"
+  ],
+  "stars": [
+    14000,
+    24000,
+    34000
+  ],
+  "camera": {
+    "minX": -11,
+    "maxX": 22,
+    "minY": 0,
+    "maxY": 12
+  },
+  "hint": "Helmet pig on stone. Heavy first.",
+  "sling": {
+    "x": -7.5
+  },
+  "terrain": [],
+  "blocks": [
+    {
+      "id": "sL",
+      "material": "stone",
+      "kit": "postL",
+      "x": 10,
+      "y": 0
+    },
+    {
+      "id": "sR",
+      "material": "stone",
+      "kit": "postL",
+      "x": 13.2,
+      "y": 0
+    },
+    {
+      "id": "deck",
+      "material": "wood",
+      "kit": "plankL",
+      "x": 11.6,
+      "y": 2
+    },
+    {
+      "id": "capL",
+      "material": "stone",
+      "kit": "cube",
+      "x": 10.4,
+      "y": 2.4
+    },
+    {
+      "id": "capR",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.8,
+      "y": 2.4
+    }
+  ],
+  "pigs": [
+    {
+      "id": "pig1",
+      "size": "L",
+      "x": 11.6,
+      "y": 2.4,
+      "helmet": "helmet"
+    }
+  ]
+}

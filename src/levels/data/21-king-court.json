@@ -1,0 +1,72 @@
+{
+  "version": 2,
+  "id": "king-court",
+  "name": "King Court",
+  "chapter": "citadel",
+  "order": 1,
+  "bots": [
+    "heavy",
+    "grok",
+    "split"
+  ],
+  "stars": [
+    18000,
+    28000,
+    38000
+  ],
+  "camera": {
+    "minX": -11,
+    "maxX": 22,
+    "minY": 0,
+    "maxY": 12
+  },
+  "hint": "The king sits on the deck. Guards wait below.",
+  "sling": {
+    "x": -7.5
+  },
+  "terrain": [],
+  "blocks": [
+    {
+      "id": "cL",
+      "material": "wood",
+      "kit": "postL",
+      "x": 10,
+      "y": 0
+    },
+    {
+      "id": "cR",
+      "material": "wood",
+      "kit": "postL",
+      "x": 13.2,
+      "y": 0
+    },
+    {
+      "id": "deck",
+      "material": "wood",
+      "kit": "plankL",
+      "x": 11.6,
+      "y": 2
+    }
+  ],
+  "pigs": [
+    {
+      "id": "guardL",
+      "size": "S",
+      "x": 8.7,
+      "y": 0
+    },
+    {
+      "id": "king",
+      "size": "L",
+      "x": 11.6,
+      "y": 2.4,
+      "king": true
+    },
+    {
+      "id": "guardR",
+      "size": "S",
+      "x": 15.0,
+      "y": 0
+    }
+  ]
+}

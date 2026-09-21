@@ -18,6 +18,7 @@ export type ExpandedPig = {
   id: string;
   size: 'S' | 'M' | 'L';
   helmet?: 'hat' | 'helmet';
+  king?: boolean;
   r: number;
   cx: number;
   cy: number;
@@ -67,6 +68,7 @@ export function expandLevel(level: LevelV2): ExpandedLevel {
       id: p.id ?? `p${i}`,
       size: p.size,
       helmet: p.helmet,
+      king: p.king,
       r,
       cx: p.x,
       cy: p.y + r,

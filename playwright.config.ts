@@ -7,6 +7,7 @@ export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 90_000,
   retries: 0,
+  workers: 2,
   use: {
     baseURL: BASE,
     trace: 'on-first-retry',

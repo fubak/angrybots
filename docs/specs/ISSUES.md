@@ -2,7 +2,7 @@
 
 | id | found in task | description | status |
 | --- | --- | --- | --- |
-| I-01 | CNT | Only 5 slice levels are polished; 25 extra levels are duplicated layouts for count, not unique designs | open |
+| I-01 | CNT | Only 5 slice levels are polished; 25 extra levels are duplicated layouts for count, not unique designs | implemented — 30 unique authored files; listening/device still unverified |
 | I-02 | QA-03 | Visual baseline CI and `tests/visual/*` not added (deterministic debug hooks only) | open |
 | I-03 | QA-04 | `npm run verify` excludes e2e; suite passes locally (see `docs/BROWSER_TEST_REPORT.md`) | open |
 | I-04 | AUD | Real SFX/music/voice assets require human or AUD-04 pipeline output | open |

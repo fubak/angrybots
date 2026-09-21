@@ -1,0 +1,89 @@
+{
+  "version": 2,
+  "id": "last-stand",
+  "name": "Last Stand",
+  "chapter": "citadel",
+  "order": 10,
+  "bots": [
+    "blast",
+    "heavy",
+    "split",
+    "dash"
+  ],
+  "stars": [
+    20000,
+    32000,
+    42000
+  ],
+  "camera": {
+    "minX": -11,
+    "maxX": 22,
+    "minY": 0,
+    "maxY": 12
+  },
+  "hint": "King, helmet, TNT. Spend every bot if you must.",
+  "sling": {
+    "x": -7.5
+  },
+  "terrain": [],
+  "blocks": [
+    {
+      "id": "pL",
+      "material": "stone",
+      "kit": "postL",
+      "x": 10,
+      "y": 0
+    },
+    {
+      "id": "pR",
+      "material": "stone",
+      "kit": "postL",
+      "x": 13.2,
+      "y": 0
+    },
+    {
+      "id": "deck",
+      "material": "wood",
+      "kit": "plankL",
+      "x": 11.6,
+      "y": 2
+    },
+    {
+      "id": "tnt",
+      "material": "tnt",
+      "kit": "cube",
+      "x": 15.4,
+      "y": 0
+    },
+    {
+      "id": "stub",
+      "material": "wood",
+      "kit": "cube",
+      "x": 14.0,
+      "y": 0
+    }
+  ],
+  "pigs": [
+    {
+      "id": "king",
+      "size": "L",
+      "x": 11.6,
+      "y": 2.4,
+      "king": true
+    },
+    {
+      "id": "helm",
+      "size": "M",
+      "x": 16.8,
+      "y": 0,
+      "helmet": "helmet"
+    },
+    {
+      "id": "hat",
+      "size": "M",
+      "x": 18.6,
+      "y": 0,
+      "helmet": "hat"
+    }
+  ]
+}

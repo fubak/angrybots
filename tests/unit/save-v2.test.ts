@@ -43,20 +43,20 @@ describe('SaveStore v2', () => {
       'glass-house',
       'stone-keep',
       'hilltop',
-      'slice-6',
+      'lone-guard',
     ];
     const s = new SaveStore();
     s.load();
     expect(s.isUnlocked('first-flight', ids)).toBe(true);
     expect(s.isUnlocked('powder-row', ids)).toBe(false);
-    expect(s.isUnlocked('slice-6', ids)).toBe(false);
+    expect(s.isUnlocked('lone-guard', ids)).toBe(false);
     s.recordLevel('first-flight', 1, 1, true);
     expect(s.isUnlocked('powder-row', ids)).toBe(true);
-    expect(s.isUnlocked('slice-6', ids)).toBe(false);
+    expect(s.isUnlocked('lone-guard', ids)).toBe(false);
     for (const id of ids.slice(0, 5)) s.recordLevel(id, 1, 1, true);
-    expect(s.isUnlocked('slice-6', ids)).toBe(true);
+    expect(s.isUnlocked('lone-guard', ids)).toBe(true);
     const reloaded = new SaveStore();
     reloaded.load();
-    expect(reloaded.isUnlocked('slice-6', ids)).toBe(true);
+    expect(reloaded.isUnlocked('lone-guard', ids)).toBe(true);
   });
 });

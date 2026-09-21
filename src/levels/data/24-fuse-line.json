@@ -1,0 +1,59 @@
+{
+  "version": 2,
+  "id": "fuse-line",
+  "name": "Fuse Line",
+  "chapter": "citadel",
+  "order": 4,
+  "bots": [
+    "dash",
+    "blast",
+    "grok"
+  ],
+  "stars": [
+    16000,
+    26000,
+    36000
+  ],
+  "camera": {
+    "minX": -11,
+    "maxX": 22,
+    "minY": 0,
+    "maxY": 12
+  },
+  "hint": "Three red crates. Start the chain from the left.",
+  "sling": {
+    "x": -7.5
+  },
+  "terrain": [],
+  "blocks": [
+    {
+      "id": "t1",
+      "material": "tnt",
+      "kit": "cube",
+      "x": 10.4,
+      "y": 0
+    },
+    {
+      "id": "t2",
+      "material": "tnt",
+      "kit": "cube",
+      "x": 13.0,
+      "y": 0
+    },
+    {
+      "id": "t3",
+      "material": "tnt",
+      "kit": "cube",
+      "x": 15.6,
+      "y": 0
+    }
+  ],
+  "pigs": [
+    {
+      "id": "pig1",
+      "size": "M",
+      "x": 17.4,
+      "y": 0
+    }
+  ]
+}

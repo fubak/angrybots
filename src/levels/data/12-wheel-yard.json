@@ -1,0 +1,58 @@
+{
+  "version": 2,
+  "id": "wheel-yard",
+  "name": "Wheel Yard",
+  "chapter": "workshop",
+  "order": 2,
+  "bots": [
+    "grok",
+    "dash"
+  ],
+  "stars": [
+    9000,
+    17000,
+    25000
+  ],
+  "camera": {
+    "minX": -11,
+    "maxX": 20,
+    "minY": 0,
+    "maxY": 11
+  },
+  "hint": "Wheels roll. Clip the deck, not just the pig.",
+  "sling": {
+    "x": -7.5
+  },
+  "terrain": [],
+  "blocks": [
+    {
+      "id": "wL",
+      "material": "wood",
+      "kit": "wheel",
+      "x": 10,
+      "y": 0
+    },
+    {
+      "id": "wR",
+      "material": "wood",
+      "kit": "wheel",
+      "x": 12.2,
+      "y": 0
+    },
+    {
+      "id": "deck",
+      "material": "wood",
+      "kit": "plankM",
+      "x": 11.1,
+      "y": 0.8
+    }
+  ],
+  "pigs": [
+    {
+      "id": "pig1",
+      "size": "S",
+      "x": 11.1,
+      "y": 1.2
+    }
+  ]
+}

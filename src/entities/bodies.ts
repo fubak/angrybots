@@ -111,7 +111,7 @@ export function createPig(world: World, p: ExpandedPig): PigEntity {
     id: p.id,
     size: p.size,
     helmet,
-    king: false,
+    king: p.king === true,
     r: p.r,
     body,
     hp,

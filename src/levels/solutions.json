@@ -53,274 +53,258 @@
     "score": 42650,
     "source": "solver"
   },
-  "slice-6": {
+  "lone-guard": {
     "shots": [
-      {
-        "angleDeg": 55,
-        "speed": 18
-      }
-    ],
-    "score": 31380,
-    "source": "solver"
-  },
-  "slice-7": {
-    "shots": [
-      {
-        "angleDeg": 58,
-        "speed": 21
-      }
-    ],
-    "score": 45640,
-    "source": "solver"
-  },
-  "slice-8": {
-    "shots": [
-      {
-        "angleDeg": 40,
-        "speed": 17
-      }
-    ],
-    "score": 41550,
-    "source": "solver"
-  },
-  "slice-9": {
-    "shots": [
-      {
-        "angleDeg": 28,
-        "speed": 23
-      }
-    ],
-    "score": 39340,
-    "source": "solver"
-  },
-  "slice-10": {
-    "shots": [
-      {
-        "angleDeg": 31,
-        "speed": 23
-      },
       {
         "angleDeg": 16,
         "speed": 22
       }
     ],
-    "score": 42650,
+    "score": 25670,
     "source": "solver"
   },
-  "slice-11": {
+  "twin-posts": {
     "shots": [
       {
-        "angleDeg": 55,
-        "speed": 18
-      }
-    ],
-    "score": 31380,
-    "source": "solver"
-  },
-  "slice-12": {
-    "shots": [
-      {
-        "angleDeg": 58,
+        "angleDeg": 22,
         "speed": 21
       }
     ],
-    "score": 45640,
+    "score": 30770,
     "source": "solver"
   },
-  "slice-13": {
+  "glass-alley": {
     "shots": [
-      {
-        "angleDeg": 40,
-        "speed": 17
-      }
-    ],
-    "score": 41550,
-    "source": "solver"
-  },
-  "slice-14": {
-    "shots": [
-      {
-        "angleDeg": 28,
-        "speed": 23
-      }
-    ],
-    "score": 39340,
-    "source": "solver"
-  },
-  "slice-15": {
-    "shots": [
-      {
-        "angleDeg": 31,
-        "speed": 23
-      },
       {
         "angleDeg": 16,
-        "speed": 22
+        "speed": 23
       }
     ],
-    "score": 42650,
+    "score": 15730,
     "source": "solver"
   },
-  "slice-16": {
+  "tnt-porch": {
     "shots": [
       {
-        "angleDeg": 55,
+        "angleDeg": 12,
+        "speed": 15
+      }
+    ],
+    "score": 16190,
+    "source": "solver"
+  },
+  "split-lesson": {
+    "shots": [
+      {
+        "angleDeg": 32,
+        "speed": 19
+      }
+    ],
+    "score": 30070,
+    "source": "solver"
+  },
+  "heavy-gate": {
+    "shots": [
+      {
+        "angleDeg": 44,
         "speed": 18
       }
     ],
-    "score": 31380,
+    "score": 22340,
     "source": "solver"
   },
-  "slice-17": {
+  "wheel-yard": {
     "shots": [
       {
-        "angleDeg": 58,
+        "angleDeg": 66,
         "speed": 21
       }
     ],
-    "score": 45640,
+    "score": 15870,
     "source": "solver"
   },
-  "slice-18": {
+  "ramp-run": {
     "shots": [
       {
-        "angleDeg": 40,
-        "speed": 17
-      }
-    ],
-    "score": 41550,
-    "source": "solver"
-  },
-  "slice-19": {
-    "shots": [
-      {
-        "angleDeg": 28,
+        "angleDeg": 26,
         "speed": 23
       }
     ],
-    "score": 39340,
+    "score": 15660,
     "source": "solver"
   },
-  "slice-20": {
+  "ledge-nest": {
     "shots": [
       {
-        "angleDeg": 31,
-        "speed": 23
-      },
-      {
-        "angleDeg": 16,
+        "angleDeg": 62,
         "speed": 22
       }
     ],
-    "score": 42650,
+    "score": 15090,
     "source": "solver"
   },
-  "slice-21": {
+  "powder-stack": {
     "shots": [
       {
-        "angleDeg": 55,
+        "angleDeg": 14,
+        "speed": 23
+      }
+    ],
+    "score": 32510,
+    "source": "solver"
+  },
+  "glass-stack": {
+    "shots": [
+      {
+        "angleDeg": 20,
+        "speed": 22
+      }
+    ],
+    "score": 16080,
+    "source": "solver"
+  },
+  "hat-row": {
+    "shots": [
+      {
+        "angleDeg": 18,
+        "speed": 21
+      },
+      {
+        "angleDeg": 14,
+        "speed": 23
+      }
+    ],
+    "score": 25150,
+    "source": "solver"
+  },
+  "blast-shed": {
+    "shots": [
+      {
+        "angleDeg": 48,
         "speed": 18
       }
     ],
-    "score": 31380,
+    "score": 22540,
     "source": "solver"
   },
-  "slice-22": {
+  "cross-beam": {
     "shots": [
       {
-        "angleDeg": 58,
+        "angleDeg": 22,
         "speed": 21
       }
     ],
-    "score": 45640,
+    "score": 36100,
     "source": "solver"
   },
-  "slice-23": {
+  "mixed-yard": {
     "shots": [
       {
-        "angleDeg": 40,
-        "speed": 17
+        "angleDeg": 22,
+        "speed": 21
       }
     ],
-    "score": 41550,
+    "score": 36250,
     "source": "solver"
   },
-  "slice-24": {
+  "king-court": {
     "shots": [
       {
-        "angleDeg": 28,
+        "angleDeg": 8,
         "speed": 23
       }
     ],
-    "score": 39340,
+    "score": 41990,
     "source": "solver"
   },
-  "slice-25": {
+  "triple-keep": {
     "shots": [
       {
-        "angleDeg": 31,
-        "speed": 23
-      },
-      {
-        "angleDeg": 16,
-        "speed": 22
-      }
-    ],
-    "score": 42650,
-    "source": "solver"
-  },
-  "slice-26": {
-    "shots": [
-      {
-        "angleDeg": 55,
+        "angleDeg": 52,
         "speed": 18
       }
     ],
-    "score": 31380,
+    "score": 35230,
     "source": "solver"
   },
-  "slice-27": {
+  "high-perch": {
     "shots": [
       {
-        "angleDeg": 58,
+        "angleDeg": 30,
         "speed": 21
       }
     ],
-    "score": 45640,
+    "score": 32350,
     "source": "solver"
   },
-  "slice-28": {
+  "fuse-line": {
     "shots": [
       {
-        "angleDeg": 40,
-        "speed": 17
+        "angleDeg": 60,
+        "speed": 18
       }
     ],
-    "score": 41550,
+    "score": 26600,
     "source": "solver"
   },
-  "slice-29": {
+  "split-keep": {
     "shots": [
       {
-        "angleDeg": 28,
+        "angleDeg": 22,
         "speed": 23
       }
     ],
-    "score": 39340,
+    "score": 31070,
     "source": "solver"
   },
-  "slice-30": {
+  "dash-bridge": {
     "shots": [
       {
-        "angleDeg": 31,
-        "speed": 23
-      },
+        "angleDeg": 18,
+        "speed": 21
+      }
+    ],
+    "score": 15140,
+    "source": "solver"
+  },
+  "blast-vault": {
+    "shots": [
       {
-        "angleDeg": 16,
+        "angleDeg": 14,
+        "speed": 23
+      }
+    ],
+    "score": 32810,
+    "source": "solver"
+  },
+  "helmet-keep": {
+    "shots": [
+      {
+        "angleDeg": 32,
+        "speed": 20
+      }
+    ],
+    "score": 29000,
+    "source": "solver"
+  },
+  "four-roles": {
+    "shots": [
+      {
+        "angleDeg": 24,
+        "speed": 21
+      }
+    ],
+    "score": 48350,
+    "source": "solver"
+  },
+  "last-stand": {
+    "shots": [
+      {
+        "angleDeg": 24,
         "speed": 22
       }
     ],
-    "score": 42650,
+    "score": 51410,
     "source": "solver"
   }
 }

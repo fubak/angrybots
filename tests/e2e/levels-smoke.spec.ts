@@ -1,14 +1,54 @@
 import { test, expect } from '@playwright/test';
 import { openApp, seedCleared, snapshot } from './helpers';
 
-const LEVELS = ['first-flight', 'powder-row', 'glass-house', 'stone-keep', 'hilltop'] as const;
+const LEVELS = [
+  'first-flight',
+  'powder-row',
+  'glass-house',
+  'lone-guard',
+  'heavy-gate',
+  'king-court',
+] as const;
 
 const PRED: Record<(typeof LEVELS)[number], string[]> = {
   'first-flight': [],
   'powder-row': ['first-flight'],
   'glass-house': ['first-flight', 'powder-row'],
-  'stone-keep': ['first-flight', 'powder-row', 'glass-house'],
-  hilltop: ['first-flight', 'powder-row', 'glass-house', 'stone-keep'],
+  'lone-guard': ['first-flight', 'powder-row', 'glass-house', 'stone-keep', 'hilltop'],
+  'heavy-gate': [
+    'first-flight',
+    'powder-row',
+    'glass-house',
+    'stone-keep',
+    'hilltop',
+    'lone-guard',
+    'twin-posts',
+    'glass-alley',
+    'tnt-porch',
+    'split-lesson',
+  ],
+  'king-court': [
+    'first-flight',
+    'powder-row',
+    'glass-house',
+    'stone-keep',
+    'hilltop',
+    'lone-guard',
+    'twin-posts',
+    'glass-alley',
+    'tnt-porch',
+    'split-lesson',
+    'heavy-gate',
+    'wheel-yard',
+    'ramp-run',
+    'ledge-nest',
+    'powder-stack',
+    'glass-stack',
+    'hat-row',
+    'blast-shed',
+    'cross-beam',
+    'mixed-yard',
+  ],
 };
 
 test.describe('levels smoke', () => {

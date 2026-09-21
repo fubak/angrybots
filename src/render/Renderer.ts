@@ -7,6 +7,7 @@ import { addOutline } from './outline';
 import { SlingView } from './SlingView';
 import { Scenery } from './Scenery';
 import { Juice } from './Juice';
+import { decorateBlock, makeBotCharacter, makePigCharacter } from './characters';
 import type { View } from '../camera/fitRect';
 import type { SlingModel } from '../sling/SlingModel';
 import type { ShotTrail } from '../sling/ShotTrail';
@@ -27,6 +28,7 @@ export class Renderer {
   private readonly entityMeshes = new Map<string, THREE.Object3D>();
   private readonly slingView: SlingView;
   readonly juice: Juice;
+  private readonly scenery: Scenery;
   private aspect = 16 / 9;
   private fpsSamples: number[] = [];
   private lastFpsSample = 0;
@@ -50,9 +52,13 @@ export class Renderer {
     key.position.set(-4, 8, 10);
     this.scene.add(key);
 
-    new Scenery(this.scene);
+    this.scenery = new Scenery(this.scene);
     this.slingView = new SlingView(this.scene);
     this.juice = new Juice(this.scene);
+  }
+
+  setChapter(chapter: string): void {
+    this.scenery.setChapter(chapter);
   }
 
   syncSling(
@@ -117,55 +123,17 @@ export class Renderer {
         toon(color, e.material === 'glass' ? { transparent: true, opacity: 0.55 } : undefined).clone()
       );
       addOutline(mesh, 'box');
+      decorateBlock(mesh, e.material, e.w, e.h, e.depth);
       mesh.renderOrder = 10;
       return mesh;
     }
     if (e.kind === 'pig') {
-      const g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.SphereGeometry(e.r, 16, 12), toon(PALETTE.pig.skin));
-      addOutline(body, 'sphere');
-      g.add(body);
-      const snout = new THREE.Mesh(
-        new THREE.SphereGeometry(e.r * 0.42, 10, 8),
-        toon(PALETTE.pig.snout)
-      );
-      snout.position.set(0, -e.r * 0.02, e.r * 0.82);
-      g.add(snout);
-      for (const side of [-1, 1]) {
-        const ear = new THREE.Mesh(
-          new THREE.SphereGeometry(e.r * 0.22, 8, 6),
-          toon(PALETTE.pig.ear)
-        );
-        ear.position.set(side * e.r * 0.42, e.r * 0.72, e.r * 0.15);
-        g.add(ear);
-        const eye = new THREE.Mesh(
-          new THREE.SphereGeometry(e.r * 0.2, 8, 6),
-          toon(PALETTE.bot.eye)
-        );
-        eye.position.set(side * e.r * 0.28, e.r * 0.22, e.r * 0.78);
-        g.add(eye);
-      }
+      const g = makePigCharacter(e.r, { helmet: e.helmet, king: e.king });
       g.renderOrder = 10;
       return g;
     }
     if (e.kind === 'bot') {
-      const g = new THREE.Group();
-      const body = new THREE.Mesh(
-        new THREE.SphereGeometry(e.r, 16, 12),
-        toon(PALETTE.bot[e.botKind])
-      );
-      addOutline(body, 'sphere');
-      g.add(body);
-      const eyeMat = toon(PALETTE.bot.eye);
-      const pupilMat = toon(PALETTE.bot.visor);
-      for (const side of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.22, 10, 8), eyeMat);
-        eye.position.set(side * e.r * 0.32, e.r * 0.18, e.r * 0.72);
-        const pupil = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.1, 8, 6), pupilMat);
-        pupil.position.z = e.r * 0.14;
-        eye.add(pupil);
-        g.add(eye);
-      }
+      const g = makeBotCharacter(e.botKind, e.r);
       g.renderOrder = 10;
       return g;
     }

@@ -1,0 +1,51 @@
+{
+  "version": 2,
+  "id": "dash-bridge",
+  "name": "Dash Bridge",
+  "chapter": "citadel",
+  "order": 6,
+  "bots": [
+    "dash",
+    "heavy"
+  ],
+  "stars": [
+    10000,
+    18000,
+    26000
+  ],
+  "camera": {
+    "minX": -11,
+    "maxX": 22,
+    "minY": 0,
+    "maxY": 12
+  },
+  "hint": "Stone shield in front. Dash over or through.",
+  "sling": {
+    "x": -7.5
+  },
+  "terrain": [],
+  "blocks": [
+    {
+      "id": "slab",
+      "material": "stone",
+      "kit": "slab",
+      "x": 10.4,
+      "y": 0
+    },
+    {
+      "id": "cube",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.8,
+      "y": 0
+    }
+  ],
+  "pigs": [
+    {
+      "id": "pig1",
+      "size": "M",
+      "x": 14.8,
+      "y": 0
+    }
+  ]
+}

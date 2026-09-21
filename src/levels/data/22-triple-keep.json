@@ -1,0 +1,71 @@
+{
+  "version": 2,
+  "id": "triple-keep",
+  "name": "Triple Keep",
+  "chapter": "citadel",
+  "order": 2,
+  "bots": [
+    "grok",
+    "dash",
+    "split"
+  ],
+  "stars": [
+    14000,
+    24000,
+    34000
+  ],
+  "camera": {
+    "minX": -11,
+    "maxX": 22,
+    "minY": 0,
+    "maxY": 12
+  },
+  "hint": "Three crates, three pigs. No free chain.",
+  "sling": {
+    "x": -7.5
+  },
+  "terrain": [],
+  "blocks": [
+    {
+      "id": "a",
+      "material": "wood",
+      "kit": "cube",
+      "x": 10,
+      "y": 0
+    },
+    {
+      "id": "b",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.2,
+      "y": 0
+    },
+    {
+      "id": "c",
+      "material": "glass",
+      "kit": "cube",
+      "x": 16.4,
+      "y": 0
+    }
+  ],
+  "pigs": [
+    {
+      "id": "pig1",
+      "size": "S",
+      "x": 11.4,
+      "y": 0
+    },
+    {
+      "id": "pig2",
+      "size": "S",
+      "x": 14.6,
+      "y": 0
+    },
+    {
+      "id": "pig3",
+      "size": "S",
+      "x": 17.8,
+      "y": 0
+    }
+  ]
+}

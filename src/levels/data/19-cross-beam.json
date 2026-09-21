@@ -1,0 +1,92 @@
+{
+  "version": 2,
+  "id": "cross-beam",
+  "name": "Cross Beam",
+  "chapter": "workshop",
+  "order": 9,
+  "bots": [
+    "grok",
+    "split",
+    "dash"
+  ],
+  "stars": [
+    14000,
+    24000,
+    34000
+  ],
+  "camera": {
+    "minX": -11,
+    "maxX": 20,
+    "minY": 0,
+    "maxY": 11
+  },
+  "hint": "Two huts and a yard pig. Pick an order.",
+  "sling": {
+    "x": -7.5
+  },
+  "terrain": [],
+  "blocks": [
+    {
+      "id": "aL",
+      "material": "wood",
+      "kit": "postL",
+      "x": 9.6,
+      "y": 0
+    },
+    {
+      "id": "aR",
+      "material": "wood",
+      "kit": "postL",
+      "x": 11.6,
+      "y": 0
+    },
+    {
+      "id": "aDeck",
+      "material": "wood",
+      "kit": "plankM",
+      "x": 10.6,
+      "y": 2
+    },
+    {
+      "id": "bL",
+      "material": "wood",
+      "kit": "postL",
+      "x": 15.2,
+      "y": 0
+    },
+    {
+      "id": "bR",
+      "material": "wood",
+      "kit": "postL",
+      "x": 17.2,
+      "y": 0
+    },
+    {
+      "id": "bDeck",
+      "material": "wood",
+      "kit": "plankM",
+      "x": 16.2,
+      "y": 2
+    }
+  ],
+  "pigs": [
+    {
+      "id": "pig1",
+      "size": "S",
+      "x": 10.6,
+      "y": 2.4
+    },
+    {
+      "id": "pig2",
+      "size": "S",
+      "x": 13.4,
+      "y": 0
+    },
+    {
+      "id": "pig3",
+      "size": "S",
+      "x": 16.2,
+      "y": 2.4
+    }
+  ]
+}

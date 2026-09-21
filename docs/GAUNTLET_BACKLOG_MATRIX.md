@@ -69,7 +69,7 @@ Status: **verified** · **partial** · **open** · **unverified**
 | H05 | verified |
 | H06 | partial |
 | H07 | partial |
-| I01 | partial |
+| I01 | implemented |
 | I02 | partial |
 | I03 | verified |
 | I04 | partial |

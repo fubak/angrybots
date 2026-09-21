@@ -13,7 +13,7 @@ test('winning First Flight unlocks the next level after reload', async ({ page }
   await page.getByRole('button', { name: 'Play' }).click();
   await expect(page.locator('button[data-level-id="first-flight"]')).toBeEnabled();
   await expect(page.locator('button[data-level-id="powder-row"]')).toBeEnabled();
-  await expect(page.locator('button[data-level-id="slice-6"]')).toBeDisabled();
+  await expect(page.locator('button[data-level-id="lone-guard"]')).toBeDisabled();
 });
 
 test('clearing the first five levels unlocks level six after reload', async ({ page }) => {
@@ -26,6 +26,6 @@ test('clearing the first five levels unlocks level six after reload', async ({ p
   ]);
   await openApp(page);
   await page.getByRole('button', { name: 'Play' }).click();
-  await expect(page.locator('button[data-level-id="slice-6"]')).toBeEnabled();
-  await expect(page.locator('button[data-level-id="slice-7"]')).toBeDisabled();
+  await expect(page.locator('button[data-level-id="lone-guard"]')).toBeEnabled();
+  await expect(page.locator('button[data-level-id="twin-posts"]')).toBeDisabled();
 });

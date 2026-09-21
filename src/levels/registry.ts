@@ -1,11 +1,12 @@
 import type { LevelV2 } from './schema';
 import { loadLevelFromJson } from './load';
+import { chapterOrder } from './chapters';
 
 const modules = import.meta.glob<{ default: unknown }>('./data/*.json', { eager: true });
 
 const levels: LevelV2[] = Object.entries(modules)
   .map(([, mod]) => loadLevelFromJson(mod.default))
-  .sort((a, b) => a.chapter.localeCompare(b.chapter) || a.order - b.order);
+  .sort((a, b) => chapterOrder(a.chapter) - chapterOrder(b.chapter) || a.order - b.order);
 
 export function allLevels(): readonly LevelV2[] {
   return levels;

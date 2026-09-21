@@ -21,6 +21,7 @@
     "minY": 0,
     "maxY": 11
   },
+  "hint": "Clear the low hut, then climb the plateau.",
   "sling": {
     "x": -7.5
   },

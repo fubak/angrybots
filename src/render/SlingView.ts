@@ -6,29 +6,7 @@ import { SLING, launchVelocity, previewArc } from '../sling/launch';
 import type { SlingModel } from '../sling/SlingModel';
 import type { ShotTrail } from '../sling/ShotTrail';
 import { toon } from './toon';
-import { addOutline } from './outline';
-
-function botColor(kind: BotKind): string {
-  return PALETTE.bot[kind];
-}
-
-function makeBotMesh(radius: number, color: string): THREE.Group {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.SphereGeometry(radius, 18, 14), toon(color));
-  addOutline(body, 'sphere');
-  g.add(body);
-  const eyeMat = toon(PALETTE.bot.eye);
-  const pupilMat = toon(PALETTE.bot.visor);
-  for (const side of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.22, 10, 8), eyeMat);
-    eye.position.set(side * radius * 0.32, radius * 0.18, radius * 0.72);
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(radius * 0.1, 8, 6), pupilMat);
-    pupil.position.set(0, 0, radius * 0.14);
-    eye.add(pupil);
-    g.add(eye);
-  }
-  return g;
-}
+import { makeBotCharacter } from './characters';
 
 export class SlingView {
   private readonly group = new THREE.Group();
@@ -40,6 +18,7 @@ export class SlingView {
   private readonly previewDots: THREE.Mesh[] = [];
   private readonly trailDots: THREE.Mesh[] = [];
   private loadedKind: BotKind | null = null;
+  private queueKinds: string = '';
 
   constructor(scene: THREE.Scene) {
     const postMat = toon(PALETTE.sling.wood);
@@ -72,7 +51,7 @@ export class SlingView {
     this.group.add(this.loaded);
 
     for (let i = 0; i < 6; i++) {
-      const q = makeBotMesh(0.42, PALETTE.bot.grok);
+      const q = makeBotCharacter('grok', 0.42);
       q.visible = false;
       this.queue.push(q);
       this.group.add(q);
@@ -108,7 +87,7 @@ export class SlingView {
     if (aiming && kind) {
       if (this.loadedKind !== kind) {
         this.loaded.clear();
-        const mesh = makeBotMesh(TUNING.bots[kind].r, botColor(kind));
+        const mesh = makeBotCharacter(kind, TUNING.bots[kind].r);
         this.loaded.add(mesh);
         this.loadedKind = kind;
       }
@@ -131,6 +110,23 @@ export class SlingView {
     }
 
     const waiting = aiming ? queue.slice(1) : queue;
+    const key = waiting.join(',');
+    if (key !== this.queueKinds) {
+      this.queueKinds = key;
+      for (let i = 0; i < this.queue.length; i++) {
+        const prev = this.queue[i]!;
+        this.group.remove(prev);
+        prev.traverse((obj) => {
+          const m = obj as THREE.Mesh;
+          if (m.geometry) m.geometry.dispose();
+        });
+        const qk = waiting[i];
+        const next = qk ? makeBotCharacter(qk, 0.42) : new THREE.Group();
+        next.visible = Boolean(qk);
+        this.queue[i] = next;
+        this.group.add(next);
+      }
+    }
     for (let i = 0; i < this.queue.length; i++) {
       const node = this.queue[i]!;
       const qk = waiting[i];
