@@ -42,10 +42,21 @@ export class CameraDirector {
     this.trauma = Math.min(1, this.trauma + amount);
   }
 
-  slingView(level: LevelV2 | null): View {
-    const sx = level ? TUNING.sling.x : -7.5;
-    const r: Rect = { x0: sx - 3.5, x1: sx + 15.5, y0: 0, y1: 9 };
-    return fitRect(r, 16 / 9, 0.5);
+  /** Sling framing rect — widens with tension and includes level camera bounds so targets stay visible. */
+  private slingRect(level: LevelV2 | null, tension = 0): Rect {
+    const sx = level?.sling.x ?? TUNING.sling.x;
+    const widen = 4 * tension;
+    let x1 = sx + 15.5 + widen;
+    let y1 = 9;
+    if (level) {
+      x1 = Math.max(x1, level.camera.maxX);
+      y1 = Math.max(y1, level.camera.maxY);
+    }
+    return { x0: sx - 3.5, x1, y0: 0, y1 };
+  }
+
+  slingView(level: LevelV2 | null, tension = 0): View {
+    return fitRect(this.slingRect(level, tension), 16 / 9, 0.5);
   }
 
   overviewView(level: LevelV2 | null): View {
@@ -87,9 +98,9 @@ export class CameraDirector {
       }
     } else if (input.state === 'aim') {
       this.mode = 'aim';
-      const widen = 4 * input.tension;
-      const sx = input.level ? TUNING.sling.x : -7.5;
-      const r: Rect = { x0: sx - 3.5, x1: sx + 15.5 + widen, y0: 0, y1: 9 };
+      const r = this.slingRect(input.level, input.tension);
+      // Do not clampView here: level camera height is often smaller than the h needed to
+      // frame sling→targets at landscape aspect (clamp would crop structures off-screen).
       target = fitRect(r, input.aspect, 0.5, input.topHudPx, input.canvasPxH);
       if (input.manualOffset) target = input.manualOffset;
     } else if (input.state === 'flight' && input.botPos && input.botVel) {

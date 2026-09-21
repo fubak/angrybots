@@ -44,6 +44,19 @@ export class Renderer {
 
     const bg = new THREE.Color(PALETTE.sky.top);
     this.scene.background = bg;
+
+    const ground = new THREE.Mesh(
+      new THREE.BoxGeometry(120, 2, 0.4),
+      toon(PALETTE.ground.grass)
+    );
+    ground.position.set(8, -1, DEPTH.ground);
+    this.scene.add(ground);
+    const dirt = new THREE.Mesh(
+      new THREE.BoxGeometry(120, 0.6, 0.35),
+      toon(PALETTE.ground.dirt)
+    );
+    dirt.position.set(8, -1.8, DEPTH.ground - 0.01);
+    this.scene.add(dirt);
   }
 
   setSize(w: number, h: number): void {
