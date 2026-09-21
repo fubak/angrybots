@@ -1,20 +1,19 @@
 import { test, expect } from '@playwright/test';
-import { skipToPlay, snapshot } from './helpers';
+import { launchSolution, snapshot, skipToPlay } from './helpers';
 
-test('First Flight win shows results', async ({ page }) => {
+test('First Flight win uses real pointer input', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   await skipToPlay(page, 'first-flight');
-  await page.waitForFunction(() => window.__debug?.snapshot().state === 'aim', null, {
-    timeout: 20_000,
-  });
-  await page.evaluate(() => {
-    window.__debug!.launch!(34, 18);
-  });
+  const before = await snapshot(page);
+  expect(before.state).toBe('aim');
+  expect(before.botsLeft).toBe(3);
+  const touch = testInfo.project.name.includes('phone');
+  await launchSolution(page, 34, 20, { holdMs: 800, pointerType: touch ? 'touch' : 'mouse' });
   await expect
-    .poll(async () => (await snapshot(page)).state, { timeout: 60_000 })
-    .toMatch(/won|bonus|lost/);
-  const s1 = await snapshot(page);
-  if (s1.state === 'won' || s1.pigsAlive === 0) {
-    expect(s1.pigsAlive).toBe(0);
-  }
+    .poll(async () => (await snapshot(page)).state, { timeout: 70_000 })
+    .toBe('won');
+  const s = await snapshot(page);
+  expect(s.pigsAlive).toBe(0);
+  expect(s.botsLeft).toBeLessThan(3);
+  await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
 });

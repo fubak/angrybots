@@ -9,6 +9,10 @@ export class RotatePrompt {
     document.body.appendChild(this.el);
   }
 
+  isVisible(): boolean {
+    return this.el.classList.contains('visible');
+  }
+
   update(): boolean {
     const coarse = window.matchMedia('(pointer: coarse)').matches;
     const portrait = window.innerHeight > window.innerWidth;

@@ -8,7 +8,16 @@ export class SlingModel {
   pull: Pull = { x: 0, y: 0 };
   private botRadius: number = TUNING.bots.grok.r;
 
+  /** Load only as a state transition. Never reset an active drag or current pull. */
   setLoaded(botRadius: number): void {
+    this.botRadius = botRadius;
+    if (this.phase === 'dragging' || this.phase === 'loaded') return;
+    this.phase = 'loaded';
+    this.pull = { x: 0, y: 0 };
+  }
+
+  /** Force a ready perch after restart / level load. */
+  resetLoaded(botRadius: number): void {
     this.botRadius = botRadius;
     this.phase = 'loaded';
     this.pull = { x: 0, y: 0 };

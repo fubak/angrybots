@@ -105,6 +105,27 @@ describe('bot abilities', () => {
     expect(mass).toBeCloseTo(3.0 * Math.PI * 0.72 * 0.72, 1);
   });
 
+  it('blast detonates once and removes the bot', () => {
+    const def = levelById('first-flight')!;
+    const level = Level.load(def);
+    level.settle();
+    const bot = level.launchBot(45, 18, 'blast');
+    const launchTime = level.getSimTime();
+    while (level.getSimTime() - launchTime < 0.4) level.step();
+    const ctx: AbilityContext = {
+      level,
+      simTime: level.getSimTime(),
+      launchTime,
+      emit: () => {},
+    };
+    expect(canActivate(bot, ctx)).toBe(true);
+    activate(bot, ctx);
+    expect(bot.abilityUsed).toBe(true);
+    expect(bot.alive).toBe(false);
+    activate(bot, ctx);
+    expect(level.shotBots().filter((b) => b.id === bot.id && b.alive)).toHaveLength(0);
+  });
+
   it('second activation does nothing', () => {
     const def = levelById('first-flight')!;
     const level = Level.load(def);

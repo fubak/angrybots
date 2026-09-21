@@ -7,7 +7,7 @@ export class ResultsPanel {
     this.el.style.cssText =
       'position:fixed;inset:15% 20%;display:none;flex-direction:column;gap:12px;z-index:25';
     this.el.innerHTML = `
-      <h2 id="results-title" style="margin:0;font-size:28px">Level Cleared!</h2>
+      <h2 id="results-title" style="margin:0;font-size:28px">Victory!</h2>
       <p id="results-score" aria-live="polite">0</p>
       <div id="results-stars">★★★</div>
       <button type="button" class="ui-btn" data-a="levels">Levels</button>
@@ -22,11 +22,13 @@ export class ResultsPanel {
     }
   }
 
+  isVisible(): boolean {
+    return this.el.style.display === 'flex';
+  }
+
   show(won: boolean, score: number, stars: number): void {
     this.el.style.display = 'flex';
-    this.el.querySelector('#results-title')!.textContent = won
-      ? 'Level Cleared!'
-      : 'Level Failed';
+    this.el.querySelector('#results-title')!.textContent = won ? 'Victory!' : 'Defeat!';
     this.el.querySelector('#results-score')!.textContent = score.toLocaleString();
     const starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
     this.el.querySelector('#results-stars')!.textContent = starStr;

@@ -10,6 +10,11 @@ export type DebugSnapshot = {
   score: number;
   botsLeft: number;
   pigsAlive: number;
+  abilityUsed: boolean;
+  paused: boolean;
+  slingPhase: string;
+  pullX: number;
+  pullY: number;
   bot: {
     kind: string;
     x: number;
@@ -37,6 +42,8 @@ export function createDebugApi(opts: {
   renderer: Renderer;
   getView: () => View;
   getLevelId: () => string | null;
+  getPaused: () => boolean;
+  getSling: () => { phase: string; pullX: number; pullY: number };
   loop: FixedStepLoop;
   fixtures?: boolean;
 }): DebugApi {
@@ -48,12 +55,18 @@ export function createDebugApi(opts: {
     const view = opts.getView();
     const fps = opts.renderer.fpsStats();
     const info = opts.renderer.getInfo();
+    const sling = opts.getSling();
     return {
       state: opts.session.getState(),
       levelId: opts.getLevelId(),
       score: opts.session.getScore(),
       botsLeft: opts.session.getBotQueue().length,
       pigsAlive: sim?.pigsAlive() ?? 0,
+      abilityUsed: opts.session.getPrimaryAbilityUsed(),
+      paused: opts.getPaused(),
+      slingPhase: sling.phase,
+      pullX: sling.pullX,
+      pullY: sling.pullY,
       bot:
         body && bot
           ? {

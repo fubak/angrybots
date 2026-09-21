@@ -44,6 +44,8 @@ export class App {
   private impactCenter: { x: number; y: number } | null = null;
   private currentView: View = { cx: 0, cy: 5, h: 12 };
   private paused = false;
+  private backgrounded = false;
+  private resultRecorded = false;
 
   private hud: Hud;
   private pauseMenu: PauseMenu;
@@ -53,11 +55,14 @@ export class App {
 
   constructor(root: HTMLElement) {
     this.save.load();
+    root.setAttribute('data-game', 'angrybots');
     this.shell = document.createElement('div');
+    this.shell.setAttribute('data-game', 'angrybots');
     this.shell.style.cssText = 'position:relative;width:100%;height:100%;min-height:100vh';
     root.appendChild(this.shell);
 
     this.canvas = document.createElement('canvas');
+    this.canvas.setAttribute('aria-label', 'Angry Bots playfield');
     this.canvas.style.cssText = 'display:block;width:100%;height:100%';
     this.shell.appendChild(this.canvas);
 
@@ -67,13 +72,14 @@ export class App {
 
     this.renderer = new Renderer(this.canvas);
     this.sling = new SlingInput(this.canvas, this.session, this.bus);
+    this.sling.setBlocked(() => this.inputBlocked());
 
-    this.hud = new Hud(this.uiRoot, () => this.togglePause(), () => this.session.restart());
+    this.hud = new Hud(this.uiRoot, () => this.togglePause(), () => this.restartLevel());
     this.pauseMenu = new PauseMenu(this.uiRoot, {
       resume: () => this.togglePause(false),
       restart: () => {
         this.togglePause(false);
-        this.session.restart();
+        this.restartLevel();
       },
       levels: () => this.goLevelSelect(),
       onSettings: (key, value) => {
@@ -99,12 +105,27 @@ export class App {
     this.bus.on('bot:firstImpact', (e) => {
       this.impactCenter = { x: e.x, y: e.y };
     });
+    this.bus.on('bot:launched', () => {
+      this.trail.onLaunch();
+    });
 
     window.addEventListener('keydown', (ev) => {
       if (ev.key === 'Escape') this.togglePause();
-      if (ev.key === 'r' || ev.key === 'R') this.session.restart();
-      if (ev.key === ' ' && this.session.getState() === 'flight') {
+      if (ev.key === 'r' || ev.key === 'R') this.restartLevel();
+      if (ev.key === ' ' && this.session.getState() === 'flight' && !this.inputBlocked()) {
+        ev.preventDefault();
         this.session.activateAbility();
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.backgrounded = true;
+        this.sling.cancelActive();
+        this.syncSimulationPause();
+      } else {
+        this.backgrounded = false;
+        this.syncSimulationPause();
       }
     });
 
@@ -122,6 +143,12 @@ export class App {
       renderer: this.renderer,
       getView: () => this.currentView,
       getLevelId: () => this.levelId,
+      getPaused: () => this.loop.paused,
+      getSling: () => ({
+        phase: this.sling.model.phase,
+        pullX: this.sling.model.pull.x,
+        pullY: this.sling.model.pull.y,
+      }),
       loop: this.loop,
       fixtures,
     });
@@ -129,17 +156,39 @@ export class App {
     this.loop.start();
   }
 
+  private orderedIds(): string[] {
+    return allLevels().map((l) => l.id);
+  }
+
+  private isLevelUnlocked(id: string): boolean {
+    return this.save.isUnlocked(id, this.orderedIds());
+  }
+
+  private inputBlocked(): boolean {
+    return (
+      this.paused ||
+      this.backgrounded ||
+      this.phase !== 'play' ||
+      this.results.isVisible() ||
+      this.pauseMenu.isVisible() ||
+      this.rotate.isVisible()
+    );
+  }
+
+  private leavePlay(): void {
+    this.paused = false;
+    this.backgrounded = false;
+    this.pauseMenu.toggle(false);
+    this.sling.cancelActive();
+    this.syncSimulationPause();
+  }
+
   private goLevelSelect(): void {
+    this.leavePlay();
     this.phase = 'levelSelect';
     this.title.hide();
     this.results.hide();
-    this.pauseMenu.toggle(false);
-    this.levelSelect.populate(allLevels(), (id) => {
-      const l = levelById(id);
-      if (!l) return false;
-      if (l.order === 1) return true;
-      return this.save.levelProgress(id)?.cleared === true || l.order <= 5;
-    });
+    this.levelSelect.populate(allLevels(), (id) => this.isLevelUnlocked(id));
     this.levelSelect.show();
     this.hud.hide();
   }
@@ -147,8 +196,10 @@ export class App {
   private startLevel(id: string): void {
     const def = levelById(id);
     if (!def) return;
+    this.leavePlay();
     this.levelId = id;
     this.phase = 'play';
+    this.resultRecorded = false;
     this.levelSelect.hide();
     this.title.hide();
     this.results.hide();
@@ -156,8 +207,14 @@ export class App {
     this.introElapsed = 0;
     this.impactCenter = null;
     this.session.loadLevel(def, this.save.settings.reducedMotion === true);
+    this.sling.resetForLevel();
     this.hud.show();
-    this.sling.syncLoadedBot();
+    this.hud.setShots(this.session.getBotQueue().length);
+  }
+
+  private restartLevel(): void {
+    if (!this.levelId || this.phase !== 'play') return;
+    this.startLevel(this.levelId);
   }
 
   private onResultsAction(action: 'retry' | 'next' | 'levels'): void {
@@ -179,32 +236,43 @@ export class App {
 
   private togglePause(force?: boolean): void {
     if (this.phase !== 'play') return;
+    if (this.results.isVisible()) return;
     this.paused = force ?? !this.paused;
-    this.loop.paused = this.paused || this.rotate.update();
+    if (this.paused) this.sling.cancelActive();
     this.pauseMenu.toggle(this.paused);
+    this.syncSimulationPause();
+  }
+
+  /** Orientation recovery must run even while simulation is paused. */
+  private syncSimulationPause(): void {
+    const rotate = this.rotate.update();
+    this.loop.paused = this.paused || this.backgrounded || rotate;
+  }
+
+  private recordResultOnce(): void {
+    const state = this.session.getState();
+    if (state !== 'won' && state !== 'lost') return;
+    if (this.resultRecorded) return;
+    this.resultRecorded = true;
+    const won = state === 'won';
+    const stars = this.session.getStars();
+    const score = this.session.getScore();
+    if (this.levelId) {
+      this.save.recordLevel(this.levelId, score, stars, won);
+    }
+    this.results.show(won, score, stars);
   }
 
   private tick(dt: number): void {
-    if (this.rotate.update()) {
-      this.loop.paused = true;
-      return;
-    }
     if (this.phase !== 'play') return;
+    if (this.paused || this.backgrounded || this.rotate.isVisible()) return;
 
     const prev = this.session.getState();
     if (prev === 'intro') this.introElapsed += dt;
     this.session.update(dt);
     const state = this.session.getState();
 
-    if (state === 'won' || state === 'lost') {
-      const won = state === 'won';
-      const stars = this.session.getStars();
-      const score = this.session.getScore();
-      if (this.levelId) {
-        this.save.recordLevel(this.levelId, score, stars, won);
-      }
-      this.results.show(won, score, stars);
-    }
+    this.recordResultOnce();
 
     const sim = this.session.getSim();
     const bot = sim?.shotBots()[0];
@@ -242,14 +310,24 @@ export class App {
 
     const best = this.levelId ? (this.save.load().levels[this.levelId]?.bestScore ?? 0) : 0;
     this.hud.setScore(this.session.getScore(), best);
+    const inflight = state === 'flight' || state === 'resolve' ? 1 : 0;
+    this.hud.setShots(this.session.getBotQueue().length + inflight);
   }
 
   private draw(_alpha: number, frameDt: number): void {
+    this.syncSimulationPause();
     const shake = this.camera.getShake();
     this.sling.setProjector((cx, cy) =>
       clientToWorld(cx, cy, this.canvas, this.currentView)
     );
     this.renderer.syncLevel(this.session.getSim());
+    const aiming = this.phase === 'play' && this.session.getState() === 'aim';
+    this.renderer.syncSling(
+      this.sling.model,
+      this.session.getBotQueue(),
+      aiming,
+      this.trail
+    );
     this.renderer.applyView(this.currentView, shake.x, shake.y);
     this.renderer.render(_alpha, frameDt);
   }
@@ -258,5 +336,6 @@ export class App {
     const w = this.shell.clientWidth;
     const h = this.shell.clientHeight;
     this.renderer.setSize(w, h);
+    this.syncSimulationPause();
   }
 }

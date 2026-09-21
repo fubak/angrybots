@@ -106,15 +106,11 @@ export class SaveStore {
     this.persist();
   }
 
-  isUnlocked(levelId: string, order: number, chapter: string, chapters: string[]): boolean {
-    if (order === 1 && chapter === chapters[0]) return true;
-    const idx = chapters.indexOf(chapter);
-    if (order === 1 && idx > 0) {
-      const prevChapter = chapters[idx - 1]!;
-      const prevLevels = Object.entries(this.data.levels).filter(([id]) => id.startsWith(prevChapter));
-      void prevLevels;
-      return true;
-    }
-    return this.data.levels[levelId]?.cleared === true || order === 1;
+  /** Predecessor progression: level N unlocks only after N-1 is cleared. */
+  isUnlocked(levelId: string, orderedIds: readonly string[]): boolean {
+    const i = orderedIds.indexOf(levelId);
+    if (i <= 0) return true;
+    const pred = orderedIds[i - 1]!;
+    return this.data.levels[pred]?.cleared === true;
   }
 }

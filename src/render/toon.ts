@@ -28,10 +28,10 @@ export function toon(
     mat = new THREE.MeshToonMaterial({
       color,
       gradientMap: GRADIENT,
-      map: opts?.map,
-      transparent: opts?.transparent,
-      opacity: opts?.opacity,
-      emissive: opts?.emissive,
+      ...(opts?.map ? { map: opts.map } : {}),
+      ...(opts?.transparent ? { transparent: true } : {}),
+      ...(opts?.opacity !== undefined ? { opacity: opts.opacity } : {}),
+      ...(opts?.emissive ? { emissive: opts.emissive } : {}),
     });
     materialCache.set(key, mat);
   }

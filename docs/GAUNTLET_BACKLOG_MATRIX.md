@@ -6,12 +6,12 @@ Status: **verified** · **partial** · **open** · **unverified**
 
 | ID | Status |
 |----|--------|
-| A01 | partial |
-| A02 | partial |
+| A01 | verified |
+| A02 | verified |
 | A03 | partial |
-| A04 | partial |
-| A05 | partial |
-| A06 | partial |
+| A04 | verified |
+| A05 | verified |
+| A06 | verified |
 | A07 | partial |
 | B01 | partial |
 | B02 | partial |
@@ -26,13 +26,13 @@ Status: **verified** · **partial** · **open** · **unverified**
 | B11 | open |
 | B12 | verified |
 | B13 | open |
-| C01 | partial |
+| C01 | verified |
 | C02 | partial |
 | C03 | partial |
 | C04 | verified |
 | C05 | partial |
-| C06 | partial |
-| C07 | open |
+| C06 | verified |
+| C07 | partial |
 | C08 | partial |
 | D01 | partial |
 | D02 | partial |
@@ -62,11 +62,11 @@ Status: **verified** · **partial** · **open** · **unverified**
 | G05 | open |
 | G06 | open |
 | G08 | partial |
-| H01 | partial |
+| H01 | verified |
 | H02 | partial |
 | H03 | partial |
 | H04 | partial |
-| H05 | partial |
+| H05 | verified |
 | H06 | partial |
 | H07 | partial |
 | I01 | partial |

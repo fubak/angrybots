@@ -243,4 +243,12 @@ export class GameSession {
   getLoadedBotKind(): LevelV2['bots'][number] | null {
     return this.botQueue[0] ?? null;
   }
+
+  getPrimaryAbilityUsed(): boolean {
+    if (!this.sim || !this.primaryShotBotId) return false;
+    const all = this.sim.shotBots();
+    const primary = all.find((b) => b.id === this.primaryShotBotId);
+    if (primary) return primary.abilityUsed;
+    return all.some((b) => b.spawnedFrom === this.primaryShotBotId);
+  }
 }

@@ -1,3 +1,5 @@
+import { TUNING } from '../config/tuning';
+
 export const SLING = {
   anchor: { x: -7.5, y: 2.2 },
   maxPull: 2.6,
@@ -46,6 +48,54 @@ export function clampPull(raw: Pull, botRadius: number): Pull {
   }
 
   return pull;
+}
+
+export function pullForLaunch(angleDeg: number, speed: number): Pull {
+  const clamped = Math.max(0, Math.min(speed, SLING.maxSpeed));
+  const len =
+    SLING.deadZone +
+    ((SLING.maxPull - SLING.deadZone) * clamped) / SLING.maxSpeed;
+  const a = (angleDeg * Math.PI) / 180;
+  return { x: Math.cos(a) * len, y: Math.sin(a) * len };
+}
+
+export function pouchForLaunch(
+  angleDeg: number,
+  speed: number
+): { x: number; y: number; pull: Pull } {
+  const pull = pullForLaunch(angleDeg, speed);
+  return {
+    x: SLING.anchor.x - pull.x,
+    y: SLING.anchor.y - pull.y,
+    pull,
+  };
+}
+
+/** Semi-implicit Euler matching Planck's velocity/position step. */
+export function previewArc(
+  x: number,
+  y: number,
+  vx: number,
+  vy: number,
+  opts?: { dt?: number; gravity?: number; steps?: number; stride?: number }
+): { x: number; y: number }[] {
+  const dt = opts?.dt ?? TUNING.dt;
+  const g = opts?.gravity ?? TUNING.gravity;
+  const steps = opts?.steps ?? 48;
+  const stride = opts?.stride ?? 2;
+  const pts: { x: number; y: number }[] = [];
+  let px = x;
+  let py = y;
+  let pvx = vx;
+  let pvy = vy;
+  for (let i = 0; i < steps; i++) {
+    pvy += g * dt;
+    px += pvx * dt;
+    py += pvy * dt;
+    if (i % stride === 0) pts.push({ x: px, y: py });
+    if (py < -1) break;
+  }
+  return pts;
 }
 
 export function launchVelocity(

@@ -30,6 +30,12 @@ describe('check-forbidden', () => {
     });
   }
 
+  it('catches non-null assertion debug launch syntax', () => {
+    const path = join(fixtureDir, 'f6-debug-assert.spec.ts');
+    const hits = checkPaths([path], { rel: { [path]: 'tests/e2e/bad-assert.spec.ts' } });
+    expect(hits.some((h) => h.rule === 'F6')).toBe(true);
+  });
+
   it('passes a clean fixture', () => {
     const path = join(fixtureDir, 'clean.ts');
     expect(checkPaths([path])).toEqual([]);

@@ -1,6 +1,17 @@
 @import '@fontsource/baloo-2/600.css';
 @import '@fontsource/baloo-2/800.css';
 
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #4fb0ee;
+}
+
 :root {
   font-family: 'Baloo 2', system-ui, sans-serif;
   color: #fff;

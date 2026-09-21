@@ -55,7 +55,7 @@ const RULES = [
   },
   {
     id: 'F6',
-    pattern: /__debug\.(launch|loadLevel|advance|setSeed|freezeTime)/g,
+    pattern: /__debug\s*[!?]?\s*\.\s*(launch|loadLevel|advance|setSeed|freezeTime)/g,
     scope: 'tests/e2e',
     allow: [],
   },

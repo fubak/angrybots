@@ -4,7 +4,11 @@ import type { Level } from '../game/Level';
 import type { GameEntity } from '../entities/types';
 import { toon } from './toon';
 import { addOutline } from './outline';
+import { SlingView } from './SlingView';
 import type { View } from '../camera/fitRect';
+import type { SlingModel } from '../sling/SlingModel';
+import type { ShotTrail } from '../sling/ShotTrail';
+import type { BotKind } from '../levels/schema';
 
 export type RendererInfo = {
   calls: number;
@@ -18,7 +22,8 @@ export class Renderer {
   readonly scene = new THREE.Scene();
   private readonly renderer: THREE.WebGLRenderer;
   private readonly camera: THREE.OrthographicCamera;
-  private readonly entityMeshes = new Map<string, THREE.Mesh>();
+  private readonly entityMeshes = new Map<string, THREE.Object3D>();
+  private readonly slingView: SlingView;
   private aspect = 16 / 9;
   private fpsSamples: number[] = [];
   private lastFpsSample = 0;
@@ -57,6 +62,16 @@ export class Renderer {
     );
     dirt.position.set(8, -1.8, DEPTH.ground - 0.01);
     this.scene.add(dirt);
+    this.slingView = new SlingView(this.scene);
+  }
+
+  syncSling(
+    model: SlingModel,
+    queue: readonly BotKind[],
+    aiming: boolean,
+    trail: ShotTrail
+  ): void {
+    this.slingView.sync(model, queue, aiming, trail);
   }
 
   setSize(w: number, h: number): void {
@@ -87,15 +102,16 @@ export class Renderer {
     for (const [id, mesh] of this.entityMeshes) {
       if (!live.has(id)) {
         this.scene.remove(mesh);
-        mesh.geometry.dispose();
-        (mesh.material as THREE.Material).dispose();
+        mesh.traverse((obj) => {
+          const m = obj as THREE.Mesh;
+          if (m.geometry) m.geometry.dispose();
+        });
         this.entityMeshes.delete(id);
       }
     }
   }
 
-  private createPlaceholder(e: GameEntity): THREE.Mesh {
-    let mesh: THREE.Mesh;
+  private createPlaceholder(e: GameEntity): THREE.Object3D {
     if (e.kind === 'block') {
       const color =
         e.material === 'wood'
@@ -105,30 +121,56 @@ export class Renderer {
             : e.material === 'glass'
               ? PALETTE.glass.base
               : PALETTE.tnt.base;
-      mesh = new THREE.Mesh(
+      const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(e.w, e.h, e.depth),
         toon(color, e.material === 'glass' ? { transparent: true, opacity: 0.55 } : undefined)
       );
       addOutline(mesh, 'box');
-    } else if (e.kind === 'pig') {
-      mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(e.r, 16, 12),
-        toon(PALETTE.pig.skin)
-      );
-      addOutline(mesh, 'sphere');
-    } else if (e.kind === 'bot') {
-      const color = PALETTE.bot[e.botKind];
-      mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(e.r, 16, 12),
-        toon(color)
-      );
-      addOutline(mesh, 'sphere');
-    } else {
-      mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 0.5, 0.5),
-        toon(PALETTE.ground.dirt)
-      );
+      mesh.renderOrder = 10;
+      return mesh;
     }
+    if (e.kind === 'pig') {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.SphereGeometry(e.r, 16, 12), toon(PALETTE.pig.skin));
+      addOutline(body, 'sphere');
+      g.add(body);
+      const snout = new THREE.Mesh(
+        new THREE.SphereGeometry(e.r * 0.38, 10, 8),
+        toon(PALETTE.pig.snout)
+      );
+      snout.position.set(0, -e.r * 0.05, e.r * 0.75);
+      g.add(snout);
+      const eyeMat = toon(PALETTE.bot.eye);
+      for (const side of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.16, 8, 6), eyeMat);
+        eye.position.set(side * e.r * 0.28, e.r * 0.22, e.r * 0.7);
+        g.add(eye);
+      }
+      g.renderOrder = 10;
+      return g;
+    }
+    if (e.kind === 'bot') {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(e.r, 16, 12),
+        toon(PALETTE.bot[e.botKind])
+      );
+      addOutline(body, 'sphere');
+      g.add(body);
+      const eyeMat = toon(PALETTE.bot.eye);
+      const pupilMat = toon(PALETTE.bot.visor);
+      for (const side of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.22, 10, 8), eyeMat);
+        eye.position.set(side * e.r * 0.32, e.r * 0.18, e.r * 0.72);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(e.r * 0.1, 8, 6), pupilMat);
+        pupil.position.z = e.r * 0.14;
+        eye.add(pupil);
+        g.add(eye);
+      }
+      g.renderOrder = 10;
+      return g;
+    }
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 0.5), toon(PALETTE.ground.dirt));
     mesh.renderOrder = 10;
     return mesh;
   }

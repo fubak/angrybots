@@ -1,128 +1,88 @@
 # Gauntlet status ledger
 
-**Last updated:** 2026-09-20 (local)  
-**Branch:** main  
-**Commit:** `5face02`  
+**Last updated:** 2026-09-21  
+**Starting commit:** `16170cf`  
+**Working branch:** `main`  
 **Environment:** Linux, Node 22, Playwright Chromium  
-**Commands:** `npm run typecheck` · `npm run build` · `npm test` · `npx playwright test tests/e2e` · `npm run gauntlet`
+**Active loop:** Loop 1 exit met; Loop 2 next  
+**Commands:** `npm run typecheck` · `npm run build` · `npm test` · `npx playwright test tests/e2e` · `npm run lint:forbidden`
+
+The previous ledger pointed at `5face02` and 74 browser tests from a removed implementation. Those claims are retired. This file is current evidence only.
 
 ## Milestone summary
 
 | Gate | State | Notes |
 |------|--------|--------|
-| **1** Mechanics & lifecycle | **in progress** | R01–R10 verified; `ballistic-hz.test.ts` (30/60/120 step parity); full Hz soak open |
-| **2** Three-level quality slice | **started** | E01–E02 done; F01 pig threat + D02 sling return partial; G notes inventory |
-| **3** 30 levels / 4 bots | **partial** | **30/30** levels; 4 bot roles; first-visit bot tutorials (I05 partial) |
-| **4** Production reliability | **in progress** | CI + **74** e2e pass / 2 skip (76 specs); disposal vitest; physics fixture resolve stable |
-| **5** Independent QA | **awaiting verification** | K07–K09 human/device/audio |
+| **1** Mechanics & lifecycle | **implemented** | Loop 1 exit met on this revision. First Flight mouse+touch win/loss, ammo/cancel, pause freeze/resume, navigation, predecessor unlock. Remaining: CCD/Hz soak, hidden-tab e2e. |
+| **2** Three-level quality slice | **open** | Playable First Flight is not production art/audio. Placeholders remain. |
+| **3** 30 levels / 4 bots | **partial** | 30 files exist; `docs/specs/ISSUES.md` I-01: 25 are duplicates. |
+| **4** Production reliability | **in progress** | Isolated e2e on port 5181; 31 pass / 1 skip (desktop portrait, ISSUE-1). |
+| **5** Independent QA | **unverified** | Human/device/listening not run. |
 
-**Overall:** `in progress` — not complete per PRODUCTION_GAUNTLET_PROMPT.md.
+**Overall:** `in progress` — Loop 1 playable gate earned; production parity not claimed.
 
-## Fresh review (R01–R10)
+## Loop 1 findings (from `docs/FRESH_REVIEW_1dc4a50.md`)
+
+| # | Status | Evidence |
+|---|--------|----------|
+| 1 Drag reset | **verified** | `SlingModel.setLoaded` is a transition; `tests/unit/sling-model.test.ts`; e2e held-drag |
+| 2 Missing sling/loaded bot | **verified** | `SlingView` pouch/bands/queue/preview; `docs/evidence/loop1-aim-first-flight.png` |
+| 3 Pause → Levels stuck | **verified** | `tests/e2e/pause.spec.ts` |
+| 4 Portrait deadlock | **verified** | Orientation checked in `draw()`; phone e2e in `lifecycle.spec.ts` |
+| 5 Touch abilities | **verified** | Flight tap + Space; `abilities.spec.ts` dash once |
+| 6 Audio stub | **open** | Loop 2 — `SoundBank` still no-op |
+| 7 Placeholder visuals | **partial** | Sling visible; characters still primitive. Loop 2. |
+| 8 Predecessor unlock | **verified** | `SaveStore.isUnlocked`; progression e2e + reload |
+| 9 Results every tick | **verified** | `resultRecorded` once-per-transition |
+| 10 Permissive tests | **verified** | Real-input win/loss; F6 catches `__debug!.launch!` |
+| 11 Stale ledger | **verified** | This file rewritten against `16170cf`+ |
+| 12 Duplicate levels | **open** | Loop 3 |
+
+## Fresh review R01–R10 (re-audited)
 
 | ID | Status | Evidence |
 |----|--------|----------|
-| R01 Portrait framing | **verified** | e2e portrait + `perchNdc` |
-| R02 Pause/resume | **verified** | `tests/e2e/lifecycle.spec.ts` |
-| R03 Roof drop / crush | **verified** | Pointer `glass-arch.spec.ts`; physics fixture in `physics-launch.spec.ts` |
-| R04 Support collapse | **verified** | Gauntlet: blocks unpin/break after first pointer shot |
-| R05 Misleading tests | **verified** | Player e2e pointer-only; debug hooks only in `physics-launch.spec.ts` |
+| R01 Portrait framing | **partial** | Rotate prompt + recovery e2e; physical phone unverified |
+| R02 Pause/resume | **verified** | Moving-body freeze/resume e2e |
+| R03 Roof drop / crush | **partial** | Physics suite; no new pointer crush case this loop |
+| R04 Support collapse | **partial** | Physics rewrite; no new e2e this loop |
+| R05 Misleading tests | **verified** | Player e2e pointer-only; fixtures stay in `DebugApi` DEV |
 | R06 Victory assertion | **verified** | Exact `Victory!` heading |
-| R07 Level reset | **verified** | `lifecycle.spec.ts` level-select |
-| R08 HUD live updates | **verified** | `tests/e2e/hud.spec.ts` (pointer); `debugSnapshot.score` |
-| R09 Level overlaps | **verified** | `tests/level-layout.test.ts` |
-| R10 Defeat remnants | **verified** | Pig hidden after pop |
-
-## Backlog snapshot (A01–K10)
-
-Full **87-row** matrix: `docs/GAUNTLET_BACKLOG_MATRIX.md`.
-
-Status key: **done** · **partial** · **open** · **unverified**
-
-| ID | Status | Notes / evidence |
-|----|--------|------------------|
-| A01 | partial | Explicit `GameState` + sling phases; not fully isolated from render |
-| A02 | partial | `inputGate` blocks aim at 0 shots; `ammunition-exhaustion.spec.ts` + vitest |
-| A03 | partial | `resolving` + `sceneHasMeaningfulMotion`; `scene-quiescence.test.ts` |
-| A04 | partial | Win after pig clear; chain win path e2e on Training Yard |
-| A05 | partial | Retry resets fort/ammo; 8× loss retry fixture (`retry-stability.spec.ts`); lifecycle e2e |
-| A06 | partial | HUD via overlay results; `hud.spec.ts` |
-| A07 | partial | Tab hidden → auto pause; resize aborts mid-aim (`orientation-resize.spec.ts`) |
-| B01 | partial | `ContactSystem` + pair dedupe; `contact-dedupe.test.ts` |
-| B02 | partial | Impact sign + `impactFromContact` test |
-| B03 | partial | Shared `MaterialRegistry`; `materials-registry.test.ts` |
-| B04 | partial | Sleep/pin until first shot; R04 e2e |
-| B05 | partial | `enforcePlanarMotion` |
-| B12 | **done** | `validateLevelLayout` on all **30** levels (`levels-registry.test.ts`) |
-| B09 | partial | Material thresholds in `config`; `material-damage.test.ts` |
-| B06–B08,B10–B11,B13 | open | No CCD suite |
-| C04 | **done** | `pointercancel` + weak release below `SLING_MIN_EFFECTIVE_PULL`; `sling-cancel.spec.ts` |
-| C03 | partial | Secondary ignore; pan/wheel e2e; resize cancels aim; pinch in code (device TBD) |
-| C01 | partial | 20-point monotonic pull in `launchCurve.test.ts` |
-| C02 | partial | Preview vs snap documented in `sling-preview-snap.test.ts` + trajectory parity |
-| C05–C08 | partial | Trajectory e2e, pointer timing; pan/zoom (C03 remainder) |
-| D01 | partial | Portrait center; `viewports.spec.ts` NDC framing |
-| D05 | partial | Five target sizes in `viewports.spec.ts` (390–1920) |
-| D02 | partial | Reveal + destruction hold + `returnToSlingFraming`; e2e inspect reset after shot |
-| D04 | partial | Pan/wheel e2e; inspect clears on shot resolve / round end (`camera-inspect.spec.ts`) |
-| D03,D05 | open | Bounds polish |
-| E01 | **done** | `docs/ART_SPEC.md` |
-| E02 | **done** | `groundCrossSection.ts` |
-| E03 | partial | Softer parallax hills (spheres, lower contrast) |
-| E04 | partial | Grok shell contrast/emissive tuned (readable sphere) |
-| E05 | partial | Pig silhouette rim + brighter eyes (phone readability) |
-| E06 | partial | Stone/glass kit + stone/wood HP color lerp |
-| E08 | partial | Brighter hemi/sun/fill + exposure 1.12 |
-| E07 | partial | Fork posts, yoke, leather pouch torus |
-| E09 | **done** | `docs/ASSET_MANIFEST.md` |
-| F01 | partial | Grok blink/aim; pig `computePigThreat` worry; `pig-threat.test.ts` |
-| F04 | **done** | Per-particle juice materials (burst/dust/spark clone) |
-| F06 | partial | HUD score pop animation on increases |
-| F02 | partial | Grok `celebrate` / `defeat` moods; loss e2e checks `bot.mood` |
-| F03 | partial | Impact strength thresholds; `juice-system.test.ts` |
-| F05 | open/partial | Pooling |
-| G01–G03 | partial | Distinct cancel/tension/release synth cues; `docs/AUDIO_LISTENING_NOTES.md` template |
-| G07 | **done** | TNT: `breakBlock` skips explosive; `detonateExplosive` owns mix |
-| G08 | partial | Settings persist + reduced-motion pan block (`reduced-motion.spec.ts`) |
-| G04–G06 | open | Sample assets, mix buses; listen **unverified** |
-| H01 | partial | Next level + save unlock + level select; `lifecycle.spec.ts`, `progress-store.test.ts` |
-| H02 | partial | Star thresholds vitest; results stars + score breakdown UI |
-| H03 | partial | Transparent breakdown on results; corrupt save → defaults (`progress-store.test.ts`) |
-| H04–H06 | partial | Flow overlay, level select |
-| H07 | partial | Escape pause/resume + Enter title start; `keyboard-access.spec.ts` |
-| I01 | partial | Level registry + `chapters.ts` metadata |
-| I02 | partial | 4 roles; dash strike boost; split burst on first hit + audio |
-| I04 | partial | Pointer e2e: Training Yard, Glass Arch, Blast Yard |
-| I06 | partial | Benchmark paths in `LEVEL_SOLUTIONS.md`; full id catalog in `LEVEL_CATALOG.md` + vitest |
-| I07 | partial | `fortDeck` template + `docs/LEVEL_AUTHORING.md` |
-| I03 | **done** | **30** authored levels across training / glassworks / blast |
-| I05 | partial | HUD tips **all four** bots incl. Grok on Training Yard; `bot-tutorial.spec.ts` |
-| J01 | partial | `strict: true` in tsconfig |
-| J04 | partial | Pig dispose vitest; `retry-stability` debris bounds after reload |
-| J05 | partial | `perf:smoke` on prod preview (2026-09-20: p50≈50ms p95≈67ms headless); **no phone session** |
-| J02 | partial | CI: typecheck + **build** + unit + e2e (`.github/workflows/ci.yml`) |
-| J03,J06–J07 | open/partial | Game.ts monolith |
-| K01–K06 | partial | Vitest + e2e; no visual regression grid |
-| K07–K10 | unverified | Human AB, phone touch, listening |
+| R07 Level reset | **verified** | Pause → Restart e2e |
+| R08 HUD live updates | **verified** | Score/shots after inspected shot (5020 / Shots: 2) |
+| R09 Level overlaps | **verified** | Existing `validate-static` 31 tests |
+| R10 Defeat remnants | **unverified** | Not re-tested this loop |
 
 ## Latest verification
 
 ```
-npm run typecheck  → pass (2026-09-20)
-npm test           → 52 pass (26 files)
-npm run build      → pass (in CI + gauntlet script)
-npx playwright test tests/e2e → 74 passed, 2 skipped (76 specs)
-npm run gauntlet       → PASS (2026-09-20; ~15.4m incl. build; 74 e2e pass / 2 skip)
+starting commit     16170cf
+npm run typecheck   pass
+npm run build       pass (production preview :5182 identified as Angry Bots)
+npm test            140 pass / 21 files
+npm run lint:forbidden  pass
+npx playwright test tests/e2e
+  31 passed, 1 skipped (desktop portrait — ISSUE-1; phone project runs it)
+  isolated server 127.0.0.1:5181 --strictPort, reuseExistingServer: false
+inspected preview   http://127.0.0.1:5182/  title Angry Bots — Grok Edition
+                    data-game=angrybots
+fps (preview aim)   p50≈59.9  p95≈60.2
 ```
+
+Evidence:
+- `docs/evidence/loop1-aim-first-flight.png` — loaded bot, sling, queue, structure, HUD
+- `docs/evidence/loop1-drag-first-flight.png` — held pull + trajectory dots
+- `docs/evidence/loop1-aftershot-first-flight.png` — post-impact score/ammo
 
 ## Next actions
 
-1. Gate 1: C03 secondary-touch matrix; remaining A/B scenario tests.
-2. Gate 2: D02 impact/destruction hold; fill `AUDIO_LISTENING_NOTES.md`; E09 manifest.
-3. Gate 3: tutorial beats per bot (I05); star solutions for extended levels.
-4. Gate 2/4: polish slice, perf/disposal evidence.
+1. Loop 2: replace placeholder characters/terrain; real audio; polish First Flight + two more levels.
+2. Keep Loop 1 e2e green while changing presentation.
+3. Loop 3: replace 25 duplicate layouts after the slice is finished.
 
 ## Explicitly unverified
 
 - Physical phone touch, headphones listening, human AB (K07–K09)
-- 30 levels, four bot abilities, strict TS, perf profile (J05)
+- Production art/audio parity
+- Hidden-tab e2e
+- Desktop synthetic ≠ mobile performance

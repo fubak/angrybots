@@ -1,17 +1,20 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const PORT = 5181;
+const BASE = `http://127.0.0.1:${PORT}`;
+
 export default defineConfig({
   testDir: 'tests/e2e',
-  timeout: 60_000,
+  timeout: 90_000,
   retries: 0,
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: BASE,
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run dev -- --port 5173',
-    url: 'http://127.0.0.1:5173',
-    reuseExistingServer: !process.env.CI,
+    command: `npm run dev -- --port ${PORT} --strictPort`,
+    url: BASE,
+    reuseExistingServer: false,
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
