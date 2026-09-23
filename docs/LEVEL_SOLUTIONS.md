@@ -1,5 +1,16 @@
 # Quality slice — documented solutions (Gate 2 / I06)
 
+## Current campaign (2026-09-21)
+
+The live levels are `src/levels/data/*.json` (First Flight through Last Stand). Two shot books exist:
+
+| Book | Launch | Use |
+|------|--------|-----|
+| `src/levels/solutions.json` | Sling anchor | `tests/physics/campaign-solutions.test.ts` |
+| `src/levels/pouch-solutions.json` | Player pouch | `tests/physics/pouch-all.test.ts` |
+
+Do not copy pouch angles into `solutions.json`. The tables below name an older slice (`training-yard`, `glass-arch`, and the rest). Those ids are not the current campaign.
+
 Recorded against level defs in `src/levels/`. Star thresholds come from each level’s `starScores`.
 
 ## Training Yard (`training-yard`)

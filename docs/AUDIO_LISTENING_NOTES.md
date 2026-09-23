@@ -1,39 +1,34 @@
 # Audio listening checklist (Gate 2 / G01 / K09)
 
-**Status:** cue inventory verified in code; **human listen not recorded** for current commit.
+**Status:** sample routing verified in code and in one browser session. **Human listen not recorded.**
 
-**Synth implementation:** `src/systems/AudioSystem.ts` (Web Audio API oscillators + gain staging).
+**Implementation:** `src/audio/SoundBank.ts` plays buffers from `src/audio/oneshots.ts`. Cancel, ability, defeat, UI clicks, and sling tension are still oscillators.
 
-Use headphones and phone speakers on the three benchmark levels (Training Yard, Glass Arch, Blast Yard).
+Playback check on 2026-09-21, Playwright Chromium, no headphones: a First Flight clear and a Powder Row collapse started `AudioBufferSourceNode`s whose durations match the rendered samples.
 
-## Implemented cues (automated existence only)
+| Buffer | Duration (s) | Heard? |
+|--------|----------------|--------|
+| launch | 0.26 | not listened |
+| wood / glass / stone | 0.20 | not listened |
+| pig | 0.24 | not listened |
+| tnt | 0.48 | not listened |
+| victory | 0.62 | not listened |
 
-| ID | Method | Moment |
-|----|--------|--------|
-| G02 | `slingTension(t)` | Pull stretch, bucketed 0–1 |
-| G02 | `slingCancel()` | Aim cancelled / weak release |
-| G02 | `launch(power)` | Release whoosh |
-| G03 | `impact(i, material?)` | Wood / stone / glass / default thwack |
-| G03 | `breakBlock(material)` | Material break layer |
-| G03 | `explosion(i)` | TNT detonation |
-| G04 | `pigPop()` | Pig defeat pop |
-| G04 | `splitPop()` | Split bot burst |
-| G05 | `win()` | Victory fanfare |
-| G07 | Settings | Master volume via `ProgressStore` + title/pause sliders |
+Impact reuses the wood buffer and is throttled. Powder Row recorded the TNT duration. First Flight recorded launch, pig, and victory.
 
-## Listening matrix (fill after human session)
+## Listening matrix (fill after a human session)
 
 | Moment | Expected cue | Pass? | Notes |
 |--------|----------------|-------|-------|
-| Draw sling | Rising tension ticks | | |
-| Cancel aim | Soft drop vs release | | |
-| Release | Snap + whoosh | | |
-| Wood hit | Knock + thwack | | |
-| Glass hit | Tinkle + break | | |
-| Stone hit | Dull thwack | | |
-| Pig pop | Pop voice | | |
-| Split burst | `splitPop` chirp | | |
-| Victory | Fanfare | | |
-| Explosion | Blast Yard TNT | | |
+| Draw sling | Rising tension (still a tone) | | |
+| Cancel aim | Soft drop | | |
+| Release | Launch sample | | |
+| Wood hit | Wood sample | | |
+| Glass hit | Glass sample | | |
+| Stone hit | Stone sample | | |
+| Pig pop | Pig sample | | |
+| TNT | TNT sample | | |
+| Victory | Four-note sample | | |
+| Defeat | Falling tone | | |
 
-Record date, device, output (headphones / speaker), and volume %. Automated tests do **not** substitute for this table.
+Record date, device, output (headphones / speaker), and volume %. Buffer durations do not pass this table.

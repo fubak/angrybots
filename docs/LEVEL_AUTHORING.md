@@ -2,7 +2,9 @@
 
 ## Registry
 
-All playable levels are listed in `src/levels/registry.ts` in **progression order**. Chapter metadata lives in `src/levels/chapters.ts`.
+All playable levels are listed in `src/levels/registry.ts` in **progression order**. Chapter metadata lives in `src/levels/chapters.ts`. `SaveStore.isUnlocked` returns true, so the level list does not gate on earlier clears.
+
+Plateau, ramp, and ledge pieces are physics and also drawn by `Renderer.setTerrain`. A new terrain kind needs both a collider and a mesh, or the stack will look like it is floating.
 
 ## Validation
 

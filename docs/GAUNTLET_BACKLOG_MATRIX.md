@@ -59,7 +59,7 @@ Status: **verified** · **partial** · **open** · **unverified**
 | G03 | partial |
 | G07 | verified |
 | G04 | open |
-| G05 | open |
+| G05 | partial |
 | G06 | open |
 | G08 | partial |
 | H01 | verified |
@@ -95,3 +95,5 @@ Status: **verified** · **partial** · **open** · **unverified**
 | K10 | partial |
 
 **Count:** 87 rows. Update alongside code changes in `docs/GAUNTLET_STATUS.md`.
+
+2026-09-21: G05 moved to partial because victory is a PCM buffer. Music and ambience are still missing. D02, F03, and I06 stay partial: the camera holds structure hits, shards and a pig ring show on the played collapse, and every level has a pouch plan. Phone framing, full destruction language, and three-star proof are still open.

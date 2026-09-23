@@ -16,6 +16,7 @@ critic-*.png
 r7-*.png
 sling-critic-*.png
 docs/critic-*.png
+docs/evidence/*.png
 dist
 dist-ssr
 *.local

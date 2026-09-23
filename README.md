@@ -1,6 +1,8 @@
 # Angry Bots (Grok Edition)
 
-Browser Angry Birds–style game built with **Three.js** + **cannon-es**.
+Browser Angry Birds–style game built with **Three.js** + **Planck**.
+
+Agent resume notes: `tasks/state.md` and `memory/MEMORY.md`.
 
 ## Run
 
@@ -9,8 +11,11 @@ npm install
 npm run dev
 ```
 
-- **Play:** http://localhost:5173/
-- **Live progress:** http://localhost:5173/progress.html
+- **Public:** https://fubak.github.io/angrybots/
+- **Local:** Vite prints the URL. `npm run dev` is `vite --host` (default port 5173). A LAN share has used port 5175.
+- **Live progress:** same host, path `/progress.html`
+
+Every level is selectable. The things you knock down are chat bubbles, hosts, models, and a flagship. The bots are Grok Bot forms. Hills, ramps, and ledges are drawn. This is not an Angry Birds parity claim.
 
 ## Quality pipeline
 
