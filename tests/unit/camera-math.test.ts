@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampView, fitRect, unionRect } from '../../src/camera/fitRect';
+import { capWidth, clampView, fitRect, unionRect } from '../../src/camera/fitRect';
 
 describe('fitRect', () => {
   const r = { x0: 0, x1: 10, y0: 0, y1: 5 };
@@ -36,6 +36,20 @@ describe('clampView', () => {
     expect(v.cx).toBeCloseTo(5, 6);
     expect(v.cy).toBeCloseTo(2.5, 6);
     expect(v.h).toBeCloseTo(5, 6);
+  });
+});
+
+describe('capWidth', () => {
+  const wide = { x0: -11, x1: 16, y0: 0, y1: 9 };
+
+  it('leaves landscape framing alone so the fort stays in view', () => {
+    expect(capWidth(wide, 16 / 9, 13.5, 'left')).toEqual(wide);
+  });
+
+  it('anchors a phone-width view on the sling instead of shrinking the whole level', () => {
+    const v = capWidth(wide, 390 / 844, 13.5, 'left');
+    expect(v.x0).toBeLessThan(wide.x0);
+    expect(v.x1 - v.x0).toBeCloseTo(13.5, 5);
   });
 });
 

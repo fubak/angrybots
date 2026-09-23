@@ -19,7 +19,7 @@ export function addOutline(
     );
   } else if (kind === 'sphere') {
     const p = (src as THREE.SphereGeometry).parameters;
-    geometry = new THREE.SphereGeometry(p.radius + width, 16, 12);
+    geometry = new THREE.SphereGeometry(p.radius + width, 28, 20);
   } else if (kind === 'capsule') {
     const p = (src as THREE.CapsuleGeometry).parameters;
     geometry = new THREE.CapsuleGeometry(

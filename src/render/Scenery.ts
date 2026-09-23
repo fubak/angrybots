@@ -1,93 +1,279 @@
 import * as THREE from 'three';
-import { PALETTE, DEPTH } from '../config/render';
-import { toon } from './toon';
+import { DEPTH } from '../config/render';
+import { TEX } from './textures';
+import { ILL } from './illustrations';
+
+type ChapterLook = {
+  sky: string;
+  fog: string;
+  hill: [string, string, string];
+  dirt: string;
+  grass: string;
+  sun: string;
+  shaft: string;
+  skyTint: string;
+};
+
+const LOOK: Record<string, ChapterLook> = {
+  training: {
+    sky: '#4ea6e8',
+    fog: '#9fd4f0',
+    hill: ['#d7eeb4', '#6fbf45', '#3c8a2a'],
+    dirt: '#ffffff',
+    grass: '#ffffff',
+    sun: '#fff4c2',
+    shaft: '#ffe6a8',
+    skyTint: '#4ea6e8',
+  },
+  workshop: {
+    sky: '#e7a15a',
+    fog: '#e7c48a',
+    hill: ['#f0d2a4', '#d7a15a', '#a87432'],
+    dirt: '#e8c4a0',
+    grass: '#d5e08a',
+    sun: '#ffb14a',
+    shaft: '#ffc36a',
+    skyTint: '#e7a15a',
+  },
+  citadel: {
+    sky: '#1a2748',
+    fog: '#3a4570',
+    hill: ['#6e82ad', '#3e527f', '#243352'],
+    dirt: '#9a8c88',
+    grass: '#7f9a86',
+    sun: '#dce6ff',
+    shaft: '#9bb0ff',
+    skyTint: '#24365f',
+  },
+};
 
 export class Scenery {
   readonly group = new THREE.Group();
   private readonly background: THREE.Color;
   private readonly skyMat: THREE.MeshBasicMaterial;
-  private readonly hillFar: THREE.MeshToonMaterial;
-  private readonly hillMid: THREE.MeshToonMaterial;
-  private readonly dirtMat: THREE.MeshToonMaterial;
-  private readonly grassMat: THREE.MeshToonMaterial;
+  private readonly hillMats: THREE.MeshBasicMaterial[] = [];
+  private readonly treeMats: THREE.MeshBasicMaterial[] = [];
+  private readonly trainingProps: THREE.Object3D[] = [];
+  private readonly workshopProps: THREE.Object3D[] = [];
+  private readonly citadelProps: THREE.Object3D[] = [];
+  private readonly dirtMat: THREE.MeshBasicMaterial;
+  private readonly grassMat: THREE.MeshBasicMaterial;
+  private readonly fringeMat: THREE.MeshBasicMaterial;
+  private readonly sunMat: THREE.MeshBasicMaterial;
+  private readonly shaftMat: THREE.MeshBasicMaterial;
+  readonly sun: THREE.Mesh;
+  private halo!: THREE.Mesh;
 
   constructor(scene: THREE.Scene) {
-    this.background = new THREE.Color(PALETTE.sky.top);
+    this.background = new THREE.Color(LOOK.training.sky);
     scene.background = this.background;
+    scene.fog = null;
 
-    this.skyMat = new THREE.MeshBasicMaterial({ color: PALETTE.sky.bottom });
-    const sky = new THREE.Mesh(new THREE.PlaneGeometry(160, 80), this.skyMat);
-    sky.position.set(8, 18, DEPTH.sky);
+    this.skyMat = new THREE.MeshBasicMaterial({ map: ILL.sky, fog: false, depthWrite: false });
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(520, 360), this.skyMat);
+    sky.position.set(0, 40, DEPTH.sky);
+    sky.renderOrder = -100;
     this.group.add(sky);
 
-    this.hillFar = toon(PALETTE.hills.far).clone();
-    this.hillMid = toon(PALETTE.hills.mid).clone();
-    this.addHill(-8, 1.2, 14, this.hillFar, DEPTH.hillsFar);
-    this.addHill(10, 0.6, 16, this.hillFar, DEPTH.hillsFar + 1);
-    this.addHill(4, 0.2, 11, this.hillMid, DEPTH.hillsFar + 4);
-    this.addHill(22, 0.4, 13, this.hillMid, DEPTH.hillsFar + 3);
+    this.sunMat = new THREE.MeshBasicMaterial({ color: LOOK.training.sun, fog: false });
+    this.sun = new THREE.Mesh(new THREE.CircleGeometry(2.1, 32), this.sunMat);
+    this.sun.position.set(-6, 7.2, DEPTH.hillsFar - 4);
+    this.group.add(this.sun);
+    this.halo = new THREE.Mesh(
+      new THREE.CircleGeometry(3.4, 32),
+      new THREE.MeshBasicMaterial({
+        color: '#ffe7a8',
+        transparent: true,
+        opacity: 0.16,
+        fog: false,
+        depthWrite: false,
+      })
+    );
+    this.halo.position.copy(this.sun.position);
+    this.halo.position.z += 0.2;
+    this.group.add(this.halo);
 
-    this.dirtMat = toon(PALETTE.ground.dirt).clone();
-    this.grassMat = toon(PALETTE.ground.grass).clone();
-    const dirt = new THREE.Mesh(new THREE.BoxGeometry(160, 10, 1.2), this.dirtMat);
-    dirt.position.set(8, -5.15, DEPTH.ground);
+    this.shaftMat = new THREE.MeshBasicMaterial({
+      color: LOOK.training.shaft,
+      transparent: true,
+      opacity: 0.08,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      fog: false,
+    });
+    for (let i = 0; i < 4; i++) {
+      const shaft = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 26), this.shaftMat);
+      shaft.position.set(-12 + i * 4.2, 9, DEPTH.hillsFar + 1);
+      shaft.rotation.z = -0.45 + i * 0.08;
+      this.group.add(shaft);
+    }
+
+    this.addHill(-16, 2.5, DEPTH.hillsFar, 78, 7.4, ILL.hillFar, 0);
+    this.addHill(28, 2.3, DEPTH.hillsFar + 1, 64, 6.6, ILL.hillFar, 0);
+    this.addHill(-4, 2.05, DEPTH.hillsFar + 6, 62, 6.2, ILL.hillMid, 1);
+    this.addHill(26, 1.85, DEPTH.hillsFar + 7, 54, 5.6, ILL.hillMid, 1);
+    this.addHill(2, 1.45, DEPTH.hillsFar + 12, 48, 4.8, ILL.hillNear, 2);
+    this.addHill(32, 1.3, DEPTH.hillsFar + 13, 40, 4.4, ILL.hillNear, 2);
+    this.addTree(-8, 2.3, DEPTH.hillsFar + 14);
+    this.addTree(7.5, 2.6, DEPTH.hillsFar + 15);
+    this.addTree(19, 2.1, DEPTH.hillsFar + 14);
+    this.addProp(5.5, 0.85, 1.15, ILL.crate, this.workshopProps, DEPTH.hillsFar + 16);
+    this.addProp(17.2, 1.05, 1.35, ILL.crate, this.workshopProps, DEPTH.hillsFar + 16);
+    this.addProp(-1.5, 2.6, 3.4, ILL.tower, this.citadelProps, DEPTH.hillsFar + 16);
+    this.addProp(9, 3.1, 4.2, ILL.tower, this.citadelProps, DEPTH.hillsFar + 16);
+    this.addProp(22, 2.2, 2.8, ILL.tower, this.citadelProps, DEPTH.hillsFar + 16);
+
+    this.addClouds();
+
+    this.dirtMat = new THREE.MeshBasicMaterial({ map: TEX.dirt, color: LOOK.training.dirt });
+    TEX.dirt.wrapS = TEX.dirt.wrapT = THREE.RepeatWrapping;
+    TEX.dirt.repeat.set(10, 18);
+    const dirt = new THREE.Mesh(new THREE.BoxGeometry(420, 360, 6), this.dirtMat);
+    dirt.position.set(0, -180, DEPTH.ground);
+    dirt.receiveShadow = true;
     this.group.add(dirt);
-    const dirtDark = new THREE.Mesh(
-      new THREE.BoxGeometry(160, 0.5, 1.15),
-      toon(PALETTE.ground.dirtDark).clone()
-    );
-    dirtDark.position.set(8, -0.4, DEPTH.ground + 0.02);
-    this.group.add(dirtDark);
-    const grass = new THREE.Mesh(new THREE.BoxGeometry(160, 0.38, 1.3), this.grassMat);
-    grass.position.set(8, -0.12, DEPTH.ground + 0.04);
+
+    this.grassMat = new THREE.MeshBasicMaterial({ map: TEX.grass, color: LOOK.training.grass });
+    TEX.grass.wrapS = TEX.grass.wrapT = THREE.RepeatWrapping;
+    TEX.grass.repeat.set(24, 2);
+    const grass = new THREE.Mesh(new THREE.BoxGeometry(420, 0.42, 6), this.grassMat);
+    grass.position.set(0, -0.08, DEPTH.ground + 0.05);
+    grass.receiveShadow = true;
     this.group.add(grass);
-    const lip = new THREE.Mesh(
-      new THREE.BoxGeometry(160, 0.12, 1.35),
-      toon(PALETTE.ground.grassLip).clone()
-    );
-    lip.position.set(8, 0.08, DEPTH.ground + 0.06);
-    this.group.add(lip);
+
+    this.fringeMat = new THREE.MeshBasicMaterial({
+      map: ILL.fringe,
+      transparent: true,
+      depthWrite: false,
+      color: '#ffffff',
+    });
+    ILL.fringe.wrapS = THREE.RepeatWrapping;
+    ILL.fringe.repeat.set(36, 1);
+    const fringe = new THREE.Mesh(new THREE.PlaneGeometry(420, 1.15), this.fringeMat);
+    fringe.position.set(0, 0.42, DEPTH.ground + 0.4);
+    fringe.renderOrder = 2;
+    this.group.add(fringe);
+
+    this.addBush(-3.2, 0.42);
+    this.addBush(3.4, 0.38);
+    this.addBush(16.8, 0.4);
+    this.addBush(21.5, 0.36);
 
     scene.add(this.group);
   }
 
   setChapter(chapter: string): void {
-    if (chapter === 'workshop') {
-      this.background.set('#4f8fb8');
-      this.skyMat.color.set('#f2d39a');
-      this.hillFar.color.set('#c4a45a');
-      this.hillMid.color.set('#a9843c');
-      this.dirtMat.color.set('#8a5a32');
-      this.grassMat.color.set('#8aad3a');
-      return;
+    const look = LOOK[chapter] ?? LOOK.training!;
+    this.background.set(look.sky);
+    this.skyMat.color.set(look.skyTint);
+    this.dirtMat.color.set(look.dirt);
+    this.grassMat.color.set(look.grass);
+    this.sunMat.color.set(look.sun);
+    this.shaftMat.color.set(look.shaft);
+    this.shaftMat.opacity = chapter === 'citadel' ? 0.03 : 0.08;
+    this.fringeMat.color.set(chapter === 'citadel' ? '#8fb89a' : '#ffffff');
+    const training = chapter !== 'workshop' && chapter !== 'citadel';
+    for (const obj of this.trainingProps) obj.visible = training;
+    for (const obj of this.workshopProps) obj.visible = chapter === 'workshop';
+    for (const obj of this.citadelProps) obj.visible = chapter === 'citadel';
+    let i = 0;
+    for (const mat of this.hillMats) {
+      mat.color.set(look.hill[Math.min(2, Math.floor(i / 2))]!);
+      i += 1;
     }
-    if (chapter === 'citadel') {
-      this.background.set('#2d3a68');
-      this.skyMat.color.set('#8ea4d8');
-      this.hillFar.color.set('#6a7a9c');
-      this.hillMid.color.set('#4f5d7a');
-      this.dirtMat.color.set('#4a3a38');
-      this.grassMat.color.set('#3d6a4a');
-      return;
-    }
-    this.background.set(PALETTE.sky.top);
-    this.skyMat.color.set(PALETTE.sky.bottom);
-    this.hillFar.color.set(PALETTE.hills.far);
-    this.hillMid.color.set(PALETTE.hills.mid);
-    this.dirtMat.color.set(PALETTE.ground.dirt);
-    this.grassMat.color.set(PALETTE.ground.grass);
+    const treeTint = chapter === 'citadel' ? '#9aab9a' : chapter === 'workshop' ? '#e7d2a4' : '#ffffff';
+    for (const mat of this.treeMats) mat.color.set(treeTint);
+    const moon = chapter === 'citadel';
+    if (moon) this.sun.position.set(14, 7.4, DEPTH.hillsFar - 4);
+    else this.sun.position.set(-6, chapter === 'workshop' ? 6.4 : 7.2, DEPTH.hillsFar - 4);
+    this.sun.scale.setScalar(moon ? 0.55 : 1);
+    this.halo.visible = !moon;
+    this.halo.scale.setScalar(1);
+    this.halo.position.set(this.sun.position.x, this.sun.position.y, this.sun.position.z + 0.2);
+  }
+
+  private addTree(x: number, h: number, z: number): void {
+    const mat = new THREE.MeshBasicMaterial({
+      map: ILL.tree,
+      transparent: true,
+      depthWrite: false,
+      fog: false,
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(h * 0.72, h), mat);
+    mesh.position.set(x, 0.2 + h / 2, z);
+    this.group.add(mesh);
+    this.treeMats.push(mat);
+    this.trainingProps.push(mesh);
+  }
+
+  private addProp(
+    x: number,
+    h: number,
+    w: number,
+    map: THREE.Texture,
+    bucket: THREE.Object3D[],
+    z: number
+  ): void {
+    const mat = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    mesh.position.set(x, h / 2, z);
+    mesh.visible = false;
+    this.group.add(mesh);
+    bucket.push(mesh);
   }
 
   private addHill(
     x: number,
     y: number,
-    r: number,
-    mat: THREE.Material,
-    z: number
+    z: number,
+    w: number,
+    h: number,
+    map: THREE.Texture,
+    layer: number
   ): void {
-    const hill = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14), mat);
-    hill.scale.set(1.6, 0.45, 0.4);
-    hill.position.set(x, y, z);
-    this.group.add(hill);
+    const mat = new THREE.MeshBasicMaterial({
+      map,
+      color: LOOK.training.hill[layer],
+      transparent: true,
+      depthWrite: false,
+      fog: false,
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    mesh.position.set(x, y, z);
+    this.group.add(mesh);
+    this.hillMats.push(mat);
+  }
+
+  private addClouds(): void {
+    const spots = [
+      [-12, 7.4, 5.2],
+      [0.5, 8.2, 4.6],
+      [11, 7.1, 5.4],
+      [22, 8, 4.2],
+    ] as const;
+    for (const [x, y, w] of spots) {
+      const mat = new THREE.MeshBasicMaterial({
+        map: ILL.cloud,
+        transparent: true,
+        depthWrite: false,
+        fog: false,
+      });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.48), mat);
+      mesh.position.set(x, y, DEPTH.hillsFar + 8);
+      this.group.add(mesh);
+    }
+  }
+
+  private addBush(x: number, y: number): void {
+    const mat = new THREE.MeshBasicMaterial({
+      map: ILL.bush,
+      transparent: true,
+      depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.15), mat);
+    mesh.position.set(x, y + 0.35, DEPTH.ground + 0.35);
+    mesh.renderOrder = 3;
+    this.group.add(mesh);
+    this.trainingProps.push(mesh);
   }
 }

@@ -48,7 +48,12 @@ export function attachDamagePipeline(
 
   world.on('post-solve', (contact, impulse) => {
     if (!callbacks.damageEnabled()) return;
-    if ((approach.get(contact) ?? 0) < TUNING.minApproachSpeed) return;
+    const approachSpeed = approach.get(contact) ?? 0;
+    const a0 = entityUserData(contact.getFixtureA().getBody());
+    const b0 = entityUserData(contact.getFixtureB().getBody());
+    groundKill(a0, b0, approachSpeed, callbacks);
+    groundKill(b0, a0, approachSpeed, callbacks);
+    if (approachSpeed < TUNING.minApproachSpeed) return;
     const wm = contact.getWorldManifold(null);
     if (!wm || wm.points.length === 0) return;
     const I = impulse.normalImpulses.reduce((a, b) => a + b, 0);
@@ -75,6 +80,19 @@ export function attachDamagePipeline(
       });
     }
   });
+
+  function groundKill(
+    pig: GameEntity | null,
+    other: GameEntity | null,
+    approachSpeed: number,
+    callbacks: DamageCallbacks
+  ) {
+    if (!pig || pig.kind !== 'pig' || !pig.alive || !pig.airborne) return;
+    if (other?.kind !== 'ground') return;
+    if (approachSpeed < 1.2) return;
+    pig.hp = 0;
+    callbacks.onDestroy(pig);
+  }
 
   function applyImpact(target: BlockEntity | PigEntity, impulse: number, other: GameEntity | null) {
     if (!target.alive) return;

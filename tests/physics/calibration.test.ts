@@ -60,6 +60,22 @@ describe('calibration', () => {
     expect(sim.registry.get('p')?.alive).toBe(false);
   });
 
+  it('a target that falls onto the grass is removed, a target already on the grass is not', () => {
+    const sim = Level.load(
+      miniLevel(
+        [
+          { id: 'yard', size: 'M', x: 2, y: 0 },
+          { id: 'high', size: 'M', x: 8, y: 4 },
+        ],
+        []
+      )
+    );
+    sim.damageEnabled = true;
+    for (let i = 0; i < 180; i++) sim.step();
+    expect(sim.registry.get('yard')?.alive).toBe(true);
+    expect(sim.registry.get('high')?.alive).toBe(false);
+  });
+
   it('C14 dash 20 wood cube destroyed with affinity', () => {
     const sim = Level.load(
       miniLevel([], [{ id: 'b', material: 'wood', kit: 'cube', x: 5, y: 0 }])

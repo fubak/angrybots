@@ -1,6 +1,19 @@
 export type Rect = { x0: number; x1: number; y0: number; y1: number };
 export type View = { cx: number; cy: number; h: number };
 
+/** On a narrow screen, keep the world width small enough that characters stay readable. */
+export function capWidth(r: Rect, aspect: number, maxW: number, anchor: 'left' | 'center'): Rect {
+  if (aspect >= 0.9) return r;
+  const w = r.x1 - r.x0;
+  if (w <= maxW) return r;
+  if (anchor === 'left') {
+    const x0 = r.x0 - 1.8;
+    return { ...r, x0, x1: x0 + maxW };
+  }
+  const mid = (r.x0 + r.x1) / 2;
+  return { ...r, x0: mid - maxW / 2, x1: mid + maxW / 2 };
+}
+
 export function unionRect(a: Rect, b: Rect): Rect {
   return {
     x0: Math.min(a.x0, b.x0),

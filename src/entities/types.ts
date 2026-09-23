@@ -31,6 +31,8 @@ export interface PigEntity extends EntityBase {
   r: number;
   hp: number;
   maxHp: number;
+  /** True once the target has been clearly above the grass. A later ground hit removes it. */
+  airborne: boolean;
 }
 
 export interface BotEntity extends EntityBase {
@@ -47,6 +49,8 @@ export interface FragmentEntity extends EntityBase {
   material: Material;
   spawnTime: number;
   lifetime: number;
+  w: number;
+  h: number;
 }
 
 export interface TerrainEntity extends EntityBase {

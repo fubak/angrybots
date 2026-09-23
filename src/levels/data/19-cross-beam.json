@@ -20,7 +20,7 @@
     "minY": 0,
     "maxY": 11
   },
-  "hint": "Two huts and a yard pig. Pick an order.",
+  "hint": "Two huts and a yard prompt. Pick an order.",
   "sling": {
     "x": -7.5
   },

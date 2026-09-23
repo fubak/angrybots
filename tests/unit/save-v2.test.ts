@@ -36,7 +36,7 @@ describe('SaveStore v2', () => {
     expect(s.levelProgress('first-flight')!.stars).toBe(1);
   });
 
-  it('unlocks only the predecessor chain', () => {
+  it('keeps every level playable from the list', () => {
     const ids = [
       'first-flight',
       'powder-row',
@@ -48,12 +48,7 @@ describe('SaveStore v2', () => {
     const s = new SaveStore();
     s.load();
     expect(s.isUnlocked('first-flight', ids)).toBe(true);
-    expect(s.isUnlocked('powder-row', ids)).toBe(false);
-    expect(s.isUnlocked('lone-guard', ids)).toBe(false);
-    s.recordLevel('first-flight', 1, 1, true);
     expect(s.isUnlocked('powder-row', ids)).toBe(true);
-    expect(s.isUnlocked('lone-guard', ids)).toBe(false);
-    for (const id of ids.slice(0, 5)) s.recordLevel(id, 1, 1, true);
     expect(s.isUnlocked('lone-guard', ids)).toBe(true);
     const reloaded = new SaveStore();
     reloaded.load();

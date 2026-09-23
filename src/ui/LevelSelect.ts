@@ -22,7 +22,11 @@ export class LevelSelect {
 
   private onPick: (id: string) => void;
 
-  populate(levels: readonly LevelV2[], unlocked: (id: string) => boolean): void {
+  populate(
+    levels: readonly LevelV2[],
+    unlocked: (id: string) => boolean,
+    starsFor: (id: string) => number = () => 0
+  ): void {
     this.grid.replaceChildren();
     let n = 0;
     for (const chapter of CHAPTERS) {
@@ -30,18 +34,20 @@ export class LevelSelect {
       if (!group.length) continue;
       const title = document.createElement('h3');
       title.textContent = chapter.name;
-      title.style.cssText = `margin:0;padding:6px 4px;color:${chapter.color};font-size:1.05rem;position:sticky;top:0;background:rgba(43,58,85,0.96);z-index:1`;
+      title.style.cssText = `margin:0;padding:6px 4px;color:${chapter.color};font-size:1.05rem;position:sticky;top:0;background:#f6e2b0;z-index:1`;
       const row = document.createElement('div');
       row.style.cssText = 'display:grid;grid-template-columns:repeat(10,minmax(48px,1fr));gap:6px';
       for (const l of group) {
         n += 1;
+        const stars = starsFor(l.id);
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'ui-btn';
-        btn.textContent = `${n}`;
+        btn.className = 'ui-btn lvl-btn';
+        const starText = unlocked(l.id) ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '···';
+        btn.innerHTML = `<span class="lvl-n">${n}</span><span class="lvl-stars" aria-hidden="true">${starText}</span>`;
         btn.disabled = !unlocked(l.id);
         btn.dataset.levelId = l.id;
-        btn.setAttribute('aria-label', `Level ${n} ${l.name}`);
+        btn.setAttribute('aria-label', `Level ${n} ${l.name}${stars ? `, ${stars} stars` : ''}`);
         btn.title = l.name;
         btn.addEventListener('click', () => this.onPick(l.id));
         row.appendChild(btn);

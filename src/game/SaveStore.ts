@@ -106,11 +106,8 @@ export class SaveStore {
     this.persist();
   }
 
-  /** Predecessor progression: level N unlocks only after N-1 is cleared. */
-  isUnlocked(levelId: string, orderedIds: readonly string[]): boolean {
-    const i = orderedIds.indexOf(levelId);
-    if (i <= 0) return true;
-    const pred = orderedIds[i - 1]!;
-    return this.data.levels[pred]?.cleared === true;
+  /** Every authored level is playable from the list. */
+  isUnlocked(_levelId: string, _orderedIds: readonly string[]): boolean {
+    return true;
   }
 }

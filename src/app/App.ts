@@ -1,6 +1,7 @@
 import '../ui/styles.css';
 import { EventBus } from '../core/EventBus';
 import { FixedStepLoop } from '../core/FixedStepLoop';
+import { PALETTE } from '../config/render';
 import { TUNING } from '../config/tuning';
 import type { GameEvents } from '../game/events';
 import { GameSession } from '../game/GameSession';
@@ -46,6 +47,8 @@ export class App {
   private paused = false;
   private backgrounded = false;
   private resultRecorded = false;
+  private resultDelay = 0;
+  private pendingResult: { won: boolean; score: number; stars: number } | null = null;
 
   private hud: Hud;
   private pauseMenu: PauseMenu;
@@ -103,13 +106,13 @@ export class App {
     });
 
     this.bus.on('bot:firstImpact', (e) => {
-      this.impactCenter = { x: e.x, y: e.y };
       this.audio.play('impact');
       this.renderer.juice.burst(e.x, e.y, 'dust', 6);
     });
     this.bus.on('bot:launched', () => {
       this.trail.onLaunch();
       this.audio.play('launch');
+      this.audio.play('yell');
       this.audio.tension(0);
     });
     this.bus.on('sling:aimUpdate', (e) => this.audio.tension(e.tension));
@@ -202,7 +205,11 @@ export class App {
     this.phase = 'levelSelect';
     this.title.hide();
     this.results.hide();
-    this.levelSelect.populate(allLevels(), (id) => this.isLevelUnlocked(id));
+    this.levelSelect.populate(
+      allLevels(),
+      (id) => this.isLevelUnlocked(id),
+      (id) => this.save.load().levels[id]?.stars ?? 0
+    );
     this.levelSelect.show();
     this.hud.hide();
   }
@@ -214,6 +221,8 @@ export class App {
     this.levelId = id;
     this.phase = 'play';
     this.resultRecorded = false;
+    this.resultDelay = 0;
+    this.pendingResult = null;
     this.levelSelect.hide();
     this.title.hide();
     this.results.hide();
@@ -222,6 +231,8 @@ export class App {
     this.impactCenter = null;
     this.session.loadLevel(def, this.save.settings.reducedMotion === true);
     this.renderer.setChapter(def.chapter);
+    this.renderer.setTerrain(def.terrain);
+    this.audio.setChapter(def.chapter);
     const sim = this.session.getSim();
     if (sim) sim.fragmentsEnabled = true;
     this.bindSimAudio();
@@ -238,6 +249,7 @@ export class App {
 
   private onResultsAction(action: 'retry' | 'next' | 'levels'): void {
     this.results.hide();
+    this.audio.play('ui');
     if (action === 'levels') {
       this.goLevelSelect();
       return;
@@ -284,36 +296,75 @@ export class App {
     if (this.levelId) {
       this.save.recordLevel(this.levelId, score, stars, won);
     }
-    this.results.show(won, score, stars);
+    this.pendingResult = { won, score, stars };
+    this.resultDelay = 1.15;
     this.audio.play(won ? 'victory' : 'defeat');
+    if (won) {
+      const bonus = this.session.getBonus();
+      if (bonus > 0) {
+        const at = this.impactCenter ?? { x: 0, y: 2 };
+        this.renderer.juice.popup(at.x, at.y + 1.2, `+${bonus.toLocaleString()}`, PALETTE.score.bonus);
+      }
+    }
   }
 
   private tipFor(def: { id: string; bots: string[] }): string {
-    if (def.id === 'first-flight') return 'Pull back, then release. Return to the perch to cancel.';
+    if (def.id === 'first-flight') return 'Pull back and release. Drag to the perch to cancel.';
     if (def.bots[0] === 'dash') return 'Tap during flight to dash.';
     if (def.bots.includes('split')) return 'Glass breaks easily. Tap to split in mid-air.';
     return 'Clear every target.';
+  }
+
+  /** Structure hits own the collapse camera. Ground and sling skims do not. */
+  private noteStrike(x: number, y: number): void {
+    if (x < TUNING.sling.x + 2.5) return;
+    const prev = this.impactCenter;
+    this.impactCenter = { x, y };
+    if (!prev || Math.hypot(x - prev.x, y - prev.y) > 0.6) this.camera.addTrauma(0.55);
   }
 
   private bindSimAudio(): void {
     const sim = this.session.getSim();
     if (!sim) return;
     sim.bus.on('block:destroyed', (e) => {
+      this.noteStrike(e.x, e.y);
       this.audio.play(`break:${e.material}`);
-      this.renderer.juice.burst(e.x, e.y, e.material, e.material === 'tnt' ? 16 : 8);
+      this.renderer.juice.burst(e.x, e.y, e.material, e.material === 'tnt' ? 16 : 12, e.angle);
       if (e.material === 'tnt') this.audio.play('explosion');
+      if (e.points > 0) {
+        const color =
+          e.material === 'stone'
+            ? PALETTE.score.stone
+            : e.material === 'glass'
+              ? PALETTE.score.glass
+              : e.material === 'tnt'
+                ? PALETTE.score.bonus
+                : PALETTE.score.wood;
+        this.renderer.juice.popup(e.x, e.y, `+${e.points}`, color);
+      }
     });
     sim.bus.on('pig:destroyed', (e) => {
+      this.noteStrike(e.x, e.y);
       this.audio.play('pig');
-      this.renderer.juice.burst(e.x, e.y, 'pig', 10);
+      this.renderer.juice.pop(e.x, e.y);
+      if (e.points > 0) {
+        this.renderer.juice.popup(e.x, e.y + 0.35, `+${e.points.toLocaleString()}`, PALETTE.score.pig);
+      }
     });
-    sim.bus.on('block:damaged', () => {
+    sim.bus.on('pig:damaged', (e) => {
+      this.noteStrike(e.x, e.y);
+    });
+    sim.bus.on('block:damaged', (e) => {
+      this.noteStrike(e.x, e.y);
       this.audio.play('impact');
+    });
+    sim.bus.on('explosion', (e) => {
+      this.noteStrike(e.x, e.y);
     });
     sim.bus.on('bot:ability', () => this.audio.play('ability'));
     sim.bus.on('bot:firstImpact', (e) => {
-      this.impactCenter = { x: e.x, y: e.y };
       this.audio.play('impact');
+      this.renderer.juice.flash(e.x, e.y, 'dust');
     });
   }
 
@@ -327,12 +378,23 @@ export class App {
     const state = this.session.getState();
 
     this.recordResultOnce();
+    if (this.pendingResult) {
+      this.resultDelay -= dt;
+      if (this.resultDelay <= 0) {
+        const pending = this.pendingResult;
+        this.pendingResult = null;
+        this.results.show(pending.won, pending.score, pending.stars);
+        this.hud.hide();
+      }
+    }
 
     const sim = this.session.getSim();
     const bot = sim?.shotBots()[0];
     if (bot?.body && state === 'flight') {
       const p = bot.body.getPosition();
       this.trail.sample(p.x, p.y, sim!.getSimTime(), dt);
+    } else if (state !== 'resolve') {
+      this.trail.clear();
     }
 
     this.sling.syncLoadedBot();
@@ -364,8 +426,9 @@ export class App {
 
     const best = this.levelId ? (this.save.load().levels[this.levelId]?.bestScore ?? 0) : 0;
     this.hud.setScore(this.session.getScore(), best);
-    const inflight = state === 'flight' || state === 'resolve' ? 1 : 0;
-    this.hud.setShots(this.session.getBotQueue().length + inflight);
+    this.hud.setShots(this.session.getBotQueue().length);
+    const showTip = state === 'aim' || state === 'intro';
+    this.hud.setTip(showTip && def ? (def.hint ?? this.tipFor(def)) : '');
   }
 
   private draw(_alpha: number, frameDt: number): void {

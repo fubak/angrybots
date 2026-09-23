@@ -19,7 +19,7 @@
     "minY": 0,
     "maxY": 11
   },
-  "hint": "Wheels roll. Clip the deck, not just the pig.",
+  "hint": "Wheels roll. Clip the deck, not just the prompt.",
   "sling": {
     "x": -7.5
   },

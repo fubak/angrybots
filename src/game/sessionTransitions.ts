@@ -8,7 +8,7 @@ export const SESSION_TRANSITIONS: Record<GameStateId, GameStateId[]> = {
   intro: ['aim'],
   aim: ['flight'],
   flight: ['resolve'],
-  resolve: ['nextBot', 'bonus', 'lost'],
+  resolve: ['nextBot', 'bonus', 'won', 'lost'],
   nextBot: ['aim'],
   bonus: ['won'],
   won: ['intro', 'levelSelect'],

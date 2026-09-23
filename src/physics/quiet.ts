@@ -11,7 +11,9 @@ export function isQuiet(world: World): boolean {
     if (!e || e.kind === 'fragment' || e.kind === 'ground' || e.kind === 'terrain') continue;
     if (e.kind !== 'block' && e.kind !== 'pig' && e.kind !== 'bot') continue;
     const v = b.getLinearVelocity();
-    if (Math.hypot(v.x, v.y) >= lin) return false;
+    const speed = Math.hypot(v.x, v.y);
+    if (e.kind === 'bot' && speed < 3.2) continue;
+    if (speed >= lin) return false;
     if (Math.abs(b.getAngularVelocity()) >= ang) return false;
   }
   return true;

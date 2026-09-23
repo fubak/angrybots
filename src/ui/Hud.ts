@@ -12,11 +12,11 @@ export class Hud {
         <button type="button" class="ui-btn" aria-label="Pause">⏸</button>
         <button type="button" class="ui-btn" aria-label="Restart">↻</button>
       </div>
-      <div>
+      <div class="hud-cluster">
         <div class="hud-score" aria-live="polite">0</div>
         <div class="hud-shots" aria-live="polite">Shots: 0</div>
-        <div class="hud-best" style="font-size:14px">Best: 0</div>
-        <div class="hud-tip" style="font-size:14px;max-width:220px;text-align:right"></div>
+        <div class="hud-best">Best: 0</div>
+        <div class="hud-tip"></div>
       </div>
     `;
     parent.appendChild(this.root);

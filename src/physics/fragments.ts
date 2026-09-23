@@ -133,7 +133,10 @@ export function applyFragmentSpawnImpulse(
   const dx = offsetX / dist;
   const dy = offsetY / dist;
   body.applyLinearImpulse(
-    planck.Vec2(linearVel.x * mass + dx * 0.15 * mass, linearVel.y * mass + dy * 0.15 * mass),
+    planck.Vec2(
+      linearVel.x * mass + dx * 2.4 * mass,
+      linearVel.y * mass + (dy * 2.4 + 1.6) * mass
+    ),
     body.getWorldCenter(),
     true
   );

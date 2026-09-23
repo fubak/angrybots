@@ -138,10 +138,18 @@ export class Level {
 
   private stepInternal(runOob: boolean) {
     this.processTntChain();
+    this.markAirborneTargets();
     this.pw.step();
     this.simTime += TUNING.dt;
     this.trimFragments();
     if (runOob) this.checkOutOfBounds();
+  }
+
+  private markAirborneTargets() {
+    for (const e of this.registry.all()) {
+      if (e.kind !== 'pig' || !e.alive || !e.body) continue;
+      if (e.body.getPosition().y > e.r + 0.18) e.airborne = true;
+    }
   }
 
   private processTntChain() {
@@ -273,7 +281,17 @@ export class Level {
         restitution: m.restitution,
         ...filterBits(CAT.FRAGMENT, MASK.FRAGMENT),
       });
-      const lifetime = 3.5 + (this.rngFn() * 2 - 1) * 0.5;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const p of local) {
+        minX = Math.min(minX, p.x);
+        minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x);
+        maxY = Math.max(maxY, p.y);
+      }
+      const lifetime = 8;
       const frag: FragmentEntity = {
         kind: 'fragment',
         id: `frag-${this.fragmentSeq++}`,
@@ -282,6 +300,8 @@ export class Level {
         alive: true,
         spawnTime: this.simTime,
         lifetime,
+        w: Math.max(0.28, maxX - minX),
+        h: Math.max(0.2, maxY - minY),
       };
       fb.setUserData(frag);
       this.registry.add(frag);

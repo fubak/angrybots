@@ -137,22 +137,24 @@ export class GameSession {
     return all;
   }
 
+  private shotHasImpacted(): boolean {
+    return (this.sim?.shotBots() ?? []).some((b) => b.firstImpactAt !== null);
+  }
+
+  /** A rolling bot on flat ground stays above a full stop for seconds. Once the targets are gone, that crawl is not part of the shot. */
   private isFlightDone(dt: number): boolean {
     if (!this.sim) return true;
     if (this.flightTime >= SHOT_MAX_S) return true;
     const bots = this.sim.shotBots().filter((b) => b.alive && b.body);
     if (bots.length === 0) return true;
-    let allSlow = true;
-    for (const b of bots) {
-      const v = b.body!.getLinearVelocity().length();
-      if (v > 0.15) {
-        allSlow = false;
-        break;
-      }
-    }
-    if (allSlow) {
+    let maxSpeed = 0;
+    for (const b of bots) maxSpeed = Math.max(maxSpeed, b.body!.getLinearVelocity().length());
+    const cleared = this.sim.pigsAlive() === 0 && this.shotHasImpacted();
+    const limit = cleared ? 4.5 : this.shotHasImpacted() ? 0.8 : 0.35;
+    const hold = cleared ? 0.12 : SHOT_SLOW_HOLD;
+    if (maxSpeed <= limit) {
       this.shotSlowTime += dt;
-      return this.shotSlowTime >= SHOT_SLOW_HOLD;
+      return this.shotSlowTime >= hold;
     }
     this.shotSlowTime = 0;
     return false;
@@ -228,6 +230,10 @@ export class GameSession {
 
   getScore(): number {
     return this.score;
+  }
+
+  getBonus(): number {
+    return this.bonus;
   }
 
   getStars(): 0 | 1 | 2 | 3 {

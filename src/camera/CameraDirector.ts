@@ -1,7 +1,7 @@
 import type { LevelV2 } from '../levels/schema';
 import type { GameStateId } from '../game/states';
 import { TUNING } from '../config/tuning';
-import { clampView, fitRect, unionRect, type Rect, type View } from './fitRect';
+import { fitRect, unionRect, type Rect, type View } from './fitRect';
 
 export type CameraDirectorInput = {
   state: GameStateId;
@@ -19,11 +19,11 @@ export type CameraDirectorInput = {
 };
 
 const LAMBDA = {
-  intro: 3.5,
-  aim: 12,
-  follow: 6,
-  impact: 4,
-  return: 3.5,
+  intro: 2.4,
+  aim: 6,
+  follow: 2.2,
+  impact: 2.8,
+  return: 2.4,
 };
 
 export class CameraDirector {
@@ -45,7 +45,7 @@ export class CameraDirector {
   /** Sling framing rect — widens with tension and includes level camera bounds so targets stay visible. */
   private slingRect(level: LevelV2 | null, tension = 0): Rect {
     const sx = level?.sling.x ?? TUNING.sling.x;
-    const widen = 4 * tension;
+    const widen = 1.2 * tension;
     let x1 = sx + 15.5 + widen;
     let y1 = 9;
     if (level) {
@@ -67,15 +67,6 @@ export class CameraDirector {
   }
 
   update(input: CameraDirectorInput, dt: number): View {
-    const bounds = input.level
-      ? {
-          x0: input.level.camera.minX,
-          x1: input.level.camera.maxX,
-          y0: input.level.camera.minY,
-          y1: input.level.camera.maxY,
-        }
-      : { x0: -10, x1: 30, y0: 0, y1: 14 };
-
     let target = this.view;
     const sling = this.slingView(input.level);
     const overview = this.overviewView(input.level);
@@ -98,34 +89,27 @@ export class CameraDirector {
       }
     } else if (input.state === 'aim') {
       this.mode = 'aim';
-      const r = this.slingRect(input.level, input.tension);
-      // Do not clampView here: level camera height is often smaller than the h needed to
-      // frame sling→targets at landscape aspect (clamp would crop structures off-screen).
-      target = fitRect(r, input.aspect, 0.5, input.topHudPx, input.canvasPxH);
+      target = this.wideView(input, input.tension);
       if (input.manualOffset) target = input.manualOffset;
-    } else if (input.state === 'flight' && input.botPos && input.botVel) {
-      this.mode = 'follow';
-      const lead = Math.max(-2, Math.min(4, input.botVel.x * 0.25));
-      const r: Rect = {
-        x0: input.botPos.x + lead - 9,
-        x1: input.botPos.x + lead + 9,
-        y0: bounds.y0,
-        y1: Math.max(input.botPos.y + 3, 9),
-      };
-      target = clampView(fitRect(r, input.aspect, 0.5), bounds, input.aspect);
     } else if (
       (input.state === 'flight' || input.state === 'resolve') &&
-      input.impactCenter
+      (input.botPos || input.impactCenter)
     ) {
-      this.mode = 'impact';
-      const r: Rect = {
-        x0: input.impactCenter.x - 7,
-        x1: input.impactCenter.x + 7,
-        y0: input.impactCenter.y - 4,
-        y1: input.impactCenter.y + 6,
-      };
-      target = clampView(fitRect(r, input.aspect, 2), bounds, input.aspect);
-      target.h = Math.max(target.h, sling.h * 0.85);
+      const wide = this.wideView(input, 0);
+      const speed = input.botVel ? Math.hypot(input.botVel.x, input.botVel.y) : 0;
+      const strike = input.impactCenter;
+      const holdCollapse = Boolean(strike) && (input.state === 'resolve' || speed < 6);
+      if (holdCollapse && strike) {
+        this.mode = 'impact';
+        target = this.nudge(wide, strike.x, strike.y, 0.22, 0.08);
+      } else if (input.botPos && input.botVel) {
+        this.mode = 'follow';
+        const lead = Math.max(-1, Math.min(2.2, input.botVel.x * 0.08));
+        target = this.nudge(wide, input.botPos.x + lead, input.botPos.y, 0.28, 0.08);
+      } else if (strike) {
+        this.mode = 'impact';
+        target = this.nudge(wide, strike.x, strike.y, 0.22, 0.08);
+      }
     } else if (input.state === 'nextBot') {
       this.mode = 'return';
       target = sling;
@@ -138,9 +122,11 @@ export class CameraDirector {
         ? input.reducedMotion
           ? 20
           : LAMBDA.follow
-        : this.mode === 'aim'
-          ? LAMBDA.aim
-          : LAMBDA.intro;
+        : this.mode === 'impact'
+          ? LAMBDA.impact
+          : this.mode === 'aim'
+            ? LAMBDA.aim
+            : LAMBDA.intro;
 
     this.view = {
       cx: this.view.cx + (target.cx - this.view.cx) * (1 - Math.exp(-lambda * dt)),
@@ -160,6 +146,25 @@ export class CameraDirector {
     }
 
     return this.view;
+  }
+
+  private wideView(input: CameraDirectorInput, tension: number): View {
+    return fitRect(
+      this.slingRect(input.level, tension),
+      input.aspect,
+      0.5,
+      input.topHudPx,
+      input.canvasPxH
+    );
+  }
+
+  /** Shift the wide frame toward the action without changing its size. */
+  private nudge(base: View, x: number, y: number, pullX: number, pullY: number): View {
+    return {
+      cx: base.cx + (x - base.cx) * pullX,
+      cy: base.cy + (y - base.cy) * pullY,
+      h: base.h,
+    };
   }
 
   unionBoundsForImpact(
