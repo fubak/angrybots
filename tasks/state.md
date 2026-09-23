@@ -6,12 +6,12 @@
 
 ## Current
 
-**Resume instruction:** `main` is pushed at `e2b8547`. The public site is https://fubak.github.io/angrybots/. All 30 levels are selectable. Targets are chat bubbles, hosts, models, and a flagship, still stored as `pig`. Bots use the Grok Bot disc, blob, and exclamation forms at their real radii. Hills, ramps, and ledges are visible. The camera stays wide. Do not claim Angry Birds parity or a headphone listen.
+**Resume instruction:** `main` is pushed at `1295757`. Game behavior is `e2b8547`. The public site is https://fubak.github.io/angrybots/. All 30 levels are selectable. Targets are chat bubbles, hosts, models, and a flagship, still stored as `pig`. Bots use the Grok Bot disc, blob, and exclamation forms at their real radii. Hills, ramps, and ledges are visible. The camera stays wide. Do not claim Angry Birds parity or a headphone listen.
 
 | Field | Value |
 | --- | --- |
 | Product | Browser slingshot game, Vite + TypeScript, Three.js, Planck |
-| Branch | `main` at `e2b8547`, pushed. Repo `fubak/angrybots` is public. |
+| Branch | `main` at `1295757`, pushed. Game behavior is `e2b8547`. Repo `fubak/angrybots` is public. |
 | Public URL | https://fubak.github.io/angrybots/ |
 | Local | `npm run dev` (`vite --host`). LAN share used `http://192.168.1.170:5175/`. Playwright e2e uses `127.0.0.1:5181`. |
 | Tests | `tsc --noEmit` passed after the Pages commit. `save-v2`, calibration (4), and `pouch-all` (31) passed. A full `npm test` was not re-run after `e2b8547`. |
