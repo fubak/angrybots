@@ -11,7 +11,7 @@ export class TitleScreen {
     sub.style.margin = '0';
     const play = document.createElement('button');
     play.type = 'button';
-    play.className = 'ui-btn';
+    play.className = 'ui-btn ui-primary';
     play.textContent = 'Play';
     play.setAttribute('aria-label', 'Play');
     play.addEventListener('click', onPlay);

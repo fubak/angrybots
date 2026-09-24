@@ -5,9 +5,14 @@ export class ResultsPanel {
     this.el = document.createElement('div');
     this.el.className = 'ui-panel results-panel';
     this.el.innerHTML = `
-      <h2 id="results-title">Victory!</h2>
-      <p id="results-score" aria-live="polite">0</p>
       <div id="results-stars"></div>
+      <h2 id="results-title">Victory!</h2>
+      <p id="results-sub" class="results-sub"></p>
+      <div class="results-score-row">
+        <span class="results-label">Score</span>
+        <span id="results-score" aria-live="polite">0</span>
+      </div>
+      <p id="results-best" class="results-best"></p>
       <div class="results-actions">
         <button type="button" class="ui-btn" data-a="levels">Levels</button>
         <button type="button" class="ui-btn" data-a="retry">Retry</button>
@@ -26,10 +31,19 @@ export class ResultsPanel {
     return this.el.style.display === 'flex';
   }
 
-  show(won: boolean, score: number, stars: number): void {
+  show(won: boolean, score: number, stars: number, best = 0, levelName = ''): void {
     this.el.style.display = 'flex';
+    this.el.classList.toggle('lost', !won);
     this.el.querySelector('#results-title')!.textContent = won ? 'Victory!' : 'Defeat!';
+    this.el.querySelector('#results-sub')!.textContent = won
+      ? levelName
+        ? `${levelName} cleared`
+        : 'Yard cleared'
+      : 'Out of bots — targets still standing';
     this.el.querySelector('#results-score')!.textContent = score.toLocaleString();
+    const bestEl = this.el.querySelector('#results-best')!;
+    bestEl.textContent =
+      score > 0 && score >= best ? 'New best!' : best > 0 ? `Best: ${best.toLocaleString()}` : '';
     const starHost = this.el.querySelector('#results-stars')!;
     starHost.replaceChildren();
     for (let i = 0; i < 3; i++) {

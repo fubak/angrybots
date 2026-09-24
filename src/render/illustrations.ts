@@ -645,6 +645,21 @@ export const ILL = {
     ctx.ellipse(s / 2, s * 0.46, s * 0.22, s * 0.08, 0, 0, Math.PI * 2);
     ctx.stroke();
   }),
+  shaft: paintTex(64, 256, (ctx, w, h) => {
+    const across = ctx.createLinearGradient(0, 0, w, 0);
+    across.addColorStop(0, 'rgba(255,255,255,0)');
+    across.addColorStop(0.5, 'rgba(255,255,255,1)');
+    across.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = across;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'destination-in';
+    const down = ctx.createLinearGradient(0, 0, 0, h);
+    down.addColorStop(0, 'rgba(255,255,255,1)');
+    down.addColorStop(0.35, 'rgba(255,255,255,0.7)');
+    down.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = down;
+    ctx.fillRect(0, 0, w, h);
+  }),
   sky: paintTex(16, 256, (ctx, w, h) => {
     const g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, '#ffffff');

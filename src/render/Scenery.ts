@@ -69,7 +69,12 @@ export class Scenery {
     scene.background = this.background;
     scene.fog = null;
 
-    this.skyMat = new THREE.MeshBasicMaterial({ map: ILL.sky, fog: false, depthWrite: false });
+    this.skyMat = new THREE.MeshBasicMaterial({
+      map: ILL.sky,
+      color: LOOK.training.skyTint,
+      fog: false,
+      depthWrite: false,
+    });
     const sky = new THREE.Mesh(new THREE.PlaneGeometry(520, 360), this.skyMat);
     sky.position.set(0, 40, DEPTH.sky);
     sky.renderOrder = -100;
@@ -94,9 +99,10 @@ export class Scenery {
     this.group.add(this.halo);
 
     this.shaftMat = new THREE.MeshBasicMaterial({
+      map: ILL.shaft,
       color: LOOK.training.shaft,
       transparent: true,
-      opacity: 0.08,
+      opacity: 0.16,
       depthWrite: false,
       side: THREE.DoubleSide,
       fog: false,
@@ -170,7 +176,7 @@ export class Scenery {
     this.grassMat.color.set(look.grass);
     this.sunMat.color.set(look.sun);
     this.shaftMat.color.set(look.shaft);
-    this.shaftMat.opacity = chapter === 'citadel' ? 0.03 : 0.08;
+    this.shaftMat.opacity = chapter === 'citadel' ? 0.06 : 0.16;
     this.fringeMat.color.set(chapter === 'citadel' ? '#8fb89a' : '#ffffff');
     const training = chapter !== 'workshop' && chapter !== 'citadel';
     for (const obj of this.trainingProps) obj.visible = training;

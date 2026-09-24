@@ -206,8 +206,21 @@ export class Renderer {
           if (e.kind === 'bot') {
             const v = e.body.getLinearVelocity();
             const speed = v.length();
-            const squash = Math.min(0.34, speed / 55);
-            mesh.scale.set(1 + squash * 1.35, Math.max(0.66, 1 - squash), 1);
+            const prevSpeed = (mesh.userData.speed as number | undefined) ?? speed;
+            mesh.userData.speed = speed;
+            let impact = (mesh.userData.impact as number | undefined) ?? 0;
+            if (prevSpeed - speed > 7) impact = Math.min(1, (prevSpeed - speed) / 18);
+            impact = Math.max(0, impact - 0.05);
+            mesh.userData.impact = impact;
+            const stretch = Math.min(0.34, speed / 55);
+            const pancake = impact * 0.32;
+            if (speed > 4 && v.x > 0) {
+              // Stretch along the flight path so the streak reads at any spin angle.
+              mesh.rotation.z = Math.atan2(v.y, v.x);
+              mesh.scale.set(1 + stretch * 1.35, Math.max(0.66, 1 - stretch), 1);
+            } else {
+              mesh.scale.set(1 + pancake, Math.max(0.6, 1 - pancake), 1);
+            }
             mesh.userData.flying = speed > 2;
             const face = mesh.getObjectByName('face');
             if (face) {
