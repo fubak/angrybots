@@ -12,6 +12,7 @@ import { ILL } from './illustrations';
 import { crackTexture } from './textures';
 import type { View } from '../camera/fitRect';
 import type { SlingModel } from '../sling/SlingModel';
+import { SLING } from '../sling/launch';
 import type { ShotTrail } from '../sling/ShotTrail';
 import type { BotKind, LevelV2 } from '../levels/schema';
 
@@ -31,6 +32,9 @@ export class Renderer {
   private readonly slingView: SlingView;
   readonly juice: Juice;
   private readonly scenery: Scenery;
+  /** World point the sun/moon eyes follow: the flying bot, the pouch mid-drag, else the targets. */
+  private readonly focus = new THREE.Vector2(12, 2);
+  private focusHold = 0;
   private readonly terrain = new THREE.Group();
   private readonly key: THREE.DirectionalLight;
   private readonly rim: THREE.DirectionalLight;
@@ -169,6 +173,10 @@ export class Renderer {
     trail: ShotTrail
   ): void {
     this.slingView.sync(model, queue, aiming, trail);
+    if (aiming && model.phase === 'dragging') {
+      this.focus.set(SLING.anchor.x - model.pull.x, SLING.anchor.y - model.pull.y);
+      this.focusHold = 0.6;
+    }
   }
 
   setSize(w: number, h: number): void {
@@ -179,9 +187,25 @@ export class Renderer {
 
   syncLevel(level: Level | null): void {
     const live = new Set<string>();
+    let focusSpeed = 1.5;
+    let pigX = 0;
+    let pigY = 0;
+    let pigs = 0;
     if (level) {
       for (const e of level.registry.all()) {
         if (!e.alive || e.kind === 'ground') continue;
+        if (e.body && e.kind === 'bot') {
+          const s = e.body.getLinearVelocity().length();
+          if (s > focusSpeed) {
+            focusSpeed = s;
+            this.focus.set(e.body.getPosition().x, e.body.getPosition().y);
+            this.focusHold = 1.2;
+          }
+        } else if (e.body && e.kind === 'pig') {
+          pigX += e.body.getPosition().x;
+          pigY += e.body.getPosition().y;
+          pigs += 1;
+        }
         live.add(e.id);
         let mesh = this.entityMeshes.get(e.id);
         if (!mesh) {
@@ -242,6 +266,7 @@ export class Renderer {
         }
       }
     }
+    if (this.focusHold <= 0 && pigs > 0) this.focus.set(pigX / pigs, pigY / pigs);
     for (const [id, mesh] of this.entityMeshes) {
       if (!live.has(id)) {
         this.scene.remove(mesh);
@@ -361,6 +386,8 @@ export class Renderer {
 
   render(_alpha: number, frameDt: number): void {
     this.clock += frameDt;
+    this.focusHold -= frameDt;
+    this.scenery.lookAt(this.focus.x, this.focus.y, frameDt);
     this.slingView.animate(this.clock);
     this.juice.update(frameDt);
     this.renderer.info.reset();

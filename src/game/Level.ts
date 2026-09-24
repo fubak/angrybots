@@ -141,6 +141,7 @@ export class Level {
     this.markAirborneTargets();
     this.pw.step();
     this.simTime += TUNING.dt;
+    if (this.damageEnabled) this.finishGroundedTargets();
     this.trimFragments();
     if (runOob) this.checkOutOfBounds();
   }
@@ -149,6 +150,26 @@ export class Level {
     for (const e of this.registry.all()) {
       if (e.kind !== 'pig' || !e.alive || !e.body) continue;
       if (e.body.getPosition().y > e.r + 0.18) e.airborne = true;
+    }
+  }
+
+  /** Targets that come down onto the grass are done for; ones shoved into a roll don't get to trundle forever. */
+  private finishGroundedTargets() {
+    const grounded = (e: PigEntity) => e.body!.getPosition().y <= e.r + 0.12;
+    for (const e of [...this.registry.all()]) {
+      if (e.kind !== 'pig' || !e.alive || !e.body) continue;
+      if (!grounded(e)) {
+        e.rollTime = 0;
+        continue;
+      }
+      if (e.airborne) {
+        this.destroyEntity(e, 'impact');
+        continue;
+      }
+      const v = e.body.getLinearVelocity();
+      const rolling = Math.abs(v.x) > 1.0 || Math.abs(e.body.getAngularVelocity()) > 2.5;
+      e.rollTime = rolling ? e.rollTime + TUNING.dt : 0;
+      if (e.rollTime >= 1.0) this.destroyEntity(e, 'impact');
     }
   }
 
