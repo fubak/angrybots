@@ -25,7 +25,7 @@ export class SoundBank {
   private creakGain: GainNode | null = null;
   private musicSrc: AudioBufferSourceNode | null = null;
   private chapter = 'training';
-  private lastImpactAt = 0;
+  private lastImpactAt = new Map<string, number>();
   private readonly buffers = new Map<string, AudioBuffer>();
   muted = false;
 
@@ -52,8 +52,8 @@ export class SoundBank {
     if (this.muted || !this.unlocked) return;
     const sample = oneShotIdForEvent(id);
     if (sample) {
-      if (sample === 'wood' && id === 'impact') {
-        this.throttledImpact();
+      if (id.startsWith('impact')) {
+        this.throttledImpact(id.split(':')[1] ?? 'generic', sample);
         return;
       }
       const variant =
@@ -146,11 +146,12 @@ export class SoundBank {
     this.voice.gain.value = this.voiceGain;
   }
 
-  private throttledImpact(): void {
+  private throttledImpact(key: string, sample: OneShotId): void {
     const now = this.ctx?.currentTime ?? 0;
-    if (now - this.lastImpactAt < 0.04) return;
-    this.lastImpactAt = now;
-    this.playSample('wood', 'sfx', 0.45);
+    const last = this.lastImpactAt.get(key) ?? -1;
+    if (now - last < 0.04) return;
+    this.lastImpactAt.set(key, now);
+    this.playSample(sample, 'sfx', 0.45);
   }
 
   private playSample(id: OneShotId, bus: 'sfx' | 'voice', gain = 0.8, variant = 0): void {

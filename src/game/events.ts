@@ -20,6 +20,7 @@ export type GameEvents = {
     angle: number;
     points: number;
   };
+  'block:landed': { x: number; y: number; approach: number };
   'pig:damaged': { id: string; hpRatio: number; x: number; y: number };
   'pig:destroyed': { id: string; x: number; y: number; points: number };
   'explosion': { x: number; y: number; radius: number };

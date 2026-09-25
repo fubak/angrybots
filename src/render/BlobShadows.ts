@@ -56,6 +56,7 @@ export class BlobShadows {
       uniforms: { map: { value: blobTexture() } },
       transparent: true,
       depthWrite: false,
+      depthTest: false,
       vertexShader: `
         attribute float aFade;
         varying vec2 vUv;

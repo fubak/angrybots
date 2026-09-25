@@ -8,44 +8,70 @@ import type { ShotTrail } from '../sling/ShotTrail';
 import { makeBotCharacter, tickFace } from './characters';
 import { disposeObject } from './dispose';
 import { ILL } from './illustrations';
+import { bandWobble, hopArc } from './slingAnim';
 import type { ShadowCaster } from './BlobShadows';
 
 const FORK = 1.08;
 const TIP_Y = 3.15;
+const FORK_JOINT_Y = 1.95;
+const REST_SAG = 0.3;
+const HOP_SECONDS = 0.5;
+const BONUS_POP_EVERY = 0.5;
+
+export type SlingFx = {
+  /** seconds since nextBot began; drives the queue→pouch hop */
+  hopT: number | null;
+  /** seconds since bonus began; queue bots hop in sequence */
+  bonusT: number | null;
+};
+
+let puffTex: THREE.Texture | null = null;
+
+function puffTexture(): THREE.Texture {
+  if (puffTex) return puffTex;
+  if (typeof document === 'undefined') {
+    const tex = new THREE.DataTexture(new Uint8Array([255, 255, 255, 120]), 1, 1);
+    tex.needsUpdate = true;
+    puffTex = tex;
+    return tex;
+  }
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('2d context');
+  const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+  g.addColorStop(0, 'rgba(255,255,255,0.95)');
+  g.addColorStop(0.55, 'rgba(255,255,255,0.55)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  puffTex = tex;
+  return tex;
+}
+
+type Band = { a: THREE.Mesh; b: THREE.Mesh };
 
 export class SlingView {
   private readonly group = new THREE.Group();
   private readonly loaded: THREE.Group;
   private readonly pouch: THREE.Mesh;
-  private readonly backLeft: THREE.Mesh;
-  private readonly backRight: THREE.Mesh;
-  private readonly frontLeft: THREE.Mesh;
-  private readonly frontRight: THREE.Mesh;
+  private readonly bands: { backL: Band; backR: Band; frontL: Band; frontR: Band };
   private readonly queue: THREE.Group[] = [];
+  private readonly queuePos: { x: number; y: number }[] = [];
   private readonly previewDots: THREE.Mesh[] = [];
   private readonly trailDots: THREE.Mesh[] = [];
+  private readonly impactPuff: THREE.Mesh;
   private loadedKind: BotKind | null = null;
   private queueKinds: string = '';
+  private now = 0;
+  private wasDragging = false;
+  private releaseAt: number | null = null;
   readonly shadowCasters: ShadowCaster[] = [];
 
   constructor(scene: THREE.Scene) {
-    const postMap = ILL.plank.clone();
-    postMap.center.set(0.5, 0.5);
-    postMap.rotation = Math.PI / 2;
-    postMap.needsUpdate = true;
-    const postMat = new THREE.MeshBasicMaterial({ map: postMap });
-    for (const side of [-1, 1]) {
-      const post = new THREE.Mesh(new THREE.BoxGeometry(0.34, 3.2, 0.28), postMat);
-      post.position.set(SLING.anchor.x + side * FORK, 1.6, -0.55);
-      post.renderOrder = 4;
-      this.group.add(post);
-    }
-    const yoke = new THREE.Mesh(
-      new THREE.BoxGeometry(FORK * 2 + 0.2, 0.22, 0.24),
-      new THREE.MeshBasicMaterial({ map: ILL.plank })
-    );
-    yoke.position.set(SLING.anchor.x, TIP_Y + 0.08, -0.5);
-    this.group.add(yoke);
+    this.buildFork();
 
     this.pouch = new THREE.Mesh(
       new THREE.PlaneGeometry(0.86, 0.42),
@@ -56,10 +82,12 @@ export class SlingView {
 
     const backMat = new THREE.MeshBasicMaterial({ color: '#4a2814', side: THREE.DoubleSide });
     const frontMat = new THREE.MeshBasicMaterial({ color: '#8a4a28', side: THREE.DoubleSide });
-    this.backLeft = this.makeBand(backMat, 3);
-    this.backRight = this.makeBand(backMat, 3);
-    this.frontLeft = this.makeBand(frontMat, 14);
-    this.frontRight = this.makeBand(frontMat, 14);
+    this.bands = {
+      backL: this.makeBand(backMat, 3),
+      backR: this.makeBand(backMat, 3),
+      frontL: this.makeBand(frontMat, 14),
+      frontR: this.makeBand(frontMat, 14),
+    };
 
     this.loaded = new THREE.Group();
     this.group.add(this.loaded);
@@ -85,31 +113,132 @@ export class SlingView {
     }
 
     const trailMat = new THREE.MeshBasicMaterial({
+      map: puffTexture(),
       color: PALETTE.trail,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.5,
       depthWrite: false,
     });
-    for (let i = 0; i < 32; i++) {
-      const d = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), trailMat);
+    for (let i = 0; i < 48; i++) {
+      const d = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.26), trailMat);
       d.visible = false;
+      d.renderOrder = 15;
       this.trailDots.push(d);
       this.group.add(d);
     }
+    this.impactPuff = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.9, 0.9),
+      new THREE.MeshBasicMaterial({
+        map: puffTexture(),
+        color: '#fff2d8',
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false,
+      })
+    );
+    this.impactPuff.visible = false;
+    this.impactPuff.renderOrder = 16;
+    this.group.add(this.impactPuff);
 
     scene.add(this.group);
+  }
+
+  /** Painted plank piece with a slightly larger dark silhouette behind it. */
+  private plankPiece(
+    w: number,
+    h: number,
+    x: number,
+    y: number,
+    z: number,
+    angle: number
+  ): void {
+    const back = new THREE.Mesh(
+      new THREE.PlaneGeometry(w + 0.1, h + 0.1),
+      new THREE.MeshBasicMaterial({ color: PALETTE.outline })
+    );
+    back.position.set(x, y, z - 0.01);
+    back.rotation.z = angle;
+    const face = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ map: ILL.plank })
+    );
+    face.position.set(x, y, z);
+    face.rotation.z = angle;
+    back.renderOrder = face.renderOrder = 4;
+    this.group.add(back, face);
+  }
+
+  /** Y-shaped wooden fork: trunk + two angled arms to the band tips. */
+  private buildFork(): void {
+    const trunkH = FORK_JOINT_Y + 0.4;
+    this.plankPiece(0.5, trunkH, SLING.anchor.x, FORK_JOINT_Y - trunkH / 2 + 0.02, -0.6, 0);
+    for (const side of [-1, 1]) {
+      const tipX = SLING.anchor.x + side * FORK;
+      const dx = tipX - SLING.anchor.x;
+      const dy = TIP_Y + 0.12 - FORK_JOINT_Y;
+      const len = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx) - Math.PI / 2;
+      const z = side < 0 ? -0.58 : 0.52;
+      this.plankPiece(0.36, len, SLING.anchor.x + dx / 2, FORK_JOINT_Y + dy / 2, z, angle);
+    }
+  }
+
+  private makeBand(mat: THREE.Material, order: number): Band {
+    const a = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+    const b = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+    a.renderOrder = b.renderOrder = order;
+    a.visible = b.visible = false;
+    this.group.add(a, b);
+    return { a, b };
+  }
+
+  private setBand(band: Band, x0: number, y0: number, mx: number, my: number, x1: number, y1: number, z: number): void {
+    this.seg(band.a, x0, y0, mx, my, z);
+    this.seg(band.b, mx, my, x1, y1, z);
+    band.a.visible = band.b.visible = true;
+  }
+
+  private seg(band: THREE.Mesh, x0: number, y0: number, x1: number, y1: number, z: number): void {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const len = Math.hypot(dx, dy);
+    band.scale.set(0.11, Math.max(0.08, len), 1);
+    band.position.set((x0 + x1) / 2, (y0 + y1) / 2, z);
+    band.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
+  }
+
+  private setBandsTo(cupX: number, cupY: number, sag: number, z: { back: number; front: number }): void {
+    const tipL = { x: SLING.anchor.x - FORK, y: TIP_Y };
+    const tipR = { x: SLING.anchor.x + FORK, y: TIP_Y };
+    const mid = (t: { x: number; y: number }) => ({
+      x: (t.x + cupX) / 2,
+      y: (t.y + cupY) / 2 - sag,
+    });
+    const ml = mid(tipL);
+    const mr = mid(tipR);
+    this.setBand(this.bands.backL, tipL.x, tipL.y, ml.x - 0.02, ml.y, cupX - 0.06, cupY, z.back);
+    this.setBand(this.bands.backR, tipR.x, tipR.y, mr.x + 0.02, mr.y, cupX + 0.06, cupY, z.back);
+    this.setBand(this.bands.frontL, tipL.x, tipL.y, ml.x - 0.04, ml.y, cupX - 0.1, cupY, z.front);
+    this.setBand(this.bands.frontR, tipR.x, tipR.y, mr.x + 0.04, mr.y, cupX + 0.1, cupY, z.front);
   }
 
   sync(
     model: SlingModel,
     queue: readonly BotKind[],
     aiming: boolean,
-    trail: ShotTrail
+    trail: ShotTrail,
+    fx: SlingFx = { hopT: null, bonusT: null }
   ): void {
     this.group.visible = true;
     this.shadowCasters.length = 0;
+    if (this.wasDragging && model.phase !== 'dragging') this.releaseAt = this.now;
+    this.wasDragging = model.phase === 'dragging';
+    if (this.releaseAt !== null && this.now - this.releaseAt > 0.45) this.releaseAt = null;
+    const wob = this.releaseAt === null ? 0 : bandWobble(this.now - this.releaseAt);
+
     const kind = queue[0] ?? null;
-    if (aiming && kind) {
+    const hopping = fx.hopT !== null && kind !== null;
+    if (aiming && kind && !hopping) {
       if (this.loadedKind !== kind) {
         for (const child of [...this.loaded.children]) disposeObject(child);
         this.loaded.clear();
@@ -131,14 +260,8 @@ export class SlingView {
       this.pouch.visible = true;
       this.pouch.position.set(p.x, p.y - 0.46, -0.05);
       const cupY = p.y - 0.5;
-      this.placeBand(this.backLeft, SLING.anchor.x - FORK, TIP_Y, p.x - 0.06, cupY, -0.22);
-      this.placeBand(this.backRight, SLING.anchor.x + FORK, TIP_Y, p.x + 0.06, cupY, -0.22);
-      this.placeBand(this.frontLeft, SLING.anchor.x - FORK, TIP_Y, p.x - 0.1, cupY, 0.48);
-      this.placeBand(this.frontRight, SLING.anchor.x + FORK, TIP_Y, p.x + 0.1, cupY, 0.48);
-      this.backLeft.visible = true;
-      this.backRight.visible = true;
-      this.frontLeft.visible = true;
-      this.frontRight.visible = true;
+      const sag = REST_SAG * (1 - Math.min(1, tension * 2.2));
+      this.setBandsTo(p.x, cupY, sag, { back: -0.22, front: 0.48 });
       this.syncPreview(model);
       this.shadowCasters.push({
         x: p.x,
@@ -149,14 +272,23 @@ export class SlingView {
       this.loaded.visible = false;
       this.loaded.scale.set(1, 1, 1);
       this.loaded.rotation.z = 0;
-      this.pouch.visible = false;
-      this.backLeft.visible = false;
-      this.backRight.visible = false;
-      this.frontLeft.visible = false;
-      this.frontRight.visible = false;
       for (const d of this.previewDots) d.visible = false;
+      if (wob > 0) {
+        // Snap past rest toward the launch direction, springing back.
+        const cupX = SLING.anchor.x + wob * 0.9;
+        const cupY = SLING.anchor.y - 0.5 + wob * 0.42;
+        this.setBandsTo(cupX, cupY, 0, { back: -0.22, front: 0.48 });
+        this.pouch.visible = true;
+        this.pouch.position.set(cupX, cupY + 0.04, -0.05);
+      } else {
+        // Rest: bands sag between the tips, pouch hangs at the cup.
+        this.setBandsTo(SLING.anchor.x, SLING.anchor.y - 0.5, REST_SAG, { back: -0.22, front: 0.48 });
+        this.pouch.visible = true;
+        this.pouch.position.set(SLING.anchor.x, SLING.anchor.y - 0.46, -0.05);
+      }
     }
 
+    // Queue: idle bounce (staggered), first in line hops to the pouch on nextBot.
     const waiting = aiming ? queue.slice(1) : queue;
     const key = waiting.join(',');
     if (key !== this.queueKinds) {
@@ -173,6 +305,7 @@ export class SlingView {
       }
     }
     let queueX = SLING.anchor.x - FORK - 1.5;
+    this.queuePos.length = 0;
     for (let i = 0; i < this.queue.length; i++) {
       const node = this.queue[i]!;
       const qk = waiting[i];
@@ -181,14 +314,40 @@ export class SlingView {
         continue;
       }
       const rad = TUNING.bots[qk].r;
-      node.visible = true;
       queueX -= rad;
-      node.position.set(queueX, rad, DEPTH.entities);
-      this.shadowCasters.push({ x: queueX, y: 0, w: rad * 2 });
+      const isHopper = hopping && i === 0;
+      let x = queueX;
+      let y = rad + Math.sin(this.now * 2.3 + i * 1.9) * 0.05;
+      if (fx.bonusT !== null) {
+        const bt = fx.bonusT - i * BONUS_POP_EVERY;
+        if (bt > 0 && bt < 0.4) y += Math.sin((bt / 0.4) * Math.PI) * 0.55;
+        this.queuePos.push({ x, y });
+      }
+      if (isHopper) {
+        const hp = hopArc(
+          fx.hopT! / HOP_SECONDS,
+          x,
+          y,
+          SLING.anchor.x,
+          SLING.anchor.y - 0.3,
+          1.6
+        );
+        x = hp.x;
+        y = hp.y;
+        node.rotation.z = -Math.sin(Math.min(1, fx.hopT! / HOP_SECONDS) * Math.PI) * 0.5;
+        this.pouch.visible = true;
+        this.pouch.position.set(SLING.anchor.x, SLING.anchor.y - 0.46, -0.05);
+      } else {
+        node.rotation.z = 0;
+      }
+      node.visible = true;
+      node.position.set(x, y, DEPTH.entities + (isHopper ? 0.3 : 0));
+      this.shadowCasters.push({ x, y: Math.max(0, y - rad), w: rad * 2 });
       queueX -= rad + 0.28;
     }
 
     const pts = aiming ? [] : trail.current;
+    const n = Math.max(1, pts.length);
     for (let i = 0; i < this.trailDots.length; i++) {
       const d = this.trailDots[i]!;
       const pt = pts[i];
@@ -197,8 +356,22 @@ export class SlingView {
         continue;
       }
       d.visible = true;
+      const shrink = 0.95 - (i / n) * 0.55;
+      d.scale.setScalar((pt.radius / 0.12) * shrink);
       d.position.set(pt.x, pt.y, DEPTH.trail);
     }
+    if (!aiming && trail.impact) {
+      this.impactPuff.visible = true;
+      this.impactPuff.position.set(trail.impact.x, trail.impact.y, DEPTH.trail);
+      this.impactPuff.scale.setScalar(1 + Math.sin(this.now * 6) * 0.05);
+    } else {
+      this.impactPuff.visible = false;
+    }
+  }
+
+  /** World positions of the queued bots, in order — used for bonus popups. */
+  queuePositions(): readonly { x: number; y: number }[] {
+    return this.queuePos;
   }
 
   private syncPreview(model: SlingModel): void {
@@ -224,24 +397,13 @@ export class SlingView {
   }
 
   animate(time: number): void {
-    tickFace(this.loaded, time, false);
-    for (const q of this.queue) tickFace(q, time, false);
+    this.now = time;
+    tickFace(this.loaded, time);
+    for (const q of this.queue) tickFace(q, time);
   }
 
-  private makeBand(mat: THREE.Material, order: number): THREE.Mesh {
-    const band = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
-    band.renderOrder = order;
-    band.visible = false;
-    this.group.add(band);
-    return band;
-  }
-
-  private placeBand(band: THREE.Mesh, x0: number, y0: number, x1: number, y1: number, z: number): void {
-    const dx = x1 - x0;
-    const dy = y1 - y0;
-    const len = Math.hypot(dx, dy);
-    band.scale.set(0.11, Math.max(0.08, len), 1);
-    band.position.set((x0 + x1) / 2, (y0 + y1) / 2, z);
-    band.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
+  /** World position of the loaded pouch bot, if shown. */
+  loadedPos(): { x: number; y: number } | null {
+    return this.loaded.visible ? { x: this.loaded.position.x, y: this.loaded.position.y } : null;
   }
 }

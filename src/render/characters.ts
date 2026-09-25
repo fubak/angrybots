@@ -1,10 +1,15 @@
 import * as THREE from 'three';
 import type { BotKind } from '../levels/schema';
-import { ILL, botFaces, pigFaces, type FaceSet } from './illustrations';
+import { ILL, botFaces, pigFaces, pigPupilTexture, type FaceSet } from './illustrations';
 
 export type PigLook = {
   helmet: 'none' | 'hat' | 'helmet';
   king: boolean;
+};
+
+export type FaceMood = {
+  hurt?: boolean;
+  smug?: boolean;
 };
 
 function facePlane(w: number, h: number, faces: FaceSet): THREE.Mesh {
@@ -18,23 +23,28 @@ function facePlane(w: number, h: number, faces: FaceSet): THREE.Mesh {
   mesh.userData.idle = faces.idle;
   mesh.userData.blink = faces.blink;
   mesh.userData.hurt = faces.hurt;
+  mesh.userData.smug = faces.smug;
   mesh.renderOrder = 12;
   return mesh;
 }
 
-export function tickFace(root: THREE.Object3D, time: number, hurt: boolean): void {
+export function tickFace(root: THREE.Object3D, time: number, mood: FaceMood = {}): void {
   const face = root.getObjectByName('face') as THREE.Mesh | undefined;
   if (!face) return;
   const mat = face.material as THREE.MeshBasicMaterial;
   const phase = Math.sin(time * 1.3 + root.id * 0.37);
-  const blink = !hurt && phase > 0.992;
-  const next = (hurt ? face.userData.hurt : blink ? face.userData.blink : face.userData.idle) as
-    | THREE.Texture
-    | undefined;
+  const hurt = mood.hurt === true;
+  const smug = !hurt && mood.smug === true;
+  const blink = !hurt && !smug && phase > 0.992;
+  const next = (
+    hurt ? face.userData.hurt : smug ? face.userData.smug : blink ? face.userData.blink : face.userData.idle
+  ) as THREE.Texture | undefined;
   if (next && mat.map !== next) {
     mat.map = next;
     mat.needsUpdate = true;
   }
+  const pupils = root.getObjectByName('pupils') as THREE.Mesh | undefined;
+  if (pupils) pupils.visible = !hurt && !blink && !smug;
 }
 
 /** Plane is this many radii on a side. The painted disc fills 0.8 of it, so the visible diameter equals 2r. */
@@ -61,6 +71,18 @@ export function makePigCharacter(r: number, look: PigLook): THREE.Group {
   const face = facePlane(r * 2.6, r * 2.6, pigFaces(look.king, look.helmet));
   face.userData.role = 'pig-skin';
   g.add(face);
+  const pupils = new THREE.Mesh(
+    new THREE.PlaneGeometry(r * 1.4, r * 0.85),
+    new THREE.MeshBasicMaterial({
+      map: pigPupilTexture(),
+      transparent: true,
+      depthWrite: false,
+    })
+  );
+  pupils.name = 'pupils';
+  pupils.renderOrder = 13;
+  pupils.position.set(0, -r * 0.08, 0.03);
+  g.add(pupils);
   return g;
 }
 

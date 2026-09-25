@@ -50,6 +50,13 @@ export class App {
   private resultRecorded = false;
   private resultDelay = 0;
   private pendingResult: { won: boolean; score: number; stars: number } | null = null;
+  private nextBotT: number | null = null;
+  private bonusT: number | null = null;
+  private bonusFired = 0;
+  private shotDestroyed = 0;
+  private destroyedTimes: number[] = [];
+  private hitStopLeft = 0;
+  private slowMoLeft = 0;
 
   private hud: Hud;
   private pauseMenu: PauseMenu;
@@ -111,13 +118,15 @@ export class App {
 
     this.bus.on('bot:firstImpact', (e) => {
       this.audio.play('impact');
-      this.renderer.juice.burst(e.x, e.y, 'dust', 6);
+      this.renderer.juice.burst('dust', e.x, e.y);
     });
     this.bus.on('bot:launched', () => {
       this.trail.onLaunch();
       this.audio.play('launch');
       this.audio.play('yell');
       this.audio.tension(0);
+      this.shotDestroyed = 0;
+      this.destroyedTimes.length = 0;
     });
     this.bus.on('sling:aimUpdate', (e) => this.audio.tension(e.tension));
     this.bus.on('sling:cancel', () => {
@@ -233,6 +242,13 @@ export class App {
     this.trail.clear();
     this.introElapsed = 0;
     this.impactCenter = null;
+    this.nextBotT = null;
+    this.bonusT = null;
+    this.bonusFired = 0;
+    this.shotDestroyed = 0;
+    this.destroyedTimes.length = 0;
+    this.hitStopLeft = 0;
+    this.slowMoLeft = 0;
     this.renderer.clearLevel();
     this.session.loadLevel(def, effectiveReducedMotion(this.save.settings.reducedMotion));
     this.renderer.setChapter(def.chapter);
@@ -312,7 +328,7 @@ export class App {
       const bonus = this.session.getBonus();
       if (bonus > 0) {
         const at = this.impactCenter ?? { x: 0, y: 2 };
-        this.renderer.juice.popup(at.x, at.y + 1.2, `+${bonus.toLocaleString()}`, PALETTE.score.bonus);
+        this.renderer.juice.textSprite(at.x, at.y + 1.2, `+${bonus.toLocaleString()}`, PALETTE.score.bonus, 1.3);
       }
     }
   }
@@ -335,11 +351,11 @@ export class App {
   private bindSimAudio(): void {
     const sim = this.session.getSim();
     if (!sim) return;
+    const reducedMotion = () => effectiveReducedMotion(this.save.settings.reducedMotion);
     sim.bus.on('block:destroyed', (e) => {
       this.noteStrike(e.x, e.y);
       this.audio.play(`break:${e.material}`);
-      this.renderer.juice.burst(e.x, e.y, e.material, e.material === 'tnt' ? 16 : 12, e.angle);
-      if (e.material === 'tnt') this.audio.play('explosion');
+      this.renderer.juice.burst(e.material, e.x, e.y, e.material === 'tnt' ? 1.4 : 1);
       if (e.points > 0) {
         const color =
           e.material === 'stone'
@@ -349,31 +365,57 @@ export class App {
               : e.material === 'tnt'
                 ? PALETTE.score.bonus
                 : PALETTE.score.wood;
-        this.renderer.juice.popup(e.x, e.y, `+${e.points}`, color);
+        this.renderer.juice.textSprite(e.x, e.y, `+${e.points}`, color);
+      }
+      const state = this.session.getState();
+      if (state === 'flight' || state === 'resolve') {
+        this.shotDestroyed += 1;
+        if (this.shotDestroyed >= 3) {
+          this.renderer.juice.textSprite(
+            this.currentView.cx,
+            this.currentView.cy + this.currentView.h * 0.3,
+            `COMBO x${this.shotDestroyed}`,
+            PALETTE.score.bonus,
+            1.35
+          );
+        }
+        const now = performance.now() / 1000;
+        this.destroyedTimes.push(now);
+        this.destroyedTimes = this.destroyedTimes.filter((t) => now - t <= 0.5);
+        if (this.destroyedTimes.length >= 4 && !reducedMotion()) this.slowMoLeft = 0.8;
       }
     });
     sim.bus.on('pig:destroyed', (e) => {
       this.noteStrike(e.x, e.y);
       this.audio.play('pig');
-      this.renderer.juice.pop(e.x, e.y);
+      this.renderer.juice.burst('pig', e.x, e.y);
       if (e.points > 0) {
-        this.renderer.juice.popup(e.x, e.y + 0.35, `+${e.points.toLocaleString()}`, PALETTE.score.pig);
+        this.renderer.juice.textSprite(e.x, e.y + 0.35, `+${e.points.toLocaleString()}`, PALETTE.score.pig, 1.45);
       }
     });
     sim.bus.on('pig:damaged', (e) => {
       this.noteStrike(e.x, e.y);
+      if (e.hpRatio > 0) this.renderer.juice.impactStars(e.x, e.y + 0.4);
     });
     sim.bus.on('block:damaged', (e) => {
       this.noteStrike(e.x, e.y);
-      this.audio.play('impact');
+      this.audio.play(`impact:${e.material}`);
+    });
+    sim.bus.on('block:landed', (e) => {
+      this.renderer.juice.burst('dust', e.x, e.y);
     });
     sim.bus.on('explosion', (e) => {
       this.noteStrike(e.x, e.y);
+      this.audio.play('explosion');
+      this.renderer.juice.explosion(e.x, e.y, e.radius);
+      this.camera.addTrauma(0.9);
+      if (!reducedMotion()) this.hitStopLeft = 0.06;
     });
     sim.bus.on('bot:ability', () => this.audio.play('ability'));
     sim.bus.on('bot:firstImpact', (e) => {
       this.audio.play('impact');
-      this.renderer.juice.flash(e.x, e.y, 'dust');
+      this.renderer.juice.flash(e.x, e.y, '#fff2d8');
+      this.trail.noteImpact(sim.getSimTime(), e.x, e.y);
     });
   }
 
@@ -385,6 +427,18 @@ export class App {
     if (prev === 'intro') this.introElapsed += dt;
     this.session.update(dt);
     const state = this.session.getState();
+
+    if (state === 'nextBot') {
+      this.nextBotT = (prev === 'nextBot' ? (this.nextBotT ?? 0) : 0) + dt;
+    } else {
+      this.nextBotT = null;
+    }
+    if (state === 'bonus') {
+      this.bonusT = (prev === 'bonus' ? (this.bonusT ?? 0) : 0) + dt;
+    } else {
+      this.bonusT = null;
+      this.bonusFired = 0;
+    }
 
     this.recordResultOnce();
     if (this.pendingResult) {
@@ -402,8 +456,6 @@ export class App {
     if (bot?.body && state === 'flight') {
       const p = bot.body.getPosition();
       this.trail.sample(p.x, p.y, sim!.getSimTime(), dt);
-    } else if (state !== 'resolve') {
-      this.trail.clear();
     }
 
     this.sling.syncLoadedBot();
@@ -442,18 +494,40 @@ export class App {
 
   private draw(_alpha: number, frameDt: number): void {
     this.syncSimulationPause();
+    // Hit-stop and collapse slow-motion scale the sim clock; render keeps running.
+    const rm = effectiveReducedMotion(this.save.settings.reducedMotion);
+    this.hitStopLeft = Math.max(0, this.hitStopLeft - frameDt);
+    this.slowMoLeft = Math.max(0, this.slowMoLeft - frameDt);
+    this.loop.timeScale = rm ? 1 : this.hitStopLeft > 0 ? 0 : this.slowMoLeft > 0 ? 0.6 : 1;
     const shake = this.camera.getShake();
     this.sling.setProjector((cx, cy) =>
       clientToWorld(cx, cy, this.canvas, this.currentView)
     );
     this.renderer.syncLevel(this.session.getSim(), frameDt);
-    const aiming = this.phase === 'play' && this.session.getState() === 'aim';
+    const state = this.session.getState();
+    const aiming = this.phase === 'play' && state === 'aim';
     this.renderer.syncSling(
       this.sling.model,
       this.session.getBotQueue(),
       aiming,
-      this.trail
+      this.trail,
+      {
+        hopT: state === 'nextBot' ? this.nextBotT : null,
+        bonusT: state === 'bonus' ? this.bonusT : null,
+      }
     );
+    if (state === 'bonus' && this.bonusT !== null) {
+      const positions = this.renderer.queuePositions();
+      while (
+        this.bonusFired < positions.length &&
+        this.bonusT >= this.bonusFired * 0.5 + 0.15
+      ) {
+        const p = positions[this.bonusFired]!;
+        this.renderer.juice.textSprite(p.x, p.y + 0.9, '+10,000', PALETTE.score.bonus, 1.15);
+        this.audio.play('ui');
+        this.bonusFired += 1;
+      }
+    }
     this.renderer.applyView(this.currentView, shake.x, shake.y);
     this.renderer.render(_alpha, frameDt);
   }

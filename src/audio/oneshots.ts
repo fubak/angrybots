@@ -155,10 +155,10 @@ export function renderOneShot(id: OneShotId, sampleRate = 22050, variant = 0): F
 
 export function oneShotIdForEvent(id: string): OneShotId | null {
   if (id === 'launch') return 'launch';
-  if (id === 'impact' || id === 'break:wood') return 'wood';
-  if (id === 'break:glass') return 'glass';
-  if (id === 'break:stone') return 'stone';
-  if (id === 'break:tnt' || id === 'explosion') return 'tnt';
+  if (id === 'impact' || id === 'impact:wood' || id === 'break:wood') return 'wood';
+  if (id === 'impact:glass' || id === 'break:glass') return 'glass';
+  if (id === 'impact:stone' || id === 'break:stone') return 'stone';
+  if (id === 'impact:tnt' || id === 'break:tnt' || id === 'explosion') return 'tnt';
   if (id === 'pig') return 'pig';
   if (id === 'victory') return 'victory';
   if (id === 'defeat') return 'defeat';

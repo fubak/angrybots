@@ -70,7 +70,20 @@ export class Level {
         });
       },
       onDestroy: (e) => this.destroyEntity(e, 'impact'),
-      onImpact: () => {},
+      onImpact: (ev) => {
+        const blockVsStatic = (a: string, b: string) =>
+          a === 'block' && (b === 'ground' || b === 'terrain');
+        if (
+          ev.approachSpeed > 3 &&
+          (blockVsStatic(ev.aKind, ev.bKind) || blockVsStatic(ev.bKind, ev.aKind))
+        ) {
+          this.bus.emit('block:landed', {
+            x: ev.point.x,
+            y: ev.point.y,
+            approach: ev.approachSpeed,
+          });
+        }
+      },
       onBotFirstImpact: (bot) => {
         if (bot.firstImpactAt === null) bot.firstImpactAt = this.simTime;
         this.bus.emit('bot:firstImpact', {

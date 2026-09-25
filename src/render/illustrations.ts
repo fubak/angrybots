@@ -4,6 +4,7 @@ export type FaceSet = {
   idle: THREE.Texture;
   blink: THREE.Texture;
   hurt: THREE.Texture;
+  smug: THREE.Texture;
 };
 
 function hash(i: number): number {
@@ -47,7 +48,7 @@ function circle(
   ctx.arc(x, y, r, 0, Math.PI * 2);
 }
 
-type Expression = 'idle' | 'blink' | 'hurt';
+type Expression = 'idle' | 'blink' | 'hurt' | 'smug';
 
 function paintFace(
   ctx: CanvasRenderingContext2D,
@@ -64,6 +65,44 @@ function outlineStroke(ctx: CanvasRenderingContext2D, width: number): void {
   ctx.strokeStyle = '#23180f';
   ctx.lineJoin = 'round';
   ctx.stroke();
+}
+
+/** Baked lighting: fill, top-left highlight + bottom shade clipped to the shape, dark outline. */
+function shadeAndOutline(
+  ctx: CanvasRenderingContext2D,
+  s: number,
+  cx: number,
+  cy: number,
+  r: number,
+  trace: () => void,
+  fill: string
+): void {
+  trace();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.save();
+  trace();
+  ctx.clip();
+  const hl = ctx.createRadialGradient(
+    cx - r * 0.42,
+    cy - r * 0.5,
+    r * 0.08,
+    cx - r * 0.42,
+    cy - r * 0.5,
+    r * 1.25
+  );
+  hl.addColorStop(0, 'rgba(255,255,255,0.4)');
+  hl.addColorStop(0.55, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hl;
+  ctx.fillRect(0, 0, s, s);
+  const sh = ctx.createLinearGradient(0, cy + r * 0.1, 0, cy + r * 1.05);
+  sh.addColorStop(0, 'rgba(0,0,0,0)');
+  sh.addColorStop(1, 'rgba(0,0,0,0.3)');
+  ctx.fillStyle = sh;
+  ctx.fillRect(0, 0, s, s);
+  ctx.restore();
+  trace();
+  outlineStroke(ctx, Math.max(6, r * 0.075));
 }
 
 type BotPose = 'look' | 'dash' | 'dots' | 'wide' | 'alert';
@@ -94,29 +133,62 @@ function paintGrokBot(
   s: number,
   expression: Expression,
   pose: BotPose,
-  body: BotBody = 'disc'
+  body: BotBody = 'disc',
+  fill = '#15161a'
 ): void {
   const cx = s * 0.5;
   const cy = s * 0.5;
   const r = s * 0.4;
-  ctx.fillStyle = '#111111';
+  const blink = expression === 'blink';
+  const hurt = expression === 'hurt';
   if (body === 'bang') {
-    ctx.beginPath();
-    ctx.roundRect(cx - r * 0.28, cy - r * 0.95, r * 0.56, r * 1.35, r * 0.28);
-    ctx.fill();
-    if (expression !== 'blink') {
-      circle(ctx, cx, cy + r * 0.72, r * 0.2);
+    shadeAndOutline(
+      ctx,
+      s,
+      cx,
+      cy,
+      r,
+      () => {
+        ctx.beginPath();
+        ctx.roundRect(cx - r * 0.28, cy - r * 0.95, r * 0.56, r * 1.35, r * 0.28);
+        if (!blink) {
+          ctx.moveTo(cx + r * 0.2, cy + r * 0.72);
+          ctx.arc(cx, cy + r * 0.72, r * 0.2, 0, Math.PI * 2);
+        }
+      },
+      fill
+    );
+    if (hurt) {
+      circle(ctx, cx - r * 0.06, cy - r * 0.42, r * 0.12);
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
+      circle(ctx, cx + r * 0.14, cy - r * 0.5, r * 0.11);
+      ctx.fill();
+      return;
+    }
+    if (!blink) {
+      grokEye(ctx, cx - r * 0.03, cy - r * 0.42, r * 0.16, r * 0.34, -0.15);
+      grokEye(ctx, cx + r * 0.13, cy - r * 0.52, r * 0.13, r * 0.28, 0.3);
     }
     return;
   }
   if (body === 'blob') {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - r * 0.95);
-    ctx.quadraticCurveTo(cx + r * 1.05, cy - r * 0.2, cx + r * 0.72, cy + r * 0.78);
-    ctx.quadraticCurveTo(cx, cy + r * 1.05, cx - r * 0.72, cy + r * 0.78);
-    ctx.quadraticCurveTo(cx - r * 1.05, cy - r * 0.15, cx, cy - r * 0.95);
-    ctx.fill();
+    shadeAndOutline(
+      ctx,
+      s,
+      cx,
+      cy,
+      r,
+      () => {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - r * 0.95);
+        ctx.quadraticCurveTo(cx + r * 1.05, cy - r * 0.2, cx + r * 0.72, cy + r * 0.78);
+        ctx.quadraticCurveTo(cx, cy + r * 1.05, cx - r * 0.72, cy + r * 0.78);
+        ctx.quadraticCurveTo(cx - r * 1.05, cy - r * 0.15, cx, cy - r * 0.95);
+        ctx.closePath();
+      },
+      fill
+    );
     ctx.strokeStyle = '#3ddc97';
     ctx.lineWidth = r * 0.08;
     ctx.lineCap = 'round';
@@ -125,11 +197,16 @@ function paintGrokBot(
     ctx.quadraticCurveTo(cx - r * 0.05, cy - r * 0.15, cx + r * 0.08, cy - r * 0.45);
     ctx.stroke();
   } else {
-    circle(ctx, cx, cy, r);
-    ctx.fill();
+    shadeAndOutline(
+      ctx,
+      s,
+      cx,
+      cy,
+      r,
+      () => circle(ctx, cx, cy, r),
+      fill
+    );
   }
-  const blink = expression === 'blink';
-  const hurt = expression === 'hurt';
   if (pose === 'dots' || hurt) {
     const rad = hurt ? r * 0.16 : r * 0.22;
     circle(ctx, cx - r * 0.16, cy - r * 0.16, rad);
@@ -171,7 +248,8 @@ function paintGrokBot(
   grokEye(ctx, cx + r * 0.28, cy - r * 0.24, r * 0.18, r * 0.42, 0.38);
 }
 
-function faceDots(
+/** Eye whites only — pupils live on a separate tracking plane. */
+function eyeSockets(
   ctx: CanvasRenderingContext2D,
   cx: number,
   cy: number,
@@ -181,14 +259,30 @@ function faceDots(
 ): void {
   ctx.fillStyle = fill;
   if (blink) {
-    ctx.fillRect(cx - r * 0.42, cy - r * 0.05, r * 0.28, r * 0.08);
-    ctx.fillRect(cx + r * 0.12, cy - r * 0.05, r * 0.28, r * 0.08);
+    ctx.fillRect(cx - r * 0.46, cy - r * 0.14, r * 0.34, r * 0.09);
+    ctx.fillRect(cx + r * 0.12, cy - r * 0.14, r * 0.34, r * 0.09);
     return;
   }
-  circle(ctx, cx - r * 0.28, cy - r * 0.08, r * 0.16);
-  ctx.fill();
-  circle(ctx, cx + r * 0.28, cy - r * 0.08, r * 0.16);
-  ctx.fill();
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(cx + sx * r * 0.3, cy - r * 0.08, r * 0.21, r * 0.24, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function smugGrin(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
+  ctx.strokeStyle = '#23180f';
+  ctx.lineWidth = r * 0.07;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.arc(cx + r * 0.05, cy + r * 0.18, r * 0.42, Math.PI * 0.15, Math.PI * 0.85);
+  ctx.stroke();
+  for (const sx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(cx + sx * r * 0.48, cy - r * 0.22);
+    ctx.lineTo(cx + sx * r * 0.12, cy - r * 0.3);
+    ctx.stroke();
+  }
 }
 
 /** Yard targets: readable chat and robot forms. Not another company's logo. */
@@ -198,11 +292,15 @@ function paintPig(ctx: CanvasRenderingContext2D, s: number, expression: Expressi
   const r = s * 0.34;
   const hurt = expression === 'hurt';
   const blink = expression === 'blink';
+  const smug = expression === 'smug';
   if (king) {
-    circle(ctx, cx, cy, r);
-    ctx.fillStyle = hurt ? '#3a3a3a' : '#161616';
-    ctx.fill();
-    faceDots(ctx, cx, cy + r * 0.05, r, blink, '#f4efe4');
+    shadeAndOutline(
+      ctx, s, cx, cy, r,
+      () => circle(ctx, cx, cy, r),
+      hurt ? '#3a3a3a' : '#161616'
+    );
+    if (smug) smugGrin(ctx, cx, cy, r);
+    else eyeSockets(ctx, cx, cy + r * 0.05, r, blink, '#f4efe4');
     ctx.strokeStyle = '#e7c27a';
     ctx.lineWidth = r * 0.08;
     ctx.beginPath();
@@ -213,9 +311,11 @@ function paintPig(ctx: CanvasRenderingContext2D, s: number, expression: Expressi
     ctx.fillStyle = '#e7c27a';
     ctx.fill();
   } else if (helmet === 'helmet') {
-    circle(ctx, cx, cy, r);
-    ctx.fillStyle = hurt ? '#4a5c86' : '#243352';
-    ctx.fill();
+    shadeAndOutline(
+      ctx, s, cx, cy, r,
+      () => circle(ctx, cx, cy, r),
+      hurt ? '#4a5c86' : '#243352'
+    );
     ctx.fillStyle = blink ? '#9bb0dd' : '#d7e4ff';
     ctx.beginPath();
     ctx.roundRect(cx - r * 0.55, cy - r * 0.22, r * 1.1, blink ? r * 0.12 : r * 0.38, r * 0.12);
@@ -226,27 +326,37 @@ function paintPig(ctx: CanvasRenderingContext2D, s: number, expression: Expressi
     ctx.moveTo(cx, cy - r);
     ctx.lineTo(cx, cy - r * 1.28);
     ctx.stroke();
+    if (smug) smugGrin(ctx, cx, cy + r * 0.25, r * 0.6);
   } else if (helmet === 'hat') {
-    ctx.fillStyle = hurt ? '#b9b3aa' : '#e7e2da';
-    ctx.beginPath();
-    ctx.roundRect(cx - r * 0.85, cy - r * 0.7, r * 1.7, r * 1.45, r * 0.2);
-    ctx.fill();
-    faceDots(ctx, cx, cy + r * 0.05, r * 0.85, blink, '#243352');
+    shadeAndOutline(
+      ctx, s, cx, cy, r,
+      () => {
+        ctx.beginPath();
+        ctx.roundRect(cx - r * 0.85, cy - r * 0.7, r * 1.7, r * 1.45, r * 0.2);
+      },
+      hurt ? '#b9b3aa' : '#e7e2da'
+    );
+    if (smug) smugGrin(ctx, cx, cy, r * 0.9);
+    else eyeSockets(ctx, cx, cy + r * 0.05, r * 0.85, blink, '#e8f0ff');
     ctx.fillStyle = '#243352';
     for (let i = 0; i < 3; i++) {
       ctx.fillRect(cx - r * 0.42 + i * r * 0.34, cy - r * 0.95, r * 0.12, r * 0.28);
     }
   } else {
-    ctx.fillStyle = hurt ? '#e7cbb8' : '#fffdf8';
-    ctx.beginPath();
-    ctx.roundRect(cx - r * 1.05, cy - r * 0.85, r * 2.1, r * 1.55, r * 0.42);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(cx - r * 0.15, cy + r * 0.55);
-    ctx.lineTo(cx - r * 0.55, cy + r * 1.05);
-    ctx.lineTo(cx + r * 0.15, cy + r * 0.62);
-    ctx.fill();
-    faceDots(ctx, cx, cy - r * 0.05, r, blink, '#161616');
+    shadeAndOutline(
+      ctx, s, cx, cy, r,
+      () => {
+        ctx.beginPath();
+        ctx.roundRect(cx - r * 1.05, cy - r * 0.85, r * 2.1, r * 1.55, r * 0.42);
+        ctx.moveTo(cx - r * 0.15, cy + r * 0.55);
+        ctx.lineTo(cx - r * 0.55, cy + r * 1.05);
+        ctx.lineTo(cx + r * 0.15, cy + r * 0.62);
+        ctx.closePath();
+      },
+      hurt ? '#e7cbb8' : '#fffdf8'
+    );
+    if (smug) smugGrin(ctx, cx, cy, r);
+    else eyeSockets(ctx, cx, cy - r * 0.05, r, blink, '#ffffff');
   }
   if (hurt) {
     ctx.strokeStyle = '#e23b2b';
@@ -259,19 +369,29 @@ function paintPig(ctx: CanvasRenderingContext2D, s: number, expression: Expressi
 }
 
 function paintDash(ctx: CanvasRenderingContext2D, s: number, expression: Expression): void {
-  paintGrokBot(ctx, s, expression, 'dash');
+  paintGrokBot(ctx, s, expression, 'dash', 'disc', '#f2a51f');
 }
 
 function paintSplit(ctx: CanvasRenderingContext2D, s: number, expression: Expression): void {
-  paintGrokBot(ctx, s, expression, 'dots');
+  paintGrokBot(ctx, s, expression, 'dots', 'disc', '#37b6ff');
 }
 
 function paintHeavy(ctx: CanvasRenderingContext2D, s: number, expression: Expression): void {
-  paintGrokBot(ctx, s, expression, 'wide', 'blob');
+  paintGrokBot(ctx, s, expression, 'wide', 'blob', '#6b5b95');
 }
 
 function paintBlast(ctx: CanvasRenderingContext2D, s: number, expression: Expression): void {
-  paintGrokBot(ctx, s, expression, 'alert', 'bang');
+  // Round disc — physics stays a circle (recorded solutions depend on it) — with a white "!" mark.
+  paintGrokBot(ctx, s, expression, 'alert', 'disc', '#e2452b');
+  const cx = s * 0.5;
+  const cy = s * 0.5;
+  const r = s * 0.4;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.roundRect(cx - r * 0.1, cy + r * 0.1, r * 0.2, r * 0.44, r * 0.1);
+  ctx.fill();
+  circle(ctx, cx, cy + r * 0.72, r * 0.11);
+  ctx.fill();
 }
 
 const faceCache = new Map<string, FaceSet>();
@@ -284,6 +404,7 @@ export function faceSet(key: string, draw: (ctx: CanvasRenderingContext2D, s: nu
     idle: paintTex(s, s, (ctx) => paintFace(ctx, s, 'idle', draw)),
     blink: paintTex(s, s, (ctx) => paintFace(ctx, s, 'blink', draw)),
     hurt: paintTex(s, s, (ctx) => paintFace(ctx, s, 'hurt', draw)),
+    smug: paintTex(s, s, (ctx) => paintFace(ctx, s, 'smug', draw)),
   };
   faceCache.set(key, set);
   return set;
@@ -365,6 +486,27 @@ function paintRidge(
 export function pigFaces(king: boolean, helmet: 'none' | 'hat' | 'helmet'): FaceSet {
   const key = `pig:${king ? 'king' : helmet}`;
   return faceSet(key, (ctx, s, expression) => paintPig(ctx, s, expression, king, helmet));
+}
+
+let pupilTex: THREE.Texture | null = null;
+
+/** Two tracking pupils; positioned over the painted eye sockets. */
+export function pigPupilTexture(): THREE.Texture {
+  if (pupilTex) return pupilTex;
+  pupilTex = paintTex(128, 80, (ctx, w, h) => {
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#1b1410';
+    circle(ctx, w * 0.28, h * 0.52, h * 0.3);
+    ctx.fill();
+    circle(ctx, w * 0.72, h * 0.52, h * 0.3);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    circle(ctx, w * 0.24, h * 0.4, h * 0.1);
+    ctx.fill();
+    circle(ctx, w * 0.68, h * 0.4, h * 0.1);
+    ctx.fill();
+  });
+  return pupilTex;
 }
 
 export const ILL = {

@@ -23,3 +23,8 @@ export function starsForScore(
 export function damagePoints(dealt: number): number {
   return SCORE.damagePerHp * Math.round(dealt);
 }
+
+/** Bonus for destroying >= 3 pieces in one shot: (N - 2) * 250. */
+export function comboBonus(destroyed: number): number {
+  return destroyed >= 3 ? (destroyed - 2) * 250 : 0;
+}

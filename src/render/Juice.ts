@@ -1,308 +1,502 @@
 import * as THREE from 'three';
-import { DEPTH, PALETTE } from '../config/render';
+import type { Material } from '../entities/types';
+import { DEPTH } from '../config/render';
 
-type Bit = {
-  mesh: THREE.Mesh;
+type PKind = 'wood' | 'glass' | 'stone' | 'feather' | 'smoke' | 'spark' | 'glow' | 'ring';
+
+type Particle = {
+  x: number;
+  y: number;
   vx: number;
   vy: number;
-  spin: number;
+  rot: number;
+  vr: number;
+  t: number;
   life: number;
-  max: number;
-  pool: string;
+  base: number;
+  grow: number;
+  tint: THREE.Color;
+  orbit?: { cx: number; cy: number; radius: number; speed: number };
 };
 
-type Flash = {
-  sprite: THREE.Sprite;
-  baseScale: number;
-  life: number;
-  max: number;
+const POOL_DEF: Record<PKind, { cap: number; gravity: number; additive: boolean }> = {
+  wood: { cap: 48, gravity: 9, additive: false },
+  glass: { cap: 32, gravity: 8, additive: false },
+  stone: { cap: 32, gravity: 10, additive: false },
+  feather: { cap: 24, gravity: 1.6, additive: false },
+  smoke: { cap: 48, gravity: -0.6, additive: false },
+  spark: { cap: 40, gravity: 4, additive: true },
+  glow: { cap: 10, gravity: 0, additive: true },
+  ring: { cap: 8, gravity: 0, additive: true },
 };
 
-let flashTex: THREE.Texture | null = null;
+const GLYPHS = '0123456789+,kxCOMB';
 
-function flashTexture(): THREE.Texture {
-  if (flashTex) return flashTex;
+export type PopupScore = {
+  group: THREE.Group;
+  material: THREE.MeshBasicMaterial;
+  t: number;
+  life: number;
+  rise: number;
+};
+
+let texCache: { flash?: THREE.Texture; ring?: THREE.Texture; star?: THREE.Texture; puff?: THREE.Texture } = {};
+
+function radialTex(size: number, stops: [number, string][]): THREE.Texture {
   if (typeof document === 'undefined') {
-    const tex = new THREE.DataTexture(new Uint8Array([255, 255, 255, 200]), 1, 1);
+    const tex = new THREE.DataTexture(new Uint8Array([255, 255, 255, 120]), 1, 1);
     tex.needsUpdate = true;
-    flashTex = tex;
     return tex;
   }
   const c = document.createElement('canvas');
-  c.width = c.height = 128;
+  c.width = c.height = size;
   const ctx = c.getContext('2d');
   if (!ctx) throw new Error('2d context');
-  const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
-  g.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-  g.addColorStop(0.55, 'rgba(255, 255, 255, 0.45)');
-  g.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  const g = ctx.createRadialGradient(size / 2, size / 2, 1, size / 2, size / 2, size / 2 - 1);
+  for (const [o, col] of stops) g.addColorStop(o, col);
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 128, 128);
+  ctx.fillRect(0, 0, size, size);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  flashTex = tex;
   return tex;
 }
 
-type Floater = {
-  sprite: THREE.Sprite;
-  vy: number;
-  life: number;
-  max: number;
-};
+function flashTexture(): THREE.Texture {
+  return (texCache.flash ??= radialTex(128, [
+    [0, 'rgba(255,255,255,1)'],
+    [0.45, 'rgba(255,255,255,0.55)'],
+    [1, 'rgba(255,255,255,0)'],
+  ]));
+}
 
-const POOL_KIND = ['wood', 'glass', 'stone', 'smoke', 'feather', 'spark'] as const;
-type PoolKind = (typeof POOL_KIND)[number];
+function puffTexture(): THREE.Texture {
+  return (texCache.puff ??= radialTex(64, [
+    [0, 'rgba(255,255,255,0.9)'],
+    [0.55, 'rgba(255,255,255,0.5)'],
+    [1, 'rgba(255,255,255,0)'],
+  ]));
+}
 
-function bitMesh(kind: PoolKind): THREE.Mesh {
-  if (kind === 'wood') {
-    return new THREE.Mesh(
-      new THREE.BoxGeometry(0.48, 0.09, 0.07),
-      new THREE.MeshBasicMaterial({ color: PALETTE.wood.base })
-    );
+function ringTexture(): THREE.Texture {
+  if (texCache.ring) return texCache.ring;
+  if (typeof document === 'undefined') {
+    const tex = new THREE.DataTexture(new Uint8Array([255, 255, 255, 200]), 1, 1);
+    tex.needsUpdate = true;
+    return (texCache.ring = tex);
   }
-  if (kind === 'glass') {
-    return new THREE.Mesh(
-      new THREE.PlaneGeometry(0.36, 0.1),
-      new THREE.MeshBasicMaterial({
-        color: '#d7f6ff',
+  const s = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = s;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('2d context');
+  const g = ctx.createRadialGradient(s / 2, s / 2, s * 0.28, s / 2, s / 2, s / 2 - 1);
+  g.addColorStop(0, 'rgba(255,255,255,0)');
+  g.addColorStop(0.62, 'rgba(255,255,255,0)');
+  g.addColorStop(0.8, 'rgba(255,255,255,0.9)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, s, s);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return (texCache.ring = tex);
+}
+
+function starTexture(): THREE.Texture {
+  if (texCache.star) return texCache.star;
+  if (typeof document === 'undefined') {
+    const tex = new THREE.DataTexture(new Uint8Array([255, 255, 255, 200]), 1, 1);
+    tex.needsUpdate = true;
+    return (texCache.star = tex);
+  }
+  const s = 64;
+  const c = document.createElement('canvas');
+  c.width = c.height = s;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('2d context');
+  ctx.translate(s / 2, s / 2);
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, -s * 0.44);
+    ctx.quadraticCurveTo(s * 0.07, -s * 0.07, s * 0.13, 0);
+    ctx.quadraticCurveTo(s * 0.07, s * 0.07, 0, s * 0.13);
+    ctx.quadraticCurveTo(-s * 0.07, s * 0.07, -s * 0.13, 0);
+    ctx.quadraticCurveTo(-s * 0.07, -s * 0.07, 0, -s * 0.44);
+    ctx.fill();
+    ctx.rotate(Math.PI / 2);
+  }
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return (texCache.star = tex);
+}
+
+function poolGeometry(kind: PKind): THREE.BufferGeometry {
+  switch (kind) {
+    case 'wood':
+      return new THREE.BoxGeometry(0.5, 0.09, 0.08);
+    case 'glass':
+      return new THREE.PlaneGeometry(0.36, 0.1);
+    case 'stone':
+      return new THREE.BoxGeometry(0.2, 0.2, 0.16);
+    case 'feather':
+      return new THREE.PlaneGeometry(0.16, 0.1);
+    case 'smoke':
+      return new THREE.PlaneGeometry(0.55, 0.55);
+    case 'spark':
+      return new THREE.PlaneGeometry(0.24, 0.24);
+    case 'glow':
+      return new THREE.PlaneGeometry(1, 1);
+    case 'ring':
+      return new THREE.PlaneGeometry(1, 1);
+  }
+}
+
+function poolMaterial(kind: PKind): THREE.MeshBasicMaterial {
+  switch (kind) {
+    case 'smoke':
+      return new THREE.MeshBasicMaterial({
+        map: puffTexture(),
         transparent: true,
-        opacity: 0.85,
-        side: THREE.DoubleSide,
+        opacity: 0.75,
         depthWrite: false,
-      })
-    );
-  }
-  if (kind === 'stone') {
-    return new THREE.Mesh(
-      new THREE.BoxGeometry(0.18, 0.14, 0.12),
-      new THREE.MeshBasicMaterial({ color: PALETTE.stone.base })
-    );
-  }
-  if (kind === 'feather') {
-    return new THREE.Mesh(
-      new THREE.PlaneGeometry(0.28, 0.1),
-      new THREE.MeshBasicMaterial({
-        color: '#f6f1e6',
+      });
+    case 'spark':
+      return new THREE.MeshBasicMaterial({
+        map: starTexture(),
+        blending: THREE.AdditiveBlending,
         transparent: true,
-        side: THREE.DoubleSide,
         depthWrite: false,
-      })
-    );
+      });
+    case 'glow':
+      return new THREE.MeshBasicMaterial({
+        map: flashTexture(),
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        depthWrite: false,
+      });
+    case 'ring':
+      return new THREE.MeshBasicMaterial({
+        map: ringTexture(),
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+    case 'glass':
+    case 'feather':
+      return new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.92, side: THREE.DoubleSide });
+    default:
+      return new THREE.MeshBasicMaterial();
   }
-  if (kind === 'spark') {
-    return new THREE.Mesh(
-      new THREE.SphereGeometry(0.08, 8, 6),
-      new THREE.MeshBasicMaterial({ color: '#ffb15a' })
-    );
-  }
-  return new THREE.Mesh(
-    new THREE.SphereGeometry(0.22, 10, 8),
-    new THREE.MeshBasicMaterial({
-      color: '#c8c2b8',
-      transparent: true,
-      opacity: 0.7,
-      depthWrite: false,
-    })
-  );
 }
 
 export class Juice {
+  private readonly pools = new Map<PKind, { mesh: THREE.InstancedMesh; items: Particle[] }>();
+  private readonly popups: PopupScore[] = [];
+  private readonly dummy = new THREE.Object3D();
+  private readonly atlasCache = new Map<string, { tex: THREE.Texture; uv: Map<string, [number, number, number, number]> }>();
+  private fontRequested = false;
   private readonly scene: THREE.Scene;
-  private readonly pools = new Map<PoolKind, Bit[]>();
-  private readonly live: Bit[] = [];
-  private readonly flashPool: Flash[] = [];
-  private readonly flashes: Flash[] = [];
-  private readonly floaters: Floater[] = [];
-  private readonly popRing: THREE.Mesh;
-  private popLife = 0;
-  private readonly popMax = 0.55;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    for (const kind of POOL_KIND) {
-      const list: Bit[] = [];
-      const count = kind === 'wood' || kind === 'smoke' ? 48 : 32;
-      for (let i = 0; i < count; i++) {
-        const mesh = bitMesh(kind);
-        mesh.visible = false;
-        mesh.renderOrder = 20;
-        scene.add(mesh);
-        list.push({ mesh, vx: 0, vy: 0, spin: 0, life: 0, max: 0.4, pool: kind });
-      }
-      this.pools.set(kind, list);
+    for (const kind of Object.keys(POOL_DEF) as PKind[]) {
+      const def = POOL_DEF[kind];
+      const mesh = new THREE.InstancedMesh(poolGeometry(kind), poolMaterial(kind), def.cap);
+      mesh.count = 0;
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      mesh.frustumCulled = false;
+      mesh.renderOrder = kind === 'ring' || kind === 'glow' ? 17 : 16;
+      scene.add(mesh);
+      this.pools.set(kind, { mesh, items: [] });
     }
-    for (let i = 0; i < 8; i++) {
-      const sprite = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: flashTexture(),
-          blending: THREE.AdditiveBlending,
-          transparent: true,
-          depthWrite: false,
-        })
-      );
-      sprite.visible = false;
-      sprite.renderOrder = 25;
-      scene.add(sprite);
-      this.flashPool.push({ sprite, baseScale: 2, life: 0, max: 0.35 });
-    }
-    this.popRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.55, 0.08, 8, 24),
-      new THREE.MeshBasicMaterial({
-        color: '#f4ffe8',
-        transparent: true,
-        opacity: 0.95,
-        depthWrite: false,
-      })
-    );
-    this.popRing.visible = false;
-    this.popRing.renderOrder = 30;
-    scene.add(this.popRing);
   }
 
-  pop(x: number, y: number): void {
-    this.burst(x, y, 'pig', 14, 0);
-    this.burst(x, y, 'dust', 6, 0);
-    this.popRing.position.set(x, y, DEPTH.particles + 0.4);
-    this.popRing.scale.setScalar(0.35);
-    this.popRing.visible = true;
-    (this.popRing.material as THREE.MeshBasicMaterial).opacity = 0.95;
-    this.popLife = this.popMax;
+  private requestFont(): void {
+    if (this.fontRequested) return;
+    this.fontRequested = true;
+    if (typeof document !== 'undefined' && document.fonts) {
+      void document.fonts.load('800 64px "Baloo 2"').then(() => this.atlasCache.clear());
+    }
   }
 
-  popup(x: number, y: number, text: string, _color: string): void {
-    if (this.floaters.length > 14) return;
-    if (typeof document === 'undefined') return;
+  private spawn(kind: PKind, p: Omit<Particle, 't'>): void {
+    const pool = this.pools.get(kind);
+    if (!pool) return;
+    if (pool.items.length >= POOL_DEF[kind].cap) pool.items.shift();
+    pool.items.push({ ...p, t: 0 });
+  }
+
+  burst(kind: Material | 'pig' | 'tnt' | 'dust', x: number, y: number, power = 1): void {
+    const p = Math.max(0.4, power);
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+    if (kind === 'pig') {
+      for (let i = 0; i < 10; i++)
+        this.spawn('feather', {
+          x, y, vx: rnd(-2, 2), vy: rnd(2, 5), rot: rnd(0, 6), vr: rnd(-6, 6),
+          life: rnd(0.7, 1.1), base: rnd(0.8, 1.2), grow: 0,
+          tint: new THREE.Color('#f2f5d9'),
+        });
+      this.flash(x, y, '#f2e8b8');
+      this.spawn('ring', {
+        x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.3, base: 0.4, grow: 7,
+        tint: new THREE.Color('#ffffff'),
+      });
+      return;
+    }
+    if (kind === 'tnt') {
+      for (let i = 0; i < 16; i++)
+        this.spawn('smoke', {
+          x: x + rnd(-0.3, 0.3), y: y + rnd(-0.3, 0.3), vx: rnd(-1.4, 1.4), vy: rnd(0.8, 3),
+          rot: rnd(0, 6), vr: rnd(-2, 2), life: rnd(0.9, 1.5), base: rnd(0.7, 1.2), grow: 1.6,
+          tint: new THREE.Color('#7a7a7a'),
+        });
+      for (let i = 0; i < 18; i++)
+        this.spawn('spark', {
+          x, y, vx: rnd(-5, 5), vy: rnd(2, 8), rot: rnd(0, 6), vr: rnd(-8, 8),
+          life: rnd(0.4, 0.7), base: rnd(0.5, 0.9), grow: 0,
+          tint: new THREE.Color('#ffcf5e'),
+        });
+      this.flash(x, y, '#ffdf9a');
+      this.spawn('ring', {
+        x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.35, base: 0.6, grow: 12,
+        tint: new THREE.Color('#ffcf5e'),
+      });
+      return;
+    }
+    if (kind === 'dust') {
+      for (let i = 0; i < 3; i++)
+        this.spawn('smoke', {
+          x: x + rnd(-0.25, 0.25), y, vx: rnd(-0.8, 0.8), vy: rnd(0.6, 1.6),
+          rot: rnd(0, 6), vr: rnd(-1.5, 1.5), life: rnd(0.5, 0.8), base: rnd(0.4, 0.7), grow: 1.4,
+          tint: new THREE.Color('#d8c49a'),
+        });
+      return;
+    }
+    const poolKind: PKind = kind === 'wood' ? 'wood' : kind === 'glass' ? 'glass' : 'stone';
+    const count = kind === 'wood' ? 14 : 12;
+    const tint =
+      kind === 'wood' ? '#8a5a33' : kind === 'glass' ? '#d7f6ff' : '#8e9298';
+    for (let i = 0; i < Math.round(count * p); i++) {
+      const jitter = 0.75 + Math.random() * 0.5;
+      this.spawn(poolKind, {
+        x, y, vx: rnd(-3.4, 3.4) * p, vy: rnd(2, 6.5) * p, rot: rnd(0, 6), vr: rnd(-8, 8),
+        life: rnd(0.9, 1.5), base: rnd(0.7, 1.3), grow: 0,
+        tint: new THREE.Color(tint).multiplyScalar(jitter),
+      });
+    }
+    if (kind === 'glass') this.glints(x, y);
+  }
+
+  /** Shared TNT/blast explosion VFX: shockwave ring + fireball flash + smoke + sparks. */
+  explosion(x: number, y: number, radius = 3.5): void {
+    this.spawn('ring', {
+      x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.4, base: 0.5, grow: radius * 4.5,
+      tint: new THREE.Color('#ffe9b0'),
+    });
+    this.spawn('glow', {
+      x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.22, base: radius * 0.75, grow: radius * 3,
+      tint: new THREE.Color('#ffb257'),
+    });
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+    const smokeCount = 10 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < smokeCount; i++)
+      this.spawn('smoke', {
+        x: x + rnd(-0.5, 0.5), y: y + rnd(-0.3, 0.4), vx: rnd(-1.8, 1.8), vy: rnd(1.2, 3.4),
+        rot: rnd(0, 6), vr: rnd(-2, 2), life: rnd(0.9, 1.6), base: rnd(0.9, 1.5), grow: 1.8,
+        tint: new THREE.Color('#6e6a63'),
+      });
+    for (let i = 0; i < 14; i++)
+      this.spawn('spark', {
+        x, y, vx: rnd(-6, 6), vy: rnd(2, 9), rot: rnd(0, 6), vr: rnd(-10, 10),
+        life: rnd(0.35, 0.7), base: rnd(0.5, 1), grow: 0,
+        tint: new THREE.Color('#ffd98a'),
+      });
+  }
+
+  /** Sparkle glints when glass breaks. */
+  glints(x: number, y: number): void {
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+    for (let i = 0; i < 6; i++)
+      this.spawn('spark', {
+        x: x + rnd(-0.4, 0.4), y: y + rnd(-0.4, 0.4), vx: rnd(-0.7, 0.7), vy: rnd(0.4, 1.4),
+        rot: rnd(0, 6), vr: rnd(-3, 3), life: rnd(0.35, 0.6), base: rnd(0.35, 0.6), grow: 0,
+        tint: new THREE.Color('#eaffff'),
+      });
+  }
+
+  /** Ring of 5 stars orbiting a survivor's head. */
+  impactStars(x: number, y: number): void {
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI * 2;
+      this.spawn('spark', {
+        x: x + Math.cos(angle) * 0.55, y: y + Math.sin(angle) * 0.28,
+        vx: 0, vy: 0, rot: angle, vr: 4,
+        life: 0.8, base: 0.55, grow: 0,
+        tint: new THREE.Color('#ffe066'),
+        orbit: { cx: x, cy: y + 0.35, radius: 0.55, speed: 7 },
+      });
+    }
+  }
+
+  flash(x: number, y: number, color: string): void {
+    this.spawn('glow', {
+      x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.3, base: 0.6, grow: 9,
+      tint: new THREE.Color(color),
+    });
+  }
+
+  private glyphAtlas(color: string): { tex: THREE.Texture; uv: Map<string, [number, number, number, number]> } {
+    let atlas = this.atlasCache.get(color);
+    if (atlas) return atlas;
+    const cell = 72;
+    const pad = 8;
     const c = document.createElement('canvas');
-    c.width = 256;
-    c.height = 128;
+    c.width = cell * GLYPHS.length;
+    c.height = cell;
     const ctx = c.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, 256, 128);
-    ctx.font = '800 64px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.lineWidth = 16;
-    ctx.strokeStyle = '#23180f';
-    ctx.strokeText(text, 128, 64);
-    ctx.fillStyle = '#fffdf2';
-    ctx.fillText(text, 128, 64);
-    const map = new THREE.CanvasTexture(c);
-    map.colorSpace = THREE.SRGBColorSpace;
-    const sprite = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map, transparent: true, depthTest: false })
-    );
-    sprite.position.set(x, y + 0.45, DEPTH.popups);
-    sprite.scale.set(2.3, 1.15, 1);
-    sprite.renderOrder = 40;
-    this.scene.add(sprite);
-    this.floaters.push({ sprite, vy: 1.15, life: 1.25, max: 1.25 });
-  }
-
-  burst(x: number, y: number, kind: string, n = 8, angle = 0): void {
-    const pool = this.poolFor(kind);
-    const count = kind === 'tnt' ? n : n;
-    for (let i = 0; i < count; i++) {
-      const list = this.pools.get(pool);
-      const p = list?.pop();
-      if (!p) break;
-      const spread = pool === 'wood' ? 0.9 : Math.PI * 2;
-      const a = pool === 'wood' ? angle + (Math.random() - 0.5) * spread : Math.random() * Math.PI * 2;
-      const speed = pool === 'smoke' ? 1.2 + Math.random() * 1.4 : 2.4 + Math.random() * 5.5;
-      p.mesh.position.set(x, y, DEPTH.particles);
-      p.mesh.rotation.z = a;
-      p.mesh.visible = true;
-      p.mesh.scale.setScalar(pool === 'smoke' ? 0.6 : 1);
-      const mat = p.mesh.material as THREE.MeshBasicMaterial;
-      mat.opacity = pool === 'smoke' || pool === 'feather' || pool === 'glass' ? 0.9 : 1;
-      p.vx = Math.cos(a) * speed;
-      p.vy = Math.sin(a) * speed + (pool === 'smoke' ? 1.8 : 2.2);
-      p.spin = (Math.random() - 0.5) * (pool === 'wood' ? 8 : 14);
-      p.life = pool === 'smoke' ? 0.7 + Math.random() * 0.35 : 0.45 + Math.random() * 0.35;
-      p.max = p.life;
-      this.live.push(p);
+    if (!ctx) throw new Error('2d context');
+    const uv = new Map<string, [number, number, number, number]>();
+    for (let i = 0; i < GLYPHS.length; i++) {
+      const ch = GLYPHS[i]!;
+      const x = i * cell;
+      ctx.clearRect(x, 0, cell, cell);
+      ctx.font = '800 56px "Baloo 2", "Trebuchet MS", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 9;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#23180f';
+      ctx.strokeText(ch, x + cell / 2, cell / 2 + 2);
+      ctx.fillStyle = color;
+      ctx.fillText(ch, x + cell / 2, cell / 2 + 2);
+      const w = Math.min(cell - pad * 2, Math.max(10, ctx.measureText(ch).width + 12));
+      uv.set(ch, [x / c.width, 0, w / c.width, 1]);
     }
-    if (kind === 'tnt') this.burst(x, y, 'spark', 10, 0);
-    this.flash(x, y, kind);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    atlas = { tex, uv };
+    this.atlasCache.set(color, atlas);
+    return atlas;
   }
 
-  flash(x: number, y: number, kind: string): void {
-    const f = this.flashPool.pop();
-    if (!f) return;
-    const color = kind === 'tnt' ? 0xff6a22 : kind === 'pig' ? 0x8cf25a : kind === 'glass' ? 0xb8f0ff : 0xffc16b;
-    const mat = f.sprite.material as THREE.SpriteMaterial;
-    mat.color.setHex(color);
-    mat.opacity = 0.9;
-    f.baseScale = kind === 'tnt' ? 4.6 : 1.9;
-    f.sprite.scale.setScalar(f.baseScale * 0.4);
-    f.sprite.position.set(x, y + 0.4, DEPTH.particles + 0.3);
-    f.sprite.visible = true;
-    f.life = kind === 'tnt' ? 0.5 : 0.22;
-    f.max = f.life;
-    this.flashes.push(f);
+  /** Score popup built from a cached glyph atlas (one quad per glyph). */
+  textSprite(x: number, y: number, text: string, color: string, scale = 1): PopupScore {
+    this.requestFont();
+    const atlas = this.glyphAtlas(color);
+    const cellW = 0.42 * scale;
+    const cellH = 0.6 * scale;
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+    let cx = 0;
+    for (const ch of text) {
+      const g = atlas.uv.get(ch);
+      if (!g) {
+        cx += cellW * 0.5;
+        continue;
+      }
+      const [u0, , uw, vh] = g;
+      const w = cellW * (uw / (1 / GLYPHS.length)) * (72 / 56) * 0.1 + cellW * 0.55;
+      const hw = Math.min(cellW, w) / 2;
+      const base = positions.length / 3;
+      positions.push(cx - hw, -cellH / 2, 0, cx + hw, -cellH / 2, 0, cx + hw, cellH / 2, 0, cx - hw, cellH / 2, 0);
+      uvs.push(u0, 0, u0 + uw, 0, u0 + uw, vh, u0, vh);
+      indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      cx += hw * 2 + cellW * 0.12;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    const material = new THREE.MeshBasicMaterial({
+      map: atlas.tex,
+      transparent: true,
+      depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.position.x = -cx / 2;
+    const group = new THREE.Group();
+    group.add(mesh);
+    group.position.set(x, y, DEPTH.popups);
+    group.scale.setScalar(0.4);
+    this.scene.add(group);
+    const popup: PopupScore = { group, material, t: 0, life: 1.25, rise: 1.15 };
+    this.popups.push(popup);
+    return popup;
+  }
+
+  /** Drops all live particles and popups (level change). */
+  clear(): void {
+    for (const pool of this.pools.values()) {
+      pool.items.length = 0;
+      pool.mesh.count = 0;
+    }
+    for (const p of this.popups) {
+      this.scene.remove(p.group);
+      (p.group.children[0] as THREE.Mesh | undefined)?.geometry.dispose();
+      p.material.dispose();
+    }
+    this.popups.length = 0;
   }
 
   update(dt: number): void {
-    if (this.popLife > 0) {
-      this.popLife -= dt;
-      const t = 1 - Math.max(0, this.popLife) / this.popMax;
-      this.popRing.scale.setScalar(0.35 + t * 2.4);
-      (this.popRing.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - t);
-      if (this.popLife <= 0) this.popRing.visible = false;
-    }
-    for (let i = this.live.length - 1; i >= 0; i--) {
-      const p = this.live[i]!;
-      p.life -= dt;
-      const smoke = p.pool === 'smoke';
-      p.vy -= (smoke ? 2 : 16) * dt;
-      p.mesh.position.x += p.vx * dt;
-      p.mesh.position.y += p.vy * dt;
-      p.mesh.rotation.z += p.spin * dt;
-      const t = Math.max(0, p.life / p.max);
-      if (smoke) p.mesh.scale.setScalar(0.5 + (1 - t) * 2.4);
-      const mat = p.mesh.material as THREE.MeshBasicMaterial;
-      if (mat.transparent) mat.opacity = t;
-      if (p.life <= 0) {
-        p.mesh.visible = false;
-        this.live.splice(i, 1);
-        this.pools.get(p.pool as PoolKind)?.push(p);
+    for (const [kind, pool] of this.pools) {
+      const def = POOL_DEF[kind];
+      let write = 0;
+      for (const p of pool.items) {
+        p.t += dt;
+        if (p.t >= p.life) continue;
+        if (p.orbit) {
+          p.rot += p.orbit.speed * dt;
+          p.x = p.orbit.cx + Math.cos(p.rot) * p.orbit.radius;
+          p.y = p.orbit.cy + Math.sin(p.rot) * p.orbit.radius * 0.5;
+        } else {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy -= def.gravity * dt;
+          p.rot += p.vr * dt;
+        }
+        pool.items[write++] = p;
       }
-    }
-    for (let i = this.flashes.length - 1; i >= 0; i--) {
-      const f = this.flashes[i]!;
-      f.life -= dt;
-      const t = Math.max(0, f.life / f.max);
-      f.sprite.scale.setScalar(f.baseScale * (0.4 + (1 - t) * 1.1));
-      (f.sprite.material as THREE.SpriteMaterial).opacity = 0.9 * t;
-      if (f.life <= 0) {
-        f.sprite.visible = false;
-        this.flashes.splice(i, 1);
-        this.flashPool.push(f);
+      pool.items.length = write;
+      const mesh = pool.mesh;
+      for (let i = 0; i < write; i++) {
+        const p = pool.items[i]!;
+        const u = p.t / p.life;
+        const fade = kind === 'smoke' || kind === 'ring' || kind === 'glow' ? 1 : 1 - u * u;
+        const s = Math.max(0.001, (p.base + p.grow * p.t) * fade);
+        this.dummy.position.set(p.x, p.y, DEPTH.particles);
+        this.dummy.rotation.set(0, 0, p.rot);
+        this.dummy.scale.setScalar(s);
+        this.dummy.updateMatrix();
+        mesh.setMatrixAt(i, this.dummy.matrix);
+        mesh.setColorAt(i, p.tint);
       }
+      mesh.count = write;
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
-    for (let i = this.floaters.length - 1; i >= 0; i--) {
-      const f = this.floaters[i]!;
-      f.life -= dt;
-      f.sprite.position.y += f.vy * dt;
-      const mat = f.sprite.material as THREE.SpriteMaterial;
-      const fade = f.life / f.max;
-      mat.opacity = fade > 0.55 ? 1 : fade / 0.55;
-      if (f.life <= 0) {
-        this.scene.remove(f.sprite);
-        mat.map?.dispose();
-        mat.dispose();
-        this.floaters.splice(i, 1);
+    for (let i = this.popups.length - 1; i >= 0; i--) {
+      const p = this.popups[i]!;
+      p.t += dt;
+      const u = p.t / p.life;
+      if (u >= 1) {
+        this.scene.remove(p.group);
+        (p.group.children[0] as THREE.Mesh | undefined)?.geometry.dispose();
+        p.material.dispose();
+        this.popups.splice(i, 1);
+        continue;
       }
+      // Pop in: 0.4 → 1.15 → 1 over the first 0.22s, then rise and fade.
+      const popT = Math.min(1, p.t / 0.22);
+      const s = popT < 0.55 ? 0.4 + (popT / 0.55) * 0.75 : 1.15 - ((popT - 0.55) / 0.45) * 0.15;
+      p.group.scale.setScalar(s);
+      p.group.position.y += p.rise * dt;
+      p.material.opacity = u > 0.55 ? 1 - (u - 0.55) / 0.45 : 1;
     }
-  }
-
-  private poolFor(kind: string): PoolKind {
-    if (kind === 'wood') return 'wood';
-    if (kind === 'glass') return 'glass';
-    if (kind === 'stone') return 'stone';
-    if (kind === 'pig') return 'feather';
-    if (kind === 'spark') return 'spark';
-    if (kind === 'tnt') return 'smoke';
-    return 'smoke';
   }
 }

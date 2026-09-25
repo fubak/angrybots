@@ -8,6 +8,7 @@ import { Scenery } from './Scenery';
 import { Juice } from './Juice';
 import { BlobShadows, type ShadowCaster } from './BlobShadows';
 import { disposeObject } from './dispose';
+import { popScale } from './slingAnim';
 import { blockMaterial, decorateBlock, makeBotCharacter, makePigCharacter, tickFace } from './characters';
 import { ILL } from './illustrations';
 import { crackTexture } from './textures';
@@ -35,6 +36,8 @@ export class Renderer {
   private readonly blobShadows: BlobShadows;
   private readonly terrain = new THREE.Group();
   private readonly casters: ShadowCaster[] = [];
+  private readonly dying: { mesh: THREE.Object3D; t: number }[] = [];
+  private aiming = false;
   private aspect = 16 / 9;
   private fpsSamples: number[] = [];
   private lastFpsSample = 0;
@@ -112,9 +115,16 @@ export class Renderer {
     model: SlingModel,
     queue: readonly BotKind[],
     aiming: boolean,
-    trail: ShotTrail
+    trail: ShotTrail,
+    fx?: { hopT: number | null; bonusT: number | null }
   ): void {
-    this.slingView.sync(model, queue, aiming, trail);
+    this.aiming = aiming;
+    this.slingView.sync(model, queue, aiming, trail, fx);
+  }
+
+  /** World positions of queued bots (for bonus popups). */
+  queuePositions(): readonly { x: number; y: number }[] {
+    return this.slingView.queuePositions();
   }
 
   setSize(w: number, h: number): void {
@@ -130,12 +140,29 @@ export class Renderer {
       disposeObject(mesh);
       this.entityMeshes.delete(id);
     }
+    for (const d of this.dying) {
+      this.scene.remove(d.mesh);
+      disposeObject(d.mesh);
+    }
+    this.dying.length = 0;
+    this.juice.clear();
     this.blobShadows.update([]);
+  }
+
+  /** Position the targets should watch: the flying bot, else the loaded sling bot. */
+  private watchTarget(level: Level | null): { x: number; y: number } | null {
+    const flying = level?.shotBots().find((b) => b.alive && b.body);
+    if (flying?.body) {
+      const p = flying.body.getPosition();
+      return { x: p.x, y: p.y };
+    }
+    return this.slingView.loadedPos();
   }
 
   syncLevel(level: Level | null, frameDt: number): void {
     const live = new Set<string>();
     this.casters.length = 0;
+    const watch = this.watchTarget(level);
     if (level) {
       for (const e of level.registry.all()) {
         if (!e.alive || e.kind === 'ground' || e.kind === 'terrain') continue;
@@ -143,6 +170,8 @@ export class Renderer {
         let mesh = this.entityMeshes.get(e.id);
         if (!mesh) {
           mesh = this.createPlaceholder(e);
+          mesh.userData.kind = e.kind;
+          if (e.kind === 'pig') mesh.userData.nextTaunt = this.clock + 4 + Math.random() * 5;
           this.entityMeshes.set(e.id, mesh);
           this.scene.add(mesh);
         }
@@ -163,8 +192,23 @@ export class Renderer {
           if (e.kind === 'bot') {
             const v = e.body.getLinearVelocity();
             const speed = v.length();
-            const squash = Math.min(0.34, speed / 55);
-            mesh.scale.set(1 + squash * 1.35, Math.max(0.66, 1 - squash), 1);
+            let squash = Math.min(0.34, speed / 55);
+            if (e.firstImpactAt !== null) {
+              if (mesh.userData.impacted !== true) {
+                mesh.userData.impacted = true;
+                mesh.userData.impactT = 0;
+              }
+              mesh.userData.hurt = true;
+            }
+            const it = mesh.userData.impactT as number | undefined;
+            if (it !== undefined && it < 0.2) {
+              const k = 1 - it / 0.2;
+              mesh.userData.impactT = it + frameDt;
+              squash = Math.max(squash, 0.35 * k);
+              mesh.scale.set(1 + squash, Math.max(0.66, 1 - squash * 0.86), 1);
+            } else {
+              mesh.scale.set(1 + squash * 1.35, Math.max(0.66, 1 - squash), 1);
+            }
             mesh.userData.flying = speed > 2;
             const face = mesh.getObjectByName('face');
             if (face) {
@@ -173,7 +217,31 @@ export class Renderer {
             }
           } else if (e.kind === 'pig') {
             const breathe = 1 + Math.sin(this.clock * 3.2 + mesh.id) * 0.035;
-            mesh.scale.set(breathe, 2 - breathe, 1);
+            mesh.scale.set(breathe * (1 + flinch * 0.28), (2 - breathe) * (1 - flinch * 0.3), 1);
+            let taunt = mesh.userData.nextTaunt as number | undefined;
+            if (taunt !== undefined && this.clock >= taunt && flinch <= 0) {
+              mesh.userData.tauntT = 0;
+              mesh.userData.nextTaunt = this.clock + 4 + Math.random() * 5;
+              taunt = mesh.userData.nextTaunt;
+            }
+            const tt = mesh.userData.tauntT as number | undefined;
+            if (tt !== undefined && tt < 0.4) {
+              mesh.userData.tauntT = tt + frameDt;
+              mesh.position.y += Math.sin((tt / 0.4) * Math.PI) * 0.24;
+            }
+            const pupils = mesh.getObjectByName('pupils') as THREE.Mesh | undefined;
+            if (pupils) {
+              if (watch) {
+                const dx = watch.x - p.x;
+                const dy = watch.y - p.y;
+                const d = Math.hypot(dx, dy) || 1;
+                pupils.position.x = Math.max(-0.06, Math.min(0.06, (dx / d) * 0.06));
+                pupils.position.y = -e.r * 0.08 + Math.max(-0.06, Math.min(0.06, (dy / d) * 0.06));
+              } else {
+                pupils.position.x = 0;
+                pupils.position.y = -e.r * 0.08;
+              }
+            }
           } else {
             mesh.scale.set(1, 1, 1);
           }
@@ -190,15 +258,23 @@ export class Renderer {
         }
         if (e.kind === 'block') this.tintDamage(mesh, e.hp / e.maxHp);
         if (e.kind === 'pig') this.tintPig(mesh, e.hp / e.maxHp);
-        if (e.kind === 'pig' || e.kind === 'bot') {
-          tickFace(mesh, this.clock, mesh.userData.hurt === true);
+        if (e.kind === 'pig') {
+          tickFace(mesh, this.clock, { hurt: mesh.userData.hurt === true, smug: this.aiming });
+        } else if (e.kind === 'bot') {
+          tickFace(mesh, this.clock, { hurt: mesh.userData.hurt === true });
         }
       }
     }
     for (const [id, mesh] of this.entityMeshes) {
       if (!live.has(id)) {
-        this.scene.remove(mesh);
-        disposeObject(mesh);
+        if (mesh.userData.kind === 'pig') {
+          // Death pop: keep the mesh briefly as a scale-pop visual while the sim entity is gone.
+          mesh.userData.dying = true;
+          this.dying.push({ mesh, t: 0 });
+        } else {
+          this.scene.remove(mesh);
+          disposeObject(mesh);
+        }
         this.entityMeshes.delete(id);
       }
     }
@@ -309,6 +385,18 @@ export class Renderer {
   render(_alpha: number, frameDt: number): void {
     this.clock += frameDt;
     this.slingView.animate(this.clock);
+    for (let i = this.dying.length - 1; i >= 0; i--) {
+      const d = this.dying[i]!;
+      d.t += frameDt;
+      const s = popScale(d.t);
+      d.mesh.scale.setScalar(Math.max(0.001, s));
+      d.mesh.rotation.z += frameDt * 2.5;
+      if (s <= 0.001) {
+        this.scene.remove(d.mesh);
+        disposeObject(d.mesh);
+        this.dying.splice(i, 1);
+      }
+    }
     this.juice.update(frameDt);
     this.scenery.update(frameDt);
     this.renderer.info.reset();
