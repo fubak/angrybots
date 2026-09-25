@@ -7,35 +7,23 @@ import type { GameEvents } from '../game/events';
 import { GameSession } from '../game/GameSession';
 import { SaveStore } from '../game/SaveStore';
 import { allLevels, levelById, nextLevel } from '../levels/registry';
-import { CHAPTERS } from '../levels/chapters';
 import { CameraDirector } from '../camera/CameraDirector';
-import { CameraGestures } from '../camera/CameraGestures';
+import { CameraGestures, gestureLimitsFor } from '../camera/CameraGestures';
 import { Renderer } from '../render/Renderer';
 import { SlingInput, clientToWorld } from '../sling/SlingInput';
 import { ShotTrail } from '../sling/ShotTrail';
 import { SoundBank } from '../audio/SoundBank';
 import { createDebugApi } from '../debug/DebugApi';
 import { effectiveReducedMotion } from './motion';
-import { currentLevelId, PROGRESSION } from '../game/progression';
-import { ACHIEVEMENTS, achievementById, evaluateAchievements } from '../game/achievements';
+import { achievementById } from '../game/achievements';
 import { firstUnseenBotInQueue } from '../bots/tutorialTips';
-import { botFaces, pigFaces } from '../render/illustrations';
-import { iconSvg } from '../ui/icons';
-import { Hud } from '../ui/Hud';
-import { PauseMenu } from '../ui/PauseMenu';
-import { ResultsPanel } from '../ui/ResultsPanel';
-import { TitleScreen } from '../ui/TitleScreen';
-import { LevelSelect } from '../ui/LevelSelect';
+import { botFaces } from '../render/illustrations';
 import { RotatePrompt } from '../ui/RotatePrompt';
 import { Splash } from '../ui/Splash';
-import { Settings } from '../ui/Settings';
-import { Credits } from '../ui/Credits';
-import { AchievementsScreen } from '../ui/Achievements';
-import { BotIntro } from '../ui/BotIntro';
-import { unionRect, type View } from '../camera/fitRect';
+import { type View } from '../camera/fitRect';
 import type { BotKind } from '../levels/schema';
-
-type AppPhase = 'title' | 'levelSelect' | 'play';
+import { SimFeedback } from './simFeedback';
+import { AppScreens, botImage, pigImage, tipFor, type AppPhase } from './screens';
 
 export class App {
   private readonly bus = new EventBus<GameEvents>();
@@ -45,6 +33,8 @@ export class App {
   private readonly trail = new ShotTrail();
   private readonly audio = new SoundBank();
   private readonly rotate = new RotatePrompt();
+  private readonly fx: SimFeedback;
+  private readonly screens: AppScreens;
 
   private readonly shell: HTMLElement;
   private readonly canvas: HTMLCanvasElement;
@@ -56,11 +46,9 @@ export class App {
   private phase: AppPhase = 'title';
   private levelId: string | null = null;
   private introElapsed = 0;
-  private impactCenter: { x: number; y: number } | null = null;
   private currentView: View = { cx: 0, cy: 5, h: 12 };
   private paused = false;
   private backgrounded = false;
-  private resultRecorded = false;
   private resultDelay = 0;
   private pendingResult: {
     won: boolean;
@@ -72,30 +60,12 @@ export class App {
   private nextBotT: number | null = null;
   private bonusT: number | null = null;
   private bonusFired = 0;
-  private shotDestroyed = 0;
-  private destroyedTimes: number[] = [];
-  private hitStopLeft = 0;
-  private slowMoLeft = 0;
-  private shotsFired = 0;
-  private maxCombo = 0;
-  private shotTnt = 0;
-  private maxTntChain = 0;
-  private kingKilled = false;
   private runUnlocks: string[] = [];
   private pendingBotCard: BotKind | null = null;
   private seenTips = new Set<string>();
   private readonly unlockAll =
     import.meta.env.DEV && new URLSearchParams(location.search).get('unlockAll') === '1';
 
-  private hud: Hud;
-  private pauseMenu: PauseMenu;
-  private results: ResultsPanel;
-  private title: TitleScreen;
-  private levelSelect: LevelSelect;
-  private settings: Settings;
-  private credits: Credits;
-  private achvScreen: AchievementsScreen;
-  private botIntro: BotIntro;
   private gestures: CameraGestures;
 
   constructor(root: HTMLElement) {
@@ -123,45 +93,37 @@ export class App {
     this.sling = new SlingInput(this.canvas, this.session, this.bus);
     this.sling.setBlocked(() => this.inputBlocked());
 
-    const splash = new Splash(this.uiRoot, this.botImage('grok'));
+    this.fx = new SimFeedback({
+      session: this.session,
+      save: this.save,
+      audio: this.audio,
+      renderer: this.renderer,
+      camera: this.camera,
+      trail: this.trail,
+      reducedMotion: () => effectiveReducedMotion(this.save.settings.reducedMotion),
+      getView: () => this.currentView,
+      onLaunch: () => this.gestures.reset(),
+    });
 
-    this.hud = new Hud(this.uiRoot, () => this.togglePause());
-    this.pauseMenu = new PauseMenu(this.uiRoot, {
-      resume: () => this.togglePause(false),
-      restart: () => {
-        this.togglePause(false);
-        this.restartLevel();
+    this.screens = new AppScreens(this.uiRoot, {
+      save: this.save,
+      audio: this.audio,
+      unlockAll: this.unlockAll,
+      getPhase: () => this.phase,
+      setPhase: (p) => {
+        this.phase = p;
       },
-      levels: () => this.goLevelSelect(),
-      settings: () => this.openSettings(),
-      onSettings: (key, value) => this.applySetting(key, value),
+      getLevelId: () => this.levelId,
+      startLevel: (id) => this.startLevel(id),
+      restartLevel: () => this.restartLevel(),
+      togglePause: (force) => this.togglePause(force),
+      leavePlay: () => this.leavePlay(),
+      isLevelUnlocked: (id) => this.isLevelUnlocked(id),
+      levelRefs: () => this.levelRefs(),
+      applyAimGuide: () => this.applyAimGuide(),
     });
-    this.results = new ResultsPanel(this.uiRoot, (a) => this.onResultsAction(a));
-    this.title = new TitleScreen(this.uiRoot, {
-      play: () => this.goLevelSelect(),
-      settings: () => this.openSettings(),
-      achievements: () => this.openAchievements(),
-      credits: () => this.openCredits(),
-    });
-    this.levelSelect = new LevelSelect(
-      this.uiRoot,
-      (id) => this.startLevel(id),
-      () => this.goTitle()
-    );
-    this.settings = new Settings(this.uiRoot, {
-      onChange: (key, value) => this.applySetting(key, value),
-      onReset: () => {
-        this.save.resetProgress();
-        this.settings.populate(this.save.settings);
-        this.refreshTitleStats();
-      },
-      onClose: () => this.settings.toggle(false),
-    });
-    this.credits = new Credits(this.uiRoot, () => this.credits.toggle(false));
-    this.achvScreen = new AchievementsScreen(this.uiRoot, () =>
-      this.achvScreen.toggle(false)
-    );
-    this.botIntro = new BotIntro(this.uiRoot);
+
+    const splash = new Splash(this.uiRoot, botImage('grok'));
 
     this.gestures = new CameraGestures(this.canvas, {
       enabled: () =>
@@ -178,7 +140,8 @@ export class App {
       },
       worldPerPx: () => this.currentView.h / Math.max(1, this.canvas.clientHeight),
       currentView: () => this.currentView,
-      limits: () => this.gestureLimits(),
+      limits: () =>
+        gestureLimitsFor(this.levelId ? (levelById(this.levelId) ?? null) : null, this.camera),
       aspect: () => this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight),
     });
     this.sling.setSuppress(() => this.gestures.isActive());
@@ -192,39 +155,19 @@ export class App {
       now: () => performance.now(),
     });
 
-    this.bus.on('bot:firstImpact', (e) => {
-      this.audio.play('impact');
-      this.renderer.juice.burst('dust', e.x, e.y);
-    });
-    this.bus.on('bot:launched', () => {
-      this.trail.onLaunch();
-      this.audio.play('launch');
-      this.audio.play('yell');
-      this.audio.tension(0);
-      this.shotDestroyed = 0;
-      this.shotTnt = 0;
-      this.destroyedTimes.length = 0;
-      this.shotsFired += 1;
-      this.save.addShot();
-      this.gestures.reset();
-    });
-    this.bus.on('sling:aimUpdate', (e) => this.audio.tension(e.tension));
-    this.bus.on('sling:cancel', () => {
-      this.audio.tension(0);
-      this.audio.play('cancel');
-    });
+    this.fx.bindAppBus(this.bus);
 
     const unlock = () => this.audio.unlock();
     window.addEventListener('pointerdown', unlock, { once: true });
 
     window.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape') this.onEscape();
+      if (ev.key === 'Escape') this.screens.onEscape();
       if (ev.key === 'r' || ev.key === 'R') this.restartLevel();
       if (ev.key === ' ' && this.session.getState() === 'flight' && !this.inputBlocked()) {
         ev.preventDefault();
         this.session.activateAbility();
       }
-      if (ev.key === 'Enter') this.activatePrimary();
+      if (ev.key === 'Enter') this.screens.activatePrimary();
     });
 
     document.addEventListener('visibilitychange', () => {
@@ -245,9 +188,9 @@ export class App {
       if (booted) return;
       booted = true;
       splash.ready(() => {
-        this.refreshTitleStats();
-        this.title.show();
-        this.hud.hide();
+        this.screens.refreshTitleStats();
+        this.screens.title.show();
+        this.screens.hud.hide();
       });
     };
     void Promise.all([
@@ -292,64 +235,9 @@ export class App {
       this.paused ||
       this.backgrounded ||
       this.phase !== 'play' ||
-      this.results.isVisible() ||
-      this.pauseMenu.isVisible() ||
-      this.rotate.isVisible() ||
-      this.settings.isVisible() ||
-      this.achvScreen.isVisible() ||
-      this.credits.isVisible() ||
-      this.botIntro.isVisible()
+      this.screens.anyModalVisible() ||
+      this.rotate.isVisible()
     );
-  }
-
-  private onEscape(): void {
-    if (this.settings.isVisible()) {
-      this.settings.toggle(false);
-      return;
-    }
-    if (this.credits.isVisible()) {
-      this.credits.toggle(false);
-      return;
-    }
-    if (this.achvScreen.isVisible()) {
-      this.achvScreen.toggle(false);
-      return;
-    }
-    if (this.phase === 'levelSelect') {
-      if (!this.levelSelect.back()) this.goTitle();
-      return;
-    }
-    if (this.phase === 'title') return;
-    this.togglePause();
-  }
-
-  /** Enter activates the primary button of the topmost open modal. */
-  private activatePrimary(): void {
-    const el = document.activeElement;
-    if (el instanceof HTMLButtonElement || el instanceof HTMLInputElement) return;
-    const wraps = [...this.uiRoot.querySelectorAll<HTMLElement>('.modal-wrap.open, .results-panel.open')];
-    const top = wraps[wraps.length - 1];
-    const primary = top?.querySelector<HTMLButtonElement>('.ui-primary');
-    primary?.click();
-  }
-
-  private applySetting(key: string, value: number | boolean | string | null): void {
-    if (key === 'music' || key === 'sfx' || key === 'voice') {
-      const v = value as number;
-      this.save.settings[key] = v;
-      if (key === 'music') this.audio.setMusicVolume(v);
-      if (key === 'sfx') this.audio.setSfxVolume(v);
-      if (key === 'voice') this.audio.setVoiceVolume(v);
-    } else if (key === 'muted') {
-      this.save.settings.muted = Boolean(value);
-      this.audio.muted = this.save.settings.muted;
-    } else if (key === 'reducedMotion') {
-      this.save.settings.reducedMotion = value as boolean | null;
-    } else if (key === 'aimGuide') {
-      this.save.settings.aimGuide = value as 'off' | 'short';
-      this.applyAimGuide();
-    }
-    this.save.persist();
   }
 
   /** Levels 1–3 always show the short guide; otherwise honor the setting. */
@@ -360,96 +248,12 @@ export class App {
     this.renderer.setAimGuide(mode);
   }
 
-  private openSettings(): void {
-    this.settings.populate(this.save.settings);
-    this.settings.toggle(true);
-  }
-
-  private openCredits(): void {
-    this.credits.toggle(true);
-  }
-
-  private openAchievements(): void {
-    this.achvScreen.populate(this.save.achievements, this.save, this.levelRefs());
-    this.achvScreen.toggle(true);
-  }
-
-  private refreshTitleStats(): void {
-    this.title.setStats(
-      this.save.totalStars(this.levelRefs()),
-      this.levelRefs().length * 3,
-      Object.keys(this.save.achievements).length,
-      ACHIEVEMENTS.length
-    );
-  }
-
-  private botImage(kind: string): string {
-    const tex = botFaces(kind).idle;
-    const img = tex.image as HTMLCanvasElement;
-    return img?.toDataURL?.() ?? '';
-  }
-
-  private pigImage(): string {
-    const tex = pigFaces(false, 'none').smug;
-    const img = tex.image as HTMLCanvasElement;
-    return img?.toDataURL?.() ?? '';
-  }
-
-  private toast(text: string, cls = ''): void {
-    const el = document.createElement('div');
-    el.className = `ui-toast ${cls}`.trim();
-    el.innerHTML = `${iconSvg('trophy', 20)}<span></span>`;
-    el.querySelector('span')!.textContent = text;
-    this.uiRoot.appendChild(el);
-    window.setTimeout(() => el.remove(), 2500);
-  }
-
   private leavePlay(): void {
     this.paused = false;
     this.backgrounded = false;
-    this.pauseMenu.toggle(false);
+    this.screens.pauseMenu.toggle(false);
     this.sling.cancelActive();
     this.syncSimulationPause();
-  }
-
-  private goTitle(): void {
-    this.leavePlay();
-    this.phase = 'title';
-    this.levelSelect.hide();
-    this.results.hide();
-    this.hud.hide();
-    this.refreshTitleStats();
-    this.title.show();
-  }
-
-  private goLevelSelect(): void {
-    this.leavePlay();
-    this.phase = 'levelSelect';
-    this.title.hide();
-    this.results.hide();
-    const refs = this.levelRefs();
-    const artBot: Record<string, string> = {
-      training: this.botImage('grok'),
-      workshop: this.botImage('dash'),
-      citadel: this.botImage('heavy'),
-    };
-    this.levelSelect.populate(allLevels(), {
-      unlocked: (id) => this.isLevelUnlocked(id),
-      starsFor: (id) => this.save.levelProgress(id)?.stars ?? 0,
-      chapterUnlocked: (c) => this.unlockAll || this.save.isChapterUnlocked(c, refs),
-      chapterStars: (c) => this.save.chapterStars(c, refs),
-      chapterGateText: (c) => {
-        const order = CHAPTERS.find((x) => x.id === c)?.order ?? 0;
-        const prev = CHAPTERS.find((x) => x.order === order - 1);
-        const need = PROGRESSION.chapterStars[c] ?? 0;
-        return `Clear ${prev?.name ?? 'previous chapter'} 10 · ${need}★ needed`;
-      },
-      chapterArt: (c) => artBot[c] ?? '',
-      currentId: () =>
-        currentLevelId(refs, (id) => this.save.levelProgress(id)),
-    });
-    this.levelSelect.show();
-    this.hud.hide();
   }
 
   private startLevel(id: string): void {
@@ -458,28 +262,17 @@ export class App {
     this.leavePlay();
     this.levelId = id;
     this.phase = 'play';
-    this.resultRecorded = false;
     this.resultDelay = 0;
     this.pendingResult = null;
-    this.levelSelect.hide();
-    this.title.hide();
-    this.results.hide();
+    this.screens.levelSelect.hide();
+    this.screens.title.hide();
+    this.screens.results.hide();
     this.trail.clear();
     this.introElapsed = 0;
-    this.impactCenter = null;
     this.nextBotT = null;
     this.bonusT = null;
     this.bonusFired = 0;
-    this.shotDestroyed = 0;
-    this.destroyedTimes.length = 0;
-    this.hitStopLeft = 0;
-    this.slowMoLeft = 0;
-    this.shotsFired = 0;
-    this.maxCombo = 0;
-    this.shotTnt = 0;
-    this.maxTntChain = 0;
-    this.kingKilled = false;
-    this.runUnlocks = [];
+    this.fx.resetLevel();
     this.gestures.reset();
     this.renderer.clearLevel();
     this.session.loadLevel(def, effectiveReducedMotion(this.save.settings.reducedMotion));
@@ -488,16 +281,16 @@ export class App {
     this.audio.setChapter(def.chapter);
     const sim = this.session.getSim();
     if (sim) sim.fragmentsEnabled = true;
-    this.bindSimAudio();
+    if (sim) this.fx.bindSim(sim);
     this.sling.resetForLevel();
     this.applyAimGuide();
-    this.hud.show();
-    this.hud.setStarThresholds(def.stars);
-    this.hud.setStars(0);
-    this.hud.setTargetsLeft(def.pigs.length);
+    this.screens.hud.show();
+    this.screens.hud.setStarThresholds(def.stars);
+    this.screens.hud.setStars(0);
+    this.screens.hud.setTargetsLeft(def.pigs.length);
     if (!this.seenTips.has(def.id)) {
       this.seenTips.add(def.id);
-      this.hud.showTip(def.hint ?? this.tipFor(def));
+      this.screens.hud.showTip(def.hint ?? tipFor(def));
     }
     this.pendingBotCard = firstUnseenBotInQueue(def.bots, this.save.tutorialsSeen);
   }
@@ -507,46 +300,21 @@ export class App {
     this.startLevel(this.levelId);
   }
 
-  private onResultsAction(action: 'retry' | 'next' | 'levels' | 'skip'): void {
-    this.results.hide();
-    this.audio.play('ui');
-    if (action === 'levels') {
-      this.goLevelSelect();
-      return;
-    }
-    if (action === 'retry' && this.levelId) {
-      this.startLevel(this.levelId);
-      return;
-    }
-    if (action === 'skip' && this.levelId) {
-      this.save.skipLevel(this.levelId);
-      const n = nextLevel(this.levelId);
-      if (n && this.isLevelUnlocked(n.id)) this.startLevel(n.id);
-      else this.goLevelSelect();
-      return;
-    }
-    if (action === 'next' && this.levelId) {
-      const n = nextLevel(this.levelId);
-      if (n) this.startLevel(n.id);
-      else this.goLevelSelect();
-    }
-  }
-
   private togglePause(force?: boolean): void {
     if (this.phase !== 'play') return;
-    if (this.results.isVisible()) return;
+    if (this.screens.results.isVisible()) return;
     this.paused = force ?? !this.paused;
     if (this.paused) {
       this.sling.cancelActive();
       this.audio.onPause();
-      this.pauseMenu.setValues({
+      this.screens.pauseMenu.setValues({
         music: this.save.settings.music,
         sfx: this.save.settings.sfx,
       });
     } else {
       this.audio.onResume();
     }
-    this.pauseMenu.toggle(this.paused);
+    this.screens.pauseMenu.toggle(this.paused);
     this.syncSimulationPause();
   }
 
@@ -554,160 +322,26 @@ export class App {
   private syncSimulationPause(): void {
     const rotate = this.rotate.update();
     this.loop.paused =
-      this.paused || this.backgrounded || rotate || this.botIntro.isVisible();
+      this.paused || this.backgrounded || rotate || this.screens.botIntro.isVisible();
   }
 
   private recordResultOnce(): void {
-    const state = this.session.getState();
-    if (state !== 'won' && state !== 'lost') return;
-    if (this.resultRecorded) return;
-    this.resultRecorded = true;
-    const won = state === 'won';
-    const stars = this.session.getStars();
-    const score = this.session.getScore();
-    let newBest = false;
-    let canSkip = false;
-    if (this.levelId) {
-      const prev = this.save.levelProgress(this.levelId);
-      newBest = won && score > (prev?.bestScore ?? 0);
-      this.save.recordLevel(this.levelId, score, stars, won);
-      if (won) {
-        this.save.setBestCombo(this.maxCombo);
-      } else {
-        this.save.recordFail(this.levelId);
-        canSkip = this.save.canSkip(this.levelId, this.levelRefs());
-      }
-    }
-    this.evaluateRun(won, stars);
-    this.pendingResult = { won, score, stars, newBest, canSkip };
+    const rec = this.fx.recordResult(this.levelId, this.levelRefs());
+    if (!rec) return;
+    this.pendingResult = {
+      won: rec.won,
+      score: rec.score,
+      stars: rec.stars,
+      newBest: rec.newBest,
+      canSkip: rec.canSkip,
+    };
+    this.runUnlocks = rec.unlockIds;
     this.resultDelay = 1.15;
-    this.audio.play(won ? 'victory' : 'defeat');
-    if (won) {
-      const bonus = this.session.getBonus();
-      if (bonus > 0) {
-        const at = this.impactCenter ?? { x: 0, y: 2 };
-        this.renderer.juice.textSprite(at.x, at.y + 1.2, `+${bonus.toLocaleString()}`, PALETTE.score.bonus, 1.3);
-      }
+    this.audio.play(rec.won ? 'victory' : 'defeat');
+    if (rec.won && rec.bonus > 0) {
+      const at = this.fx.impactCenter ?? { x: 0, y: 2 };
+      this.renderer.juice.textSprite(at.x, at.y + 1.2, `+${rec.bonus.toLocaleString()}`, PALETTE.score.bonus, 1.3);
     }
-  }
-
-  private evaluateRun(won: boolean, stars: number): void {
-    if (!this.levelId) return;
-    const fresh = evaluateAchievements(
-      {
-        levelId: this.levelId,
-        won,
-        stars,
-        shotsUsed: this.shotsFired,
-        botsUnused: this.session.getBotQueue().length,
-        maxCombo: this.maxCombo,
-        maxTntChain: this.maxTntChain,
-        kingKilled: this.kingKilled,
-      },
-      this.save,
-      this.save.achievements,
-      this.levelRefs()
-    );
-    for (const id of fresh) {
-      if (this.save.unlockAchievement(id)) this.runUnlocks.push(id);
-    }
-  }
-
-  private tipFor(def: { id: string; bots: string[] }): string {
-    if (def.id === 'first-flight') return 'Pull back and release. Drag to the perch to cancel.';
-    if (def.bots[0] === 'dash') return 'Tap during flight to dash.';
-    if (def.bots.includes('split')) return 'Glass breaks easily. Tap to split in mid-air.';
-    return 'Clear every target.';
-  }
-
-  /** Structure hits own the collapse camera. Ground and sling skims do not. */
-  private noteStrike(x: number, y: number): void {
-    if (x < TUNING.sling.x + 2.5) return;
-    const prev = this.impactCenter;
-    this.impactCenter = { x, y };
-    if (!prev || Math.hypot(x - prev.x, y - prev.y) > 0.6) this.camera.addTrauma(0.55);
-  }
-
-  private bindSimAudio(): void {
-    const sim = this.session.getSim();
-    if (!sim) return;
-    const reducedMotion = () => effectiveReducedMotion(this.save.settings.reducedMotion);
-    sim.bus.on('block:destroyed', (e) => {
-      this.noteStrike(e.x, e.y);
-      this.audio.play(`break:${e.material}`);
-      this.save.addDestroyed(e.material);
-      this.renderer.juice.burst(e.material, e.x, e.y, e.material === 'tnt' ? 1.4 : 1);
-      if (e.points > 0) {
-        const color =
-          e.material === 'stone'
-            ? PALETTE.score.stone
-            : e.material === 'glass'
-              ? PALETTE.score.glass
-              : e.material === 'tnt'
-                ? PALETTE.score.bonus
-                : PALETTE.score.wood;
-        this.renderer.juice.textSprite(e.x, e.y, `+${e.points}`, color);
-      }
-      const state = this.session.getState();
-      if (state === 'flight' || state === 'resolve') {
-        this.shotDestroyed += 1;
-        this.maxCombo = Math.max(this.maxCombo, this.shotDestroyed);
-        if (e.material === 'tnt') {
-          this.shotTnt += 1;
-          this.maxTntChain = Math.max(this.maxTntChain, this.shotTnt);
-        }
-        if (this.shotDestroyed >= 3) {
-          this.renderer.juice.textSprite(
-            this.currentView.cx,
-            this.currentView.cy + this.currentView.h * 0.3,
-            `COMBO x${this.shotDestroyed}`,
-            PALETTE.score.bonus,
-            1.35
-          );
-        }
-        const now = performance.now() / 1000;
-        this.destroyedTimes.push(now);
-        this.destroyedTimes = this.destroyedTimes.filter((t) => now - t <= 0.5);
-        if (this.destroyedTimes.length >= 4 && !reducedMotion()) this.slowMoLeft = 0.8;
-      }
-    });
-    sim.bus.on('pig:destroyed', (e) => {
-      this.noteStrike(e.x, e.y);
-      this.audio.play('pig');
-      const entity = sim.registry.all().find((x) => x.id === e.id);
-      if (entity?.kind === 'pig' && entity.king) {
-        this.kingKilled = true;
-        this.save.addKing();
-      }
-      this.renderer.juice.burst('pig', e.x, e.y);
-      if (e.points > 0) {
-        this.renderer.juice.textSprite(e.x, e.y + 0.35, `+${e.points.toLocaleString()}`, PALETTE.score.pig, 1.45);
-      }
-    });
-    sim.bus.on('pig:damaged', (e) => {
-      this.noteStrike(e.x, e.y);
-      if (e.hpRatio > 0) this.renderer.juice.impactStars(e.x, e.y + 0.4);
-    });
-    sim.bus.on('block:damaged', (e) => {
-      this.noteStrike(e.x, e.y);
-      this.audio.play(`impact:${e.material}`);
-    });
-    sim.bus.on('block:landed', (e) => {
-      this.renderer.juice.burst('dust', e.x, e.y);
-    });
-    sim.bus.on('explosion', (e) => {
-      this.noteStrike(e.x, e.y);
-      this.audio.play('explosion');
-      this.renderer.juice.explosion(e.x, e.y, e.radius);
-      this.camera.addTrauma(0.9);
-      if (!reducedMotion()) this.hitStopLeft = 0.06;
-    });
-    sim.bus.on('bot:ability', () => this.audio.play('ability'));
-    sim.bus.on('bot:firstImpact', (e) => {
-      this.audio.play('impact');
-      this.renderer.juice.flash(e.x, e.y, '#fff2d8');
-      this.trail.noteImpact(sim.getSimTime(), e.x, e.y);
-    });
   }
 
   private tick(dt: number): void {
@@ -740,7 +374,7 @@ export class App {
         const isFinal = this.levelId
           ? nextLevel(this.levelId) === undefined
           : false;
-        this.results.show({
+        this.screens.results.show({
           won: pending.won,
           score: pending.score,
           stars: pending.stars,
@@ -749,14 +383,14 @@ export class App {
           isFinal,
           unlockedNames: this.runUnlocks
             .map((id) => achievementById(id)?.name ?? id),
-          pigImgUrl: this.pigImage(),
+          pigImgUrl: pigImage(),
           chime: (rate) => this.audio.playRate('victory', rate),
           tick: () => this.audio.play('ui'),
         });
-        this.hud.hide();
+        this.screens.hud.hide();
         for (const id of this.runUnlocks) {
           const name = achievementById(id)?.name ?? id;
-          this.toast(name, 'achv');
+          this.screens.toast(name, 'achv');
         }
       }
     }
@@ -765,7 +399,7 @@ export class App {
       const kind = this.pendingBotCard;
       this.pendingBotCard = null;
       const face = botFaces(kind).idle.image as CanvasImageSource;
-      this.botIntro.show(kind, face, () => {
+      this.screens.botIntro.show(kind, face, () => {
         this.save.markTutorialSeen(kind);
         this.syncSimulationPause();
       });
@@ -797,7 +431,7 @@ export class App {
               y: botBody.getLinearVelocity().y,
             }
           : null,
-        impactCenter: this.impactCenter,
+        impactCenter: this.fx.impactCenter,
         introElapsed: this.introElapsed,
         reducedMotion: effectiveReducedMotion(this.save.settings.reducedMotion),
         topHudPx: 56,
@@ -808,34 +442,18 @@ export class App {
     );
 
     const best = this.levelId ? (this.save.levelProgress(this.levelId)?.bestScore ?? 0) : 0;
-    this.hud.setScore(this.session.getScore(), best, def?.stars[2] ?? 1);
-    this.hud.setStars(this.session.getStars());
-    this.hud.setTargetsLeft(sim?.pigsAlive() ?? 0);
-  }
-
-  /** Zoom limits + pan bounds for CameraGestures on the current level. */
-  private gestureLimits(): { minH: number; maxH: number; pan: import('../camera/fitRect').Rect } {
-    const def = this.levelId ? levelById(this.levelId) : null;
-    if (!def) {
-      return { minH: 6, maxH: 30, pan: { x0: -20, x1: 40, y0: -4, y1: 14 } };
-    }
-    const slingH = this.camera.slingView(def).h;
-    const overH = this.camera.overviewView(def).h;
-    const c = def.camera;
-    const pan = unionRect(
-      { x0: c.minX, x1: c.maxX, y0: c.minY, y1: c.maxY },
-      { x0: def.sling.x - 4, x1: def.sling.x + 4, y0: 0, y1: 7 }
-    );
-    return { minH: slingH, maxH: overH * 1.2, pan };
+    this.screens.hud.setScore(this.session.getScore(), best, def?.stars[2] ?? 1);
+    this.screens.hud.setStars(this.session.getStars());
+    this.screens.hud.setTargetsLeft(sim?.pigsAlive() ?? 0);
   }
 
   private draw(_alpha: number, frameDt: number): void {
     this.syncSimulationPause();
     // Hit-stop and collapse slow-motion scale the sim clock; render keeps running.
     const rm = effectiveReducedMotion(this.save.settings.reducedMotion);
-    this.hitStopLeft = Math.max(0, this.hitStopLeft - frameDt);
-    this.slowMoLeft = Math.max(0, this.slowMoLeft - frameDt);
-    this.loop.timeScale = rm ? 1 : this.hitStopLeft > 0 ? 0 : this.slowMoLeft > 0 ? 0.6 : 1;
+    this.fx.hitStopLeft = Math.max(0, this.fx.hitStopLeft - frameDt);
+    this.fx.slowMoLeft = Math.max(0, this.fx.slowMoLeft - frameDt);
+    this.loop.timeScale = rm ? 1 : this.fx.hitStopLeft > 0 ? 0 : this.fx.slowMoLeft > 0 ? 0.6 : 1;
     const shake = this.camera.getShake();
     this.sling.setProjector((cx, cy) =>
       clientToWorld(cx, cy, this.canvas, this.currentView)

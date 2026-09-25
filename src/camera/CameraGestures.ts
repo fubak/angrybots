@@ -1,4 +1,23 @@
-import { type Rect, type View } from './fitRect';
+import { type Rect, type View, unionRect } from './fitRect';
+import type { CameraDirector } from './CameraDirector';
+import type { LevelV2 } from '../levels/schema';
+
+export type GestureLimits = { minH: number; maxH: number; pan: Rect };
+
+/** Zoom limits + pan bounds for manual gestures: sling view → overview + 20%. */
+export function gestureLimitsFor(def: LevelV2 | null, camera: CameraDirector): GestureLimits {
+  if (!def) {
+    return { minH: 6, maxH: 30, pan: { x0: -20, x1: 40, y0: -4, y1: 14 } };
+  }
+  const slingH = camera.slingView(def).h;
+  const overH = camera.overviewView(def).h;
+  const c = def.camera;
+  const pan = unionRect(
+    { x0: c.minX, x1: c.maxX, y0: c.minY, y1: c.maxY },
+    { x0: def.sling.x - 4, x1: def.sling.x + 4, y0: 0, y1: 7 }
+  );
+  return { minH: slingH, maxH: overH * 1.2, pan };
+}
 
 /** Zoom range: no tighter than the sling view, no wider than overview + 20%. Pan clamped to bounds. */
 export function clampManualView(

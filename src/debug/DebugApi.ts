@@ -35,6 +35,7 @@ export type DebugApi = {
   advance?: (steps: number) => void;
   setSeed?: (n: number) => void;
   freezeTime?: (on: boolean) => void;
+  popup?: (x: number, y: number, text: string, color?: string, scale?: number) => void;
 };
 
 export function createDebugApi(opts: {
@@ -96,6 +97,9 @@ export function createDebugApi(opts: {
     api.setSeed = (n: number) => opts.session.getSim()?.setSeed(n);
     api.freezeTime = (on: boolean) => {
       opts.loop.paused = on;
+    };
+    api.popup = (x, y, text, color = '#ffe066', scale = 1) => {
+      opts.renderer.juice.textSprite(x, y, text, color, scale);
     };
   }
 

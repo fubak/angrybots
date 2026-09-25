@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Material } from '../entities/types';
 import { DEPTH } from '../config/render';
+import { layoutText, type GlyphMetric } from './glyphLayout';
 
 type PKind = 'wood' | 'glass' | 'stone' | 'feather' | 'smoke' | 'spark' | 'glow' | 'ring';
 
@@ -197,7 +198,7 @@ export class Juice {
   private readonly pools = new Map<PKind, { mesh: THREE.InstancedMesh; items: Particle[] }>();
   private readonly popups: PopupScore[] = [];
   private readonly dummy = new THREE.Object3D();
-  private readonly atlasCache = new Map<string, { tex: THREE.Texture; uv: Map<string, [number, number, number, number]> }>();
+  private readonly atlasCache = new Map<string, { tex: THREE.Texture; metrics: Map<string, GlyphMetric> }>();
   private fontRequested = false;
   private readonly scene: THREE.Scene;
 
@@ -293,22 +294,32 @@ export class Juice {
 
   /** Shared TNT/blast explosion VFX: shockwave ring + fireball flash + smoke + sparks. */
   explosion(x: number, y: number, radius = 3.5): void {
+    // White shockwave ring, 0.3s.
     this.spawn('ring', {
-      x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.4, base: 0.5, grow: radius * 4.5,
-      tint: new THREE.Color('#ffe9b0'),
+      x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.3, base: 0.6, grow: radius * 5,
+      tint: new THREE.Color('#ffffff'),
     });
+    // Bright yellow-orange core: 0.5 → 3.5u over 0.25s.
     this.spawn('glow', {
-      x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.22, base: radius * 0.75, grow: radius * 3,
-      tint: new THREE.Color('#ffb257'),
+      x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.25, base: 0.5, grow: (radius - 0.5) / 0.25,
+      tint: new THREE.Color('#ffd23e'),
+    });
+    // Orange outer glow, larger and longer-lived.
+    this.spawn('glow', {
+      x, y, vx: 0, vy: 0, rot: 0, vr: 0, life: 0.45, base: radius * 0.9, grow: radius * 1.8,
+      tint: new THREE.Color('#ff7a1a'),
     });
     const rnd = (a: number, b: number) => a + Math.random() * (b - a);
-    const smokeCount = 10 + Math.floor(Math.random() * 5);
-    for (let i = 0; i < smokeCount; i++)
+    // Smoke stays second fiddle: fewer, darker puffs biased to the blast edges.
+    const smokeCount = 8 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < smokeCount; i++) {
+      const side = i % 2 === 0 ? 1 : -1;
       this.spawn('smoke', {
-        x: x + rnd(-0.5, 0.5), y: y + rnd(-0.3, 0.4), vx: rnd(-1.8, 1.8), vy: rnd(1.2, 3.4),
-        rot: rnd(0, 6), vr: rnd(-2, 2), life: rnd(0.9, 1.6), base: rnd(0.9, 1.5), grow: 1.8,
-        tint: new THREE.Color('#6e6a63'),
+        x: x + side * rnd(0.3, radius * 0.4), y: y + rnd(-0.2, 0.5), vx: rnd(-1.2, 1.2), vy: rnd(1.2, 3.2),
+        rot: rnd(0, 6), vr: rnd(-2, 2), life: rnd(0.9, 1.5), base: rnd(0.8, 1.3), grow: 1.7,
+        tint: new THREE.Color('#57534c'),
       });
+    }
     for (let i = 0; i < 14; i++)
       this.spawn('spark', {
         x, y, vx: rnd(-6, 6), vy: rnd(2, 9), rot: rnd(0, 6), vr: rnd(-10, 10),
@@ -349,36 +360,40 @@ export class Juice {
     });
   }
 
-  private glyphAtlas(color: string): { tex: THREE.Texture; uv: Map<string, [number, number, number, number]> } {
+  private glyphAtlas(color: string): { tex: THREE.Texture; metrics: Map<string, GlyphMetric> } {
     let atlas = this.atlasCache.get(color);
     if (atlas) return atlas;
     const cell = 72;
-    const pad = 8;
+    const pad = 6;
     const c = document.createElement('canvas');
     c.width = cell * GLYPHS.length;
     c.height = cell;
     const ctx = c.getContext('2d');
     if (!ctx) throw new Error('2d context');
-    const uv = new Map<string, [number, number, number, number]>();
+    ctx.font = '800 56px "Baloo 2", "Trebuchet MS", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 8;
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#23180f';
+    ctx.fillStyle = color;
+    const metrics = new Map<string, GlyphMetric>();
     for (let i = 0; i < GLYPHS.length; i++) {
       const ch = GLYPHS[i]!;
       const x = i * cell;
       ctx.clearRect(x, 0, cell, cell);
-      ctx.font = '800 56px "Baloo 2", "Trebuchet MS", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.lineWidth = 9;
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#23180f';
-      ctx.strokeText(ch, x + cell / 2, cell / 2 + 2);
-      ctx.fillStyle = color;
-      ctx.fillText(ch, x + cell / 2, cell / 2 + 2);
-      const w = Math.min(cell - pad * 2, Math.max(10, ctx.measureText(ch).width + 12));
-      uv.set(ch, [x / c.width, 0, w / c.width, 1]);
+      ctx.strokeText(ch, x + pad, cell / 2 + 2);
+      ctx.fillText(ch, x + pad, cell / 2 + 2);
+      const w = Math.min(cell - pad * 2, Math.max(8, ctx.measureText(ch).width));
+      metrics.set(ch, {
+        u0: x / c.width,
+        uw: (w + pad * 2) / c.width,
+        advancePx: w + pad * 2,
+      });
     }
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
-    atlas = { tex, uv };
+    atlas = { tex, metrics };
     this.atlasCache.set(color, atlas);
     return atlas;
   }
@@ -387,26 +402,17 @@ export class Juice {
   textSprite(x: number, y: number, text: string, color: string, scale = 1): PopupScore {
     this.requestFont();
     const atlas = this.glyphAtlas(color);
-    const cellW = 0.42 * scale;
     const cellH = 0.6 * scale;
+    const unitPerPx = cellH / 72;
+    const { glyphs, width } = layoutText(text, atlas.metrics, unitPerPx, cellH * 0.32);
     const positions: number[] = [];
     const uvs: number[] = [];
     const indices: number[] = [];
-    let cx = 0;
-    for (const ch of text) {
-      const g = atlas.uv.get(ch);
-      if (!g) {
-        cx += cellW * 0.5;
-        continue;
-      }
-      const [u0, , uw, vh] = g;
-      const w = cellW * (uw / (1 / GLYPHS.length)) * (72 / 56) * 0.1 + cellW * 0.55;
-      const hw = Math.min(cellW, w) / 2;
+    for (const g of glyphs) {
       const base = positions.length / 3;
-      positions.push(cx - hw, -cellH / 2, 0, cx + hw, -cellH / 2, 0, cx + hw, cellH / 2, 0, cx - hw, cellH / 2, 0);
-      uvs.push(u0, 0, u0 + uw, 0, u0 + uw, vh, u0, vh);
+      positions.push(g.x0, -cellH / 2, 0, g.x1, -cellH / 2, 0, g.x1, cellH / 2, 0, g.x0, cellH / 2, 0);
+      uvs.push(g.u0, 0, g.u1, 0, g.u1, 1, g.u0, 1);
       indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
-      cx += hw * 2 + cellW * 0.12;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -418,7 +424,7 @@ export class Juice {
       depthWrite: false,
     });
     const mesh = new THREE.Mesh(geo, material);
-    mesh.position.x = -cx / 2;
+    mesh.position.x = -width / 2;
     const group = new THREE.Group();
     group.add(mesh);
     group.position.set(x, y, DEPTH.popups);
