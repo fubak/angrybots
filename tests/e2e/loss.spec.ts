@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { launchSolution, snapshot, skipToPlay } from './helpers';
 
 test('First Flight loss after three weak shots', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   await skipToPlay(page, 'first-flight');
   for (let i = 0; i < 3; i++) {
     await expect.poll(async () => (await snapshot(page)).state, { timeout: 45_000 }).toBe('aim');

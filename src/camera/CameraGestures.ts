@@ -1,4 +1,4 @@
-import { clampView, type Rect, type View } from './fitRect';
+import { type Rect, type View } from './fitRect';
 
 /** Zoom range: no tighter than the sling view, no wider than overview + 20%. Pan clamped to bounds. */
 export function clampManualView(
@@ -11,7 +11,16 @@ export function clampManualView(
   const lo = Math.min(minH, maxH);
   const hi = Math.max(minH, maxH);
   const h = Math.min(hi, Math.max(lo, v.h));
-  return clampView({ ...v, h }, pan, aspect);
+  const w = h * aspect;
+  const cx =
+    w >= pan.x1 - pan.x0
+      ? (pan.x0 + pan.x1) / 2
+      : Math.min(Math.max(v.cx, pan.x0 + w / 2), pan.x1 - w / 2);
+  const cy =
+    h >= pan.y1 - pan.y0
+      ? (pan.y0 + pan.y1) / 2
+      : Math.min(Math.max(v.cy, pan.y0 + h / 2), pan.y1 - h / 2);
+  return { cx, cy, h };
 }
 
 /** Zoom around a screen anchor: keeps `anchor` (world point) under the pointer. */

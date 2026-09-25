@@ -720,8 +720,14 @@ body,
   align-items: center;
   gap: 8px;
   pointer-events: auto;
-  animation: ui-pop 0.25s ease both;
+  animation: toast-pop 0.25s ease both;
   max-width: min(480px, calc(100vw - 24px));
+}
+
+@keyframes toast-pop {
+  0% { transform: translateX(-50%) scale(0.6); opacity: 0; }
+  70% { transform: translateX(-50%) scale(1.06); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
 }
 
 .ui-toast.hud-tip {
@@ -751,9 +757,17 @@ body,
   text-align: center;
 }
 
+/* translate must live inside the keyframes — ui-pop's scale() would override the
+   centering translate and push the panel out of the viewport */
+@keyframes results-pop {
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+  70% { transform: translate(-50%, -50%) scale(1.06); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
 .results-panel.open {
   display: flex;
-  animation: ui-pop 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  animation: results-pop 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
 .results-panel h2 {
@@ -781,7 +795,13 @@ body,
   border-radius: 20px;
   transform: rotate(-3deg);
   border: 3px solid #23180f;
-  animation: ui-pop 0.3s both;
+  animation: ribbon-pop 0.3s both;
+}
+
+@keyframes ribbon-pop {
+  0% { transform: rotate(-3deg) scale(0.6); opacity: 0; }
+  70% { transform: rotate(-3deg) scale(1.06); opacity: 1; }
+  100% { transform: rotate(-3deg) scale(1); opacity: 1; }
 }
 
 .results-achv {

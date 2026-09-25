@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { pouchForLaunch, SLING } from '../../src/sling/launch';
-import { dismissBotCard, holdMs, openApp, screenOf, snapshot, waitForAim } from './helpers';
+import {
+  holdMs,
+  openApp,
+  pickLevel,
+  screenOf,
+  snapshot,
+  waitForAim,
+} from './helpers';
 
 test('collapse stays on the fort and the tip fits', async ({ page }) => {
   test.setTimeout(180_000);
@@ -80,30 +87,30 @@ test('collapse stays on the fort and the tip fits', async ({ page }) => {
   expect(durations).toContain(0.24);
   expect(durations).toContain(0.62);
 
-  await page.locator('button[data-a="next"]').click();
-  await expect.poll(async () => (await snapshot(page)).levelId, { timeout: 15_000 }).toBe('powder-row');
-  await expect.poll(async () => (await snapshot(page)).state, { timeout: 30_000 }).toBe('aim');
-  await dismissBotCard(page); // first-time dash intro card blocks input
+  // powder-row's recorded solution sits on a knife edge (±0.1°/±0.1 speed flips
+  // won ↔ aim), so the TNT leg goes to tnt-porch, whose solution has a wide win
+  // plateau (angle ~11–13° at speed 15–15.5).
+  await page.locator('.results-panel button[data-a="levels"]').click();
+  await pickLevel(page, 'tnt-porch');
+  await waitForAim(page); // waits for aim and dismisses the first-time dash card
 
-  const powder = pouchForLaunch(43, 20);
-  const want = Math.hypot(powder.pull.x, powder.pull.y);
-  const origin = await screenOf(page, SLING.anchor.x, SLING.anchor.y);
-  let dest = await screenOf(page, powder.x, powder.y);
-  await page.mouse.move(origin.x, origin.y);
+  const tnt = pouchForLaunch(12, 15);
+  const from2 = await screenOf(page, SLING.anchor.x, SLING.anchor.y);
+  let to2 = await screenOf(page, tnt.x, tnt.y);
+  await page.mouse.move(from2.x, from2.y);
   await page.mouse.down();
   await holdMs(page, 400);
-  await page.mouse.move(dest.x, dest.y, { steps: 12 });
-  for (let i = 0; i < 6; i++) {
+  await page.mouse.move(to2.x, to2.y, { steps: 12 });
+  for (let i = 0; i < 10; i++) {
     const s = await snapshot(page);
-    const got = Math.hypot(s.pullX, s.pullY);
     if (s.slingPhase !== 'dragging') break;
-    if (Math.abs(got - want) < 0.12) break;
-    const scale = want / Math.max(got, 0.12);
-    dest = {
-      x: origin.x + (dest.x - origin.x) * scale,
-      y: origin.y + (dest.y - origin.y) * scale,
-    };
-    await page.mouse.move(dest.x, dest.y, { steps: 5 });
+    const ex = tnt.pull.x - s.pullX;
+    const ey = tnt.pull.y - s.pullY;
+    if (Math.hypot(ex, ey) < 0.02) break;
+    const box = await page.locator('canvas[data-engine]').boundingBox();
+    const ppu = box!.height / s.camera.height;
+    to2 = { x: to2.x - ex * ppu, y: to2.y + ey * ppu };
+    await page.mouse.move(to2.x, to2.y, { steps: 5 });
   }
   await page.mouse.up();
 
