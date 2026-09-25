@@ -37,6 +37,13 @@ export class SlingInput {
     this.blocked = fn;
   }
 
+  /** Camera gestures own a pointer → the sling must not grab it. */
+  setSuppress(fn: () => boolean): void {
+    this.suppressed = fn;
+  }
+
+  private suppressed: () => boolean = () => false;
+
   /** Load on empty→aim only. Holding a drag across ticks must keep pull. */
   syncLoadedBot(): void {
     const kind = this.session.getLoadedBotKind();
@@ -73,11 +80,13 @@ export class SlingInput {
   private onDown = (e: PointerEvent) => {
     if (this.blocked()) return;
     if (this.session.getState() === 'flight') {
+      if (this.suppressed()) return;
       this.session.activateAbility();
       return;
     }
     if (this.session.getState() !== 'aim') return;
     if (this.activePointer !== null) return;
+    if (this.suppressed()) return;
     const w = this.projector(e.clientX, e.clientY);
     const rect = this.canvas.getBoundingClientRect();
     const leftZone = e.clientX - rect.left < rect.width * 0.45;

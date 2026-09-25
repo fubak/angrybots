@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { pouchForLaunch, SLING } from '../../src/sling/launch';
-import { holdMs, screenOf, skipToPlay, snapshot } from './helpers';
+import { dismissBotCard, holdMs, openApp, screenOf, snapshot, waitForAim } from './helpers';
 
 test('collapse stays on the fort and the tip fits', async ({ page }) => {
   test.setTimeout(180_000);
@@ -15,7 +15,11 @@ test('collapse stays on the fort and the tip fits', async ({ page }) => {
     };
   });
 
-  await skipToPlay(page, 'first-flight');
+  await openApp(page, { unlockAll: true });
+  await page.getByRole('button', { name: 'Play' }).click();
+  await page.locator('.chapter-card').first().click();
+  await page.locator('button[data-level-id="first-flight"]').click();
+  // The level tip is a 4s toast — check it before the intro finishes.
   const tip = page.locator('.hud-tip');
   const tipBox = await tip.boundingBox();
   const vp = page.viewportSize();
@@ -24,6 +28,7 @@ test('collapse stays on the fort and the tip fits', async ({ page }) => {
   expect(tipBox!.x).toBeGreaterThanOrEqual(0);
   expect(tipBox!.x + tipBox!.width).toBeLessThanOrEqual(vp!.width - 2);
   expect(await tip.innerText()).toContain('cancel');
+  await waitForAim(page);
   await page.screenshot({ path: 'docs/evidence/collapse-aim.png' });
 
   const pouch = pouchForLaunch(34, 20);
@@ -65,7 +70,7 @@ test('collapse stays on the fort and the tip fits', async ({ page }) => {
   expect(state).toBe('won');
   expect(hitShot).toBe(true);
   expect(Math.min(...lows)).toBeGreaterThan(0);
-  await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'LEVEL CLEARED!' })).toBeVisible();
   await page.screenshot({ path: 'docs/evidence/collapse-victory.png' });
 
   const durations = await page.evaluate(
@@ -75,9 +80,10 @@ test('collapse stays on the fort and the tip fits', async ({ page }) => {
   expect(durations).toContain(0.24);
   expect(durations).toContain(0.62);
 
-  await page.getByRole('button', { name: 'Next' }).click();
+  await page.locator('button[data-a="next"]').click();
   await expect.poll(async () => (await snapshot(page)).levelId, { timeout: 15_000 }).toBe('powder-row');
   await expect.poll(async () => (await snapshot(page)).state, { timeout: 30_000 }).toBe('aim');
+  await dismissBotCard(page); // first-time dash intro card blocks input
 
   const powder = pouchForLaunch(43, 20);
   const want = Math.hypot(powder.pull.x, powder.pull.y);

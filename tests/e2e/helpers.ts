@@ -41,38 +41,68 @@ export async function assertAngryBots(page: Page): Promise<void> {
   await expect(page.locator('#app[data-game="angrybots"]')).toBeAttached();
 }
 
-export async function openApp(page: Page): Promise<void> {
-  await page.goto('/');
+export async function openApp(page: Page, opts?: { unlockAll?: boolean }): Promise<void> {
+  await page.goto(opts?.unlockAll ? '/?unlockAll=1' : '/');
   await assertAngryBots(page);
 }
 
-export async function seedCleared(page: Page, ids: string[]): Promise<void> {
+export async function seedCleared(
+  page: Page,
+  ids: string[],
+  opts?: { stars?: number }
+): Promise<void> {
+  const stars = opts?.stars ?? 1;
   const levels: Record<string, { bestScore: number; stars: number; cleared: boolean }> = {};
-  for (const id of ids) levels[id] = { bestScore: 1, stars: 1, cleared: true };
+  for (const id of ids) levels[id] = { bestScore: 1, stars, cleared: true };
   await page.addInitScript((payload) => {
     localStorage.setItem('angrybots-save-v2', JSON.stringify(payload));
   }, {
     version: 2,
     levels,
     settings: { music: 0.8, sfx: 0.8, voice: 0.8, aimGuide: 'off', reducedMotion: true },
-    tutorialsSeen: {},
+    tutorialsSeen: { grok: true, dash: true, split: true, heavy: true, blast: true },
     lastLevelId: null,
   });
 }
 
+export async function dismissBotCard(page: Page): Promise<void> {
+  const card = page.locator('.modal-wrap .bot-card');
+  // The card opens on the same tick the sim reaches 'aim' — allow a beat.
+  await card.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+  if (await card.isVisible()) {
+    await card.locator('button').first().click();
+  }
+}
+
 export async function waitForAim(page: Page, timeout = 20_000): Promise<void> {
   await expect.poll(async () => (await snapshot(page)).state, { timeout }).toBe('aim');
+  await dismissBotCard(page);
+}
+
+/** Clicks through the chapter map until the level node exists, then clicks it. */
+export async function pickLevel(page: Page, levelId: string): Promise<void> {
+  for (const card of await page.locator('.chapter-card').all()) {
+    await card.click();
+    const node = page.locator(`button[data-level-id="${levelId}"]`);
+    if (await node.count()) {
+      await node.click();
+      return;
+    }
+    const back = page.getByRole('button', { name: 'Back to chapters' });
+    if (await back.count()) await back.click();
+  }
+  throw new Error(`level ${levelId} not found`);
 }
 
 export async function skipToPlay(page: Page, levelId = 'first-flight'): Promise<void> {
-  await openApp(page);
+  await openApp(page, { unlockAll: true });
   await page.getByRole('button', { name: 'Play' }).click();
-  await page.locator(`button[data-level-id="${levelId}"]`).click();
+  await pickLevel(page, levelId);
   await waitForAim(page);
 }
 
 async function canvasBox(page: Page) {
-  const box = await page.locator('canvas').boundingBox();
+  const box = await page.locator('canvas[data-engine]').boundingBox();
   if (!box) throw new Error('canvas missing');
   return box;
 }
@@ -103,7 +133,7 @@ export async function pointerDrag(
   if (type === 'touch') {
     await page.evaluate(
       ({ a, b, wait }) => {
-        const c = document.querySelector('canvas');
+        const c = document.querySelector('canvas[data-engine]');
         if (!c) throw new Error('no canvas');
         const fire = (name: string, x: number, y: number) => {
           c.dispatchEvent(
@@ -155,7 +185,7 @@ export async function launchSolution(
   if (type === 'touch') {
     await page.evaluate(
       ({ a, wait }) => {
-        const c = document.querySelector('canvas');
+        const c = document.querySelector('canvas[data-engine]');
         if (!c) throw new Error('no canvas');
         c.dispatchEvent(
           new PointerEvent('pointerdown', {
@@ -175,7 +205,7 @@ export async function launchSolution(
     for (let i = 0; i < 8; i++) {
       await page.evaluate(
         ({ b }) => {
-          const c = document.querySelector('canvas');
+          const c = document.querySelector('canvas[data-engine]');
           if (!c) throw new Error('no canvas');
           c.dispatchEvent(
             new PointerEvent('pointermove', {
@@ -202,7 +232,7 @@ export async function launchSolution(
     }
     await page.evaluate(
       ({ b }) => {
-        const c = document.querySelector('canvas');
+        const c = document.querySelector('canvas[data-engine]');
         if (!c) throw new Error('no canvas');
         c.dispatchEvent(
           new PointerEvent('pointerup', {
@@ -242,7 +272,7 @@ export async function tapPlayfield(page: Page): Promise<void> {
   const box = await canvasBox(page);
   await page.evaluate(
     ({ x, y }) => {
-      const c = document.querySelector('canvas');
+      const c = document.querySelector('canvas[data-engine]');
       if (!c) throw new Error('no canvas');
       c.dispatchEvent(
         new PointerEvent('pointerdown', {

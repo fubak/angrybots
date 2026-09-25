@@ -127,6 +127,11 @@ export class Renderer {
     return this.slingView.queuePositions();
   }
 
+  /** Trajectory preview density: 'short' truncates the arc, 'off' hides it. */
+  setAimGuide(mode: 'off' | 'short' | 'full'): void {
+    this.slingView.setGuide(mode);
+  }
+
   setSize(w: number, h: number): void {
     this.renderer.setSize(w, h, false);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));

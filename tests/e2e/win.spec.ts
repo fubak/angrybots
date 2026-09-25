@@ -15,5 +15,5 @@ test('First Flight win uses real pointer input', async ({ page }, testInfo) => {
   const s = await snapshot(page);
   expect(s.pigsAlive).toBe(0);
   expect(s.botsLeft).toBeLessThan(3);
-  await expect(page.getByRole('heading', { name: 'Victory!' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'LEVEL CLEARED!' })).toBeVisible();
 });

@@ -7,20 +7,33 @@ import type { GameEvents } from '../game/events';
 import { GameSession } from '../game/GameSession';
 import { SaveStore } from '../game/SaveStore';
 import { allLevels, levelById, nextLevel } from '../levels/registry';
+import { CHAPTERS } from '../levels/chapters';
 import { CameraDirector } from '../camera/CameraDirector';
+import { CameraGestures } from '../camera/CameraGestures';
 import { Renderer } from '../render/Renderer';
 import { SlingInput, clientToWorld } from '../sling/SlingInput';
 import { ShotTrail } from '../sling/ShotTrail';
 import { SoundBank } from '../audio/SoundBank';
 import { createDebugApi } from '../debug/DebugApi';
 import { effectiveReducedMotion } from './motion';
+import { currentLevelId, PROGRESSION } from '../game/progression';
+import { ACHIEVEMENTS, achievementById, evaluateAchievements } from '../game/achievements';
+import { firstUnseenBotInQueue } from '../bots/tutorialTips';
+import { botFaces, pigFaces } from '../render/illustrations';
+import { iconSvg } from '../ui/icons';
 import { Hud } from '../ui/Hud';
 import { PauseMenu } from '../ui/PauseMenu';
 import { ResultsPanel } from '../ui/ResultsPanel';
 import { TitleScreen } from '../ui/TitleScreen';
 import { LevelSelect } from '../ui/LevelSelect';
 import { RotatePrompt } from '../ui/RotatePrompt';
-import type { View } from '../camera/fitRect';
+import { Splash } from '../ui/Splash';
+import { Settings } from '../ui/Settings';
+import { Credits } from '../ui/Credits';
+import { AchievementsScreen } from '../ui/Achievements';
+import { BotIntro } from '../ui/BotIntro';
+import { unionRect, type View } from '../camera/fitRect';
+import type { BotKind } from '../levels/schema';
 
 type AppPhase = 'title' | 'levelSelect' | 'play';
 
@@ -49,7 +62,13 @@ export class App {
   private backgrounded = false;
   private resultRecorded = false;
   private resultDelay = 0;
-  private pendingResult: { won: boolean; score: number; stars: number } | null = null;
+  private pendingResult: {
+    won: boolean;
+    score: number;
+    stars: number;
+    newBest: boolean;
+    canSkip: boolean;
+  } | null = null;
   private nextBotT: number | null = null;
   private bonusT: number | null = null;
   private bonusFired = 0;
@@ -57,18 +76,34 @@ export class App {
   private destroyedTimes: number[] = [];
   private hitStopLeft = 0;
   private slowMoLeft = 0;
+  private shotsFired = 0;
+  private maxCombo = 0;
+  private shotTnt = 0;
+  private maxTntChain = 0;
+  private kingKilled = false;
+  private runUnlocks: string[] = [];
+  private pendingBotCard: BotKind | null = null;
+  private seenTips = new Set<string>();
+  private readonly unlockAll =
+    import.meta.env.DEV && new URLSearchParams(location.search).get('unlockAll') === '1';
 
   private hud: Hud;
   private pauseMenu: PauseMenu;
   private results: ResultsPanel;
   private title: TitleScreen;
   private levelSelect: LevelSelect;
+  private settings: Settings;
+  private credits: Credits;
+  private achvScreen: AchievementsScreen;
+  private botIntro: BotIntro;
+  private gestures: CameraGestures;
 
   constructor(root: HTMLElement) {
     this.save.load();
     this.audio.setMusicVolume(this.save.settings.music);
     this.audio.setSfxVolume(this.save.settings.sfx);
     this.audio.setVoiceVolume(this.save.settings.voice);
+    this.audio.muted = this.save.settings.muted;
     root.setAttribute('data-game', 'angrybots');
     this.shell = document.createElement('div');
     this.shell.setAttribute('data-game', 'angrybots');
@@ -88,7 +123,9 @@ export class App {
     this.sling = new SlingInput(this.canvas, this.session, this.bus);
     this.sling.setBlocked(() => this.inputBlocked());
 
-    this.hud = new Hud(this.uiRoot, () => this.togglePause(), () => this.restartLevel());
+    const splash = new Splash(this.uiRoot, this.botImage('grok'));
+
+    this.hud = new Hud(this.uiRoot, () => this.togglePause());
     this.pauseMenu = new PauseMenu(this.uiRoot, {
       resume: () => this.togglePause(false),
       restart: () => {
@@ -96,16 +133,55 @@ export class App {
         this.restartLevel();
       },
       levels: () => this.goLevelSelect(),
-      onSettings: (key, value) => {
-        if (key === 'music') this.audio.setMusicVolume(value as number);
-        if (key === 'sfx') this.audio.setSfxVolume(value as number);
-        this.save.settings[key as 'music' | 'sfx'] = value as number;
-        this.save.persist();
-      },
+      settings: () => this.openSettings(),
+      onSettings: (key, value) => this.applySetting(key, value),
     });
     this.results = new ResultsPanel(this.uiRoot, (a) => this.onResultsAction(a));
-    this.title = new TitleScreen(this.uiRoot, () => this.goLevelSelect());
-    this.levelSelect = new LevelSelect(this.uiRoot, (id) => this.startLevel(id));
+    this.title = new TitleScreen(this.uiRoot, {
+      play: () => this.goLevelSelect(),
+      settings: () => this.openSettings(),
+      achievements: () => this.openAchievements(),
+      credits: () => this.openCredits(),
+    });
+    this.levelSelect = new LevelSelect(
+      this.uiRoot,
+      (id) => this.startLevel(id),
+      () => this.goTitle()
+    );
+    this.settings = new Settings(this.uiRoot, {
+      onChange: (key, value) => this.applySetting(key, value),
+      onReset: () => {
+        this.save.resetProgress();
+        this.settings.populate(this.save.settings);
+        this.refreshTitleStats();
+      },
+      onClose: () => this.settings.toggle(false),
+    });
+    this.credits = new Credits(this.uiRoot, () => this.credits.toggle(false));
+    this.achvScreen = new AchievementsScreen(this.uiRoot, () =>
+      this.achvScreen.toggle(false)
+    );
+    this.botIntro = new BotIntro(this.uiRoot);
+
+    this.gestures = new CameraGestures(this.canvas, {
+      enabled: () =>
+        this.phase === 'play' &&
+        this.session.getState() === 'aim' &&
+        !this.inputBlocked(),
+      slingDragging: () => this.sling.model.phase === 'dragging',
+      cancelSling: () => this.sling.cancelActive(),
+      slingGrab: (cx, cy) => {
+        const rect = this.canvas.getBoundingClientRect();
+        if (cx - rect.left < rect.width * 0.45) return true;
+        const w = clientToWorld(cx, cy, this.canvas, this.currentView);
+        return this.sling.model.isNearBot(w.x, w.y);
+      },
+      worldPerPx: () => this.currentView.h / Math.max(1, this.canvas.clientHeight),
+      currentView: () => this.currentView,
+      limits: () => this.gestureLimits(),
+      aspect: () => this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight),
+    });
+    this.sling.setSuppress(() => this.gestures.isActive());
 
     this.loop = new FixedStepLoop({
       step: TUNING.dt,
@@ -126,7 +202,11 @@ export class App {
       this.audio.play('yell');
       this.audio.tension(0);
       this.shotDestroyed = 0;
+      this.shotTnt = 0;
       this.destroyedTimes.length = 0;
+      this.shotsFired += 1;
+      this.save.addShot();
+      this.gestures.reset();
     });
     this.bus.on('sling:aimUpdate', (e) => this.audio.tension(e.tension));
     this.bus.on('sling:cancel', () => {
@@ -138,12 +218,13 @@ export class App {
     window.addEventListener('pointerdown', unlock, { once: true });
 
     window.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape') this.togglePause();
+      if (ev.key === 'Escape') this.onEscape();
       if (ev.key === 'r' || ev.key === 'R') this.restartLevel();
       if (ev.key === ' ' && this.session.getState() === 'flight' && !this.inputBlocked()) {
         ev.preventDefault();
         this.session.activateAbility();
       }
+      if (ev.key === 'Enter') this.activatePrimary();
     });
 
     document.addEventListener('visibilitychange', () => {
@@ -159,10 +240,22 @@ export class App {
       }
     });
 
-    void this.audio.preload().then(() => {
-      this.title.show();
-      this.hud.hide();
-    });
+    let booted = false;
+    const finishBoot = (): void => {
+      if (booted) return;
+      booted = true;
+      splash.ready(() => {
+        this.refreshTitleStats();
+        this.title.show();
+        this.hud.hide();
+      });
+    };
+    void Promise.all([
+      document.fonts.ready,
+      document.fonts.load('800 64px "Baloo 2"').catch(() => []),
+      this.audio.preload(),
+    ]).then(() => requestAnimationFrame(finishBoot));
+    window.setTimeout(finishBoot, 3000);
 
     this.onResize();
     window.addEventListener('resize', () => this.onResize());
@@ -186,12 +279,12 @@ export class App {
     this.loop.start();
   }
 
-  private orderedIds(): string[] {
-    return allLevels().map((l) => l.id);
+  private levelRefs(): readonly { id: string; chapter: string }[] {
+    return allLevels();
   }
 
   private isLevelUnlocked(id: string): boolean {
-    return this.save.isUnlocked(id, this.orderedIds());
+    return this.unlockAll || this.save.isUnlocked(id, this.levelRefs());
   }
 
   private inputBlocked(): boolean {
@@ -201,8 +294,114 @@ export class App {
       this.phase !== 'play' ||
       this.results.isVisible() ||
       this.pauseMenu.isVisible() ||
-      this.rotate.isVisible()
+      this.rotate.isVisible() ||
+      this.settings.isVisible() ||
+      this.achvScreen.isVisible() ||
+      this.credits.isVisible() ||
+      this.botIntro.isVisible()
     );
+  }
+
+  private onEscape(): void {
+    if (this.settings.isVisible()) {
+      this.settings.toggle(false);
+      return;
+    }
+    if (this.credits.isVisible()) {
+      this.credits.toggle(false);
+      return;
+    }
+    if (this.achvScreen.isVisible()) {
+      this.achvScreen.toggle(false);
+      return;
+    }
+    if (this.phase === 'levelSelect') {
+      if (!this.levelSelect.back()) this.goTitle();
+      return;
+    }
+    if (this.phase === 'title') return;
+    this.togglePause();
+  }
+
+  /** Enter activates the primary button of the topmost open modal. */
+  private activatePrimary(): void {
+    const el = document.activeElement;
+    if (el instanceof HTMLButtonElement || el instanceof HTMLInputElement) return;
+    const wraps = [...this.uiRoot.querySelectorAll<HTMLElement>('.modal-wrap.open, .results-panel.open')];
+    const top = wraps[wraps.length - 1];
+    const primary = top?.querySelector<HTMLButtonElement>('.ui-primary');
+    primary?.click();
+  }
+
+  private applySetting(key: string, value: number | boolean | string | null): void {
+    if (key === 'music' || key === 'sfx' || key === 'voice') {
+      const v = value as number;
+      this.save.settings[key] = v;
+      if (key === 'music') this.audio.setMusicVolume(v);
+      if (key === 'sfx') this.audio.setSfxVolume(v);
+      if (key === 'voice') this.audio.setVoiceVolume(v);
+    } else if (key === 'muted') {
+      this.save.settings.muted = Boolean(value);
+      this.audio.muted = this.save.settings.muted;
+    } else if (key === 'reducedMotion') {
+      this.save.settings.reducedMotion = value as boolean | null;
+    } else if (key === 'aimGuide') {
+      this.save.settings.aimGuide = value as 'off' | 'short';
+      this.applyAimGuide();
+    }
+    this.save.persist();
+  }
+
+  /** Levels 1–3 always show the short guide; otherwise honor the setting. */
+  private applyAimGuide(): void {
+    const def = this.levelId ? levelById(this.levelId) : null;
+    const early = def ? this.levelRefs().indexOf(def) < 3 : false;
+    const mode = this.save.settings.aimGuide === 'short' || early ? 'short' : 'off';
+    this.renderer.setAimGuide(mode);
+  }
+
+  private openSettings(): void {
+    this.settings.populate(this.save.settings);
+    this.settings.toggle(true);
+  }
+
+  private openCredits(): void {
+    this.credits.toggle(true);
+  }
+
+  private openAchievements(): void {
+    this.achvScreen.populate(this.save.achievements, this.save, this.levelRefs());
+    this.achvScreen.toggle(true);
+  }
+
+  private refreshTitleStats(): void {
+    this.title.setStats(
+      this.save.totalStars(this.levelRefs()),
+      this.levelRefs().length * 3,
+      Object.keys(this.save.achievements).length,
+      ACHIEVEMENTS.length
+    );
+  }
+
+  private botImage(kind: string): string {
+    const tex = botFaces(kind).idle;
+    const img = tex.image as HTMLCanvasElement;
+    return img?.toDataURL?.() ?? '';
+  }
+
+  private pigImage(): string {
+    const tex = pigFaces(false, 'none').smug;
+    const img = tex.image as HTMLCanvasElement;
+    return img?.toDataURL?.() ?? '';
+  }
+
+  private toast(text: string, cls = ''): void {
+    const el = document.createElement('div');
+    el.className = `ui-toast ${cls}`.trim();
+    el.innerHTML = `${iconSvg('trophy', 20)}<span></span>`;
+    el.querySelector('span')!.textContent = text;
+    this.uiRoot.appendChild(el);
+    window.setTimeout(() => el.remove(), 2500);
   }
 
   private leavePlay(): void {
@@ -213,16 +412,42 @@ export class App {
     this.syncSimulationPause();
   }
 
+  private goTitle(): void {
+    this.leavePlay();
+    this.phase = 'title';
+    this.levelSelect.hide();
+    this.results.hide();
+    this.hud.hide();
+    this.refreshTitleStats();
+    this.title.show();
+  }
+
   private goLevelSelect(): void {
     this.leavePlay();
     this.phase = 'levelSelect';
     this.title.hide();
     this.results.hide();
-    this.levelSelect.populate(
-      allLevels(),
-      (id) => this.isLevelUnlocked(id),
-      (id) => this.save.levelProgress(id)?.stars ?? 0
-    );
+    const refs = this.levelRefs();
+    const artBot: Record<string, string> = {
+      training: this.botImage('grok'),
+      workshop: this.botImage('dash'),
+      citadel: this.botImage('heavy'),
+    };
+    this.levelSelect.populate(allLevels(), {
+      unlocked: (id) => this.isLevelUnlocked(id),
+      starsFor: (id) => this.save.levelProgress(id)?.stars ?? 0,
+      chapterUnlocked: (c) => this.unlockAll || this.save.isChapterUnlocked(c, refs),
+      chapterStars: (c) => this.save.chapterStars(c, refs),
+      chapterGateText: (c) => {
+        const order = CHAPTERS.find((x) => x.id === c)?.order ?? 0;
+        const prev = CHAPTERS.find((x) => x.order === order - 1);
+        const need = PROGRESSION.chapterStars[c] ?? 0;
+        return `Clear ${prev?.name ?? 'previous chapter'} 10 · ${need}★ needed`;
+      },
+      chapterArt: (c) => artBot[c] ?? '',
+      currentId: () =>
+        currentLevelId(refs, (id) => this.save.levelProgress(id)),
+    });
     this.levelSelect.show();
     this.hud.hide();
   }
@@ -249,6 +474,13 @@ export class App {
     this.destroyedTimes.length = 0;
     this.hitStopLeft = 0;
     this.slowMoLeft = 0;
+    this.shotsFired = 0;
+    this.maxCombo = 0;
+    this.shotTnt = 0;
+    this.maxTntChain = 0;
+    this.kingKilled = false;
+    this.runUnlocks = [];
+    this.gestures.reset();
     this.renderer.clearLevel();
     this.session.loadLevel(def, effectiveReducedMotion(this.save.settings.reducedMotion));
     this.renderer.setChapter(def.chapter);
@@ -258,9 +490,16 @@ export class App {
     if (sim) sim.fragmentsEnabled = true;
     this.bindSimAudio();
     this.sling.resetForLevel();
+    this.applyAimGuide();
     this.hud.show();
-    this.hud.setTip(def.hint ?? this.tipFor(def));
-    this.hud.setShots(this.session.getBotQueue().length);
+    this.hud.setStarThresholds(def.stars);
+    this.hud.setStars(0);
+    this.hud.setTargetsLeft(def.pigs.length);
+    if (!this.seenTips.has(def.id)) {
+      this.seenTips.add(def.id);
+      this.hud.showTip(def.hint ?? this.tipFor(def));
+    }
+    this.pendingBotCard = firstUnseenBotInQueue(def.bots, this.save.tutorialsSeen);
   }
 
   private restartLevel(): void {
@@ -268,7 +507,7 @@ export class App {
     this.startLevel(this.levelId);
   }
 
-  private onResultsAction(action: 'retry' | 'next' | 'levels'): void {
+  private onResultsAction(action: 'retry' | 'next' | 'levels' | 'skip'): void {
     this.results.hide();
     this.audio.play('ui');
     if (action === 'levels') {
@@ -277,6 +516,13 @@ export class App {
     }
     if (action === 'retry' && this.levelId) {
       this.startLevel(this.levelId);
+      return;
+    }
+    if (action === 'skip' && this.levelId) {
+      this.save.skipLevel(this.levelId);
+      const n = nextLevel(this.levelId);
+      if (n && this.isLevelUnlocked(n.id)) this.startLevel(n.id);
+      else this.goLevelSelect();
       return;
     }
     if (action === 'next' && this.levelId) {
@@ -307,7 +553,8 @@ export class App {
   /** Orientation recovery must run even while simulation is paused. */
   private syncSimulationPause(): void {
     const rotate = this.rotate.update();
-    this.loop.paused = this.paused || this.backgrounded || rotate;
+    this.loop.paused =
+      this.paused || this.backgrounded || rotate || this.botIntro.isVisible();
   }
 
   private recordResultOnce(): void {
@@ -318,10 +565,21 @@ export class App {
     const won = state === 'won';
     const stars = this.session.getStars();
     const score = this.session.getScore();
+    let newBest = false;
+    let canSkip = false;
     if (this.levelId) {
+      const prev = this.save.levelProgress(this.levelId);
+      newBest = won && score > (prev?.bestScore ?? 0);
       this.save.recordLevel(this.levelId, score, stars, won);
+      if (won) {
+        this.save.setBestCombo(this.maxCombo);
+      } else {
+        this.save.recordFail(this.levelId);
+        canSkip = this.save.canSkip(this.levelId, this.levelRefs());
+      }
     }
-    this.pendingResult = { won, score, stars };
+    this.evaluateRun(won, stars);
+    this.pendingResult = { won, score, stars, newBest, canSkip };
     this.resultDelay = 1.15;
     this.audio.play(won ? 'victory' : 'defeat');
     if (won) {
@@ -330,6 +588,28 @@ export class App {
         const at = this.impactCenter ?? { x: 0, y: 2 };
         this.renderer.juice.textSprite(at.x, at.y + 1.2, `+${bonus.toLocaleString()}`, PALETTE.score.bonus, 1.3);
       }
+    }
+  }
+
+  private evaluateRun(won: boolean, stars: number): void {
+    if (!this.levelId) return;
+    const fresh = evaluateAchievements(
+      {
+        levelId: this.levelId,
+        won,
+        stars,
+        shotsUsed: this.shotsFired,
+        botsUnused: this.session.getBotQueue().length,
+        maxCombo: this.maxCombo,
+        maxTntChain: this.maxTntChain,
+        kingKilled: this.kingKilled,
+      },
+      this.save,
+      this.save.achievements,
+      this.levelRefs()
+    );
+    for (const id of fresh) {
+      if (this.save.unlockAchievement(id)) this.runUnlocks.push(id);
     }
   }
 
@@ -355,6 +635,7 @@ export class App {
     sim.bus.on('block:destroyed', (e) => {
       this.noteStrike(e.x, e.y);
       this.audio.play(`break:${e.material}`);
+      this.save.addDestroyed(e.material);
       this.renderer.juice.burst(e.material, e.x, e.y, e.material === 'tnt' ? 1.4 : 1);
       if (e.points > 0) {
         const color =
@@ -370,6 +651,11 @@ export class App {
       const state = this.session.getState();
       if (state === 'flight' || state === 'resolve') {
         this.shotDestroyed += 1;
+        this.maxCombo = Math.max(this.maxCombo, this.shotDestroyed);
+        if (e.material === 'tnt') {
+          this.shotTnt += 1;
+          this.maxTntChain = Math.max(this.maxTntChain, this.shotTnt);
+        }
         if (this.shotDestroyed >= 3) {
           this.renderer.juice.textSprite(
             this.currentView.cx,
@@ -388,6 +674,11 @@ export class App {
     sim.bus.on('pig:destroyed', (e) => {
       this.noteStrike(e.x, e.y);
       this.audio.play('pig');
+      const entity = sim.registry.all().find((x) => x.id === e.id);
+      if (entity?.kind === 'pig' && entity.king) {
+        this.kingKilled = true;
+        this.save.addKing();
+      }
       this.renderer.juice.burst('pig', e.x, e.y);
       if (e.points > 0) {
         this.renderer.juice.textSprite(e.x, e.y + 0.35, `+${e.points.toLocaleString()}`, PALETTE.score.pig, 1.45);
@@ -446,9 +737,39 @@ export class App {
       if (this.resultDelay <= 0) {
         const pending = this.pendingResult;
         this.pendingResult = null;
-        this.results.show(pending.won, pending.score, pending.stars);
+        const isFinal = this.levelId
+          ? nextLevel(this.levelId) === undefined
+          : false;
+        this.results.show({
+          won: pending.won,
+          score: pending.score,
+          stars: pending.stars,
+          newBest: pending.newBest,
+          canSkip: pending.canSkip,
+          isFinal,
+          unlockedNames: this.runUnlocks
+            .map((id) => achievementById(id)?.name ?? id),
+          pigImgUrl: this.pigImage(),
+          chime: (rate) => this.audio.playRate('victory', rate),
+          tick: () => this.audio.play('ui'),
+        });
         this.hud.hide();
+        for (const id of this.runUnlocks) {
+          const name = achievementById(id)?.name ?? id;
+          this.toast(name, 'achv');
+        }
       }
+    }
+
+    if (state === 'aim' && this.pendingBotCard) {
+      const kind = this.pendingBotCard;
+      this.pendingBotCard = null;
+      const face = botFaces(kind).idle.image as CanvasImageSource;
+      this.botIntro.show(kind, face, () => {
+        this.save.markTutorialSeen(kind);
+        this.syncSimulationPause();
+      });
+      this.syncSimulationPause();
     }
 
     const sim = this.session.getSim();
@@ -459,6 +780,7 @@ export class App {
     }
 
     this.sling.syncLoadedBot();
+    if (state !== 'aim') this.gestures.reset();
     const def = this.levelId ? levelById(this.levelId) : null;
     const aspect = this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight);
     const botBody = bot?.body;
@@ -480,16 +802,31 @@ export class App {
         reducedMotion: effectiveReducedMotion(this.save.settings.reducedMotion),
         topHudPx: 56,
         canvasPxH: this.canvas.clientHeight,
-        manualOffset: null,
+        manualOffset: this.gestures.manualOffset(),
       },
       dt
     );
 
     const best = this.levelId ? (this.save.levelProgress(this.levelId)?.bestScore ?? 0) : 0;
-    this.hud.setScore(this.session.getScore(), best);
-    this.hud.setShots(this.session.getBotQueue().length);
-    const showTip = state === 'aim' || state === 'intro';
-    this.hud.setTip(showTip && def ? (def.hint ?? this.tipFor(def)) : '');
+    this.hud.setScore(this.session.getScore(), best, def?.stars[2] ?? 1);
+    this.hud.setStars(this.session.getStars());
+    this.hud.setTargetsLeft(sim?.pigsAlive() ?? 0);
+  }
+
+  /** Zoom limits + pan bounds for CameraGestures on the current level. */
+  private gestureLimits(): { minH: number; maxH: number; pan: import('../camera/fitRect').Rect } {
+    const def = this.levelId ? levelById(this.levelId) : null;
+    if (!def) {
+      return { minH: 6, maxH: 30, pan: { x0: -20, x1: 40, y0: -4, y1: 14 } };
+    }
+    const slingH = this.camera.slingView(def).h;
+    const overH = this.camera.overviewView(def).h;
+    const c = def.camera;
+    const pan = unionRect(
+      { x0: c.minX, x1: c.maxX, y0: c.minY, y1: c.maxY },
+      { x0: def.sling.x - 4, x1: def.sling.x + 4, y0: 0, y1: 7 }
+    );
+    return { minH: slingH, maxH: overH * 1.2, pan };
   }
 
   private draw(_alpha: number, frameDt: number): void {

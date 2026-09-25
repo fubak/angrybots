@@ -67,6 +67,26 @@ export class SoundBank {
     }
   }
 
+  /** Play a one-shot at an explicit playback rate (results-screen star chimes). */
+  playRate(id: string, rate: number): void {
+    this.lastPlayed.push(`${id}@${rate}`);
+    if (this.muted || !this.unlocked) return;
+    const sample = oneShotIdForEvent(id);
+    if (!sample) return;
+    const ctx = this.ensureCtx();
+    if (!ctx || !this.sfx) return;
+    const buf = this.cached(sample, 0);
+    if (!buf) return;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rate;
+    const g = ctx.createGain();
+    g.gain.value = 0.5;
+    src.connect(g);
+    g.connect(this.sfx);
+    src.start();
+  }
+
   tension(amount: number): void {
     const ctx = this.ctx;
     if (!ctx || !this.sfx || this.muted) return;

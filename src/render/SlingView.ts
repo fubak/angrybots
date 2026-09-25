@@ -65,6 +65,7 @@ export class SlingView {
   private readonly impactPuff: THREE.Mesh;
   private loadedKind: BotKind | null = null;
   private queueKinds: string = '';
+  private guide: 'off' | 'short' | 'full' = 'full';
   private now = 0;
   private wasDragging = false;
   private releaseAt: number | null = null;
@@ -374,15 +375,24 @@ export class SlingView {
     return this.queuePos;
   }
 
+  /** Aim guide: 'short' truncates the preview arc to its first 40%, 'off' hides it. */
+  setGuide(mode: 'off' | 'short' | 'full'): void {
+    this.guide = mode;
+  }
+
   private syncPreview(model: SlingModel): void {
     const lv = launchVelocity(model.pull);
-    if (!lv || model.phase !== 'dragging') {
+    if (!lv || model.phase !== 'dragging' || this.guide === 'off') {
       for (const d of this.previewDots) d.visible = false;
       return;
     }
     const p = model.botWorldPosition();
     const arc = previewArc(p.x, p.y, lv.vx, lv.vy);
-    for (let i = 0; i < this.previewDots.length; i++) {
+    const limit =
+      this.guide === 'short'
+        ? Math.max(1, Math.ceil(this.previewDots.length * 0.4))
+        : this.previewDots.length;
+    for (let i = 0; i < limit; i++) {
       const d = this.previewDots[i]!;
       const pt = arc[i];
       if (!pt) {
@@ -393,6 +403,9 @@ export class SlingView {
       const s = 1 - i / this.previewDots.length;
       d.scale.setScalar(0.6 + s * 0.8);
       d.position.set(pt.x, pt.y, DEPTH.trail);
+    }
+    for (let i = limit; i < this.previewDots.length; i++) {
+      this.previewDots[i]!.visible = false;
     }
   }
 
