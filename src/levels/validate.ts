@@ -249,7 +249,14 @@ export function validatePhysics(level: LevelV2): string[] {
   );
   const replay = replayLevel(level, shots.map((s) => [s[0], s[1], s[2]] as [number, number, typeof level.bots[0]]));
   if (replay.pigsAlive() > 0) errs.push(`P4: solution leaves ${replay.pigsAlive()} pigs`);
-  const unused = level.bots.length - sol.shots.length;
+  let used = sol.shots.length;
+  for (let k = 1; k <= shots.length; k++) {
+    if (replayLevel(level, shots.slice(0, k).map((s) => [s[0], s[1], s[2]] as [number, number, typeof level.bots[0]])).pigsAlive() === 0) {
+      used = k;
+      break;
+    }
+  }
+  const unused = level.bots.length - used;
   const total = replay.hooks.score + (replay.pigsAlive() === 0 ? unused * 10000 : 0);
   if (total < level.stars[0]) errs.push(`P5: score ${total} below star1 ${level.stars[0]}`);
   return errs;

@@ -278,13 +278,12 @@
     ],
     "split-keep": [
       {
-        "angleDeg": 54,
-        "speed": 23
+        "angleDeg": 56,
+        "speed": 22
       },
       {
-        "angleDeg": 36,
-        "speed": 23,
-        "abilityAt": 0.8
+        "angleDeg": 28,
+        "speed": 23
       }
     ]
   }
