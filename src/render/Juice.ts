@@ -12,10 +12,37 @@ type Bit = {
 };
 
 type Flash = {
-  light: THREE.PointLight;
+  sprite: THREE.Sprite;
+  baseScale: number;
   life: number;
   max: number;
 };
+
+let flashTex: THREE.Texture | null = null;
+
+function flashTexture(): THREE.Texture {
+  if (flashTex) return flashTex;
+  if (typeof document === 'undefined') {
+    const tex = new THREE.DataTexture(new Uint8Array([255, 255, 255, 200]), 1, 1);
+    tex.needsUpdate = true;
+    flashTex = tex;
+    return tex;
+  }
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('2d context');
+  const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+  g.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+  g.addColorStop(0.55, 'rgba(255, 255, 255, 0.45)');
+  g.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  flashTex = tex;
+  return tex;
+}
 
 type Floater = {
   sprite: THREE.Sprite;
@@ -106,10 +133,18 @@ export class Juice {
       this.pools.set(kind, list);
     }
     for (let i = 0; i < 8; i++) {
-      const light = new THREE.PointLight('#ff8a30', 0, 10, 2);
-      light.visible = false;
-      scene.add(light);
-      this.flashPool.push({ light, life: 0, max: 0.35 });
+      const sprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: flashTexture(),
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+          depthWrite: false,
+        })
+      );
+      sprite.visible = false;
+      sprite.renderOrder = 25;
+      scene.add(sprite);
+      this.flashPool.push({ sprite, baseScale: 2, life: 0, max: 0.35 });
     }
     this.popRing = new THREE.Mesh(
       new THREE.TorusGeometry(0.55, 0.08, 8, 24),
@@ -195,11 +230,13 @@ export class Juice {
     const f = this.flashPool.pop();
     if (!f) return;
     const color = kind === 'tnt' ? 0xff6a22 : kind === 'pig' ? 0x8cf25a : kind === 'glass' ? 0xb8f0ff : 0xffc16b;
-    f.light.color.setHex(color);
-    f.light.intensity = kind === 'tnt' ? 18 : 7;
-    f.light.distance = kind === 'tnt' ? 16 : 8;
-    f.light.position.set(x, y + 0.4, 2.2);
-    f.light.visible = true;
+    const mat = f.sprite.material as THREE.SpriteMaterial;
+    mat.color.setHex(color);
+    mat.opacity = 0.9;
+    f.baseScale = kind === 'tnt' ? 4.6 : 1.9;
+    f.sprite.scale.setScalar(f.baseScale * 0.4);
+    f.sprite.position.set(x, y + 0.4, DEPTH.particles + 0.3);
+    f.sprite.visible = true;
     f.life = kind === 'tnt' ? 0.5 : 0.22;
     f.max = f.life;
     this.flashes.push(f);
@@ -234,10 +271,11 @@ export class Juice {
     for (let i = this.flashes.length - 1; i >= 0; i--) {
       const f = this.flashes[i]!;
       f.life -= dt;
-      f.light.intensity *= Math.max(0, f.life / f.max);
+      const t = Math.max(0, f.life / f.max);
+      f.sprite.scale.setScalar(f.baseScale * (0.4 + (1 - t) * 1.1));
+      (f.sprite.material as THREE.SpriteMaterial).opacity = 0.9 * t;
       if (f.life <= 0) {
-        f.light.visible = false;
-        f.light.intensity = 0;
+        f.sprite.visible = false;
         this.flashes.splice(i, 1);
         this.flashPool.push(f);
       }

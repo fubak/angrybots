@@ -30,7 +30,6 @@ export class SoundBank {
   muted = false;
 
   preload(): Promise<void> {
-    this.ensureCtx();
     return Promise.resolve();
   }
 
@@ -50,9 +49,7 @@ export class SoundBank {
   play(id: string): void {
     this.lastPlayed.push(id);
     if (this.lastPlayed.length > 64) this.lastPlayed.splice(0, 32);
-    if (this.muted) return;
-    this.ensureCtx();
-    if (!this.unlocked && id !== 'ui') this.unlock();
+    if (this.muted || !this.unlocked) return;
     const sample = oneShotIdForEvent(id);
     if (sample) {
       if (sample === 'wood' && id === 'impact') {
@@ -71,7 +68,7 @@ export class SoundBank {
   }
 
   tension(amount: number): void {
-    const ctx = this.ensureCtx();
+    const ctx = this.ctx;
     if (!ctx || !this.sfx || this.muted) return;
     if (amount < 0.05) {
       this.stopTension();
@@ -166,7 +163,7 @@ export class SoundBank {
     src.buffer = buf;
     src.playbackRate.value = 0.9 + Math.random() * 0.2;
     const g = ctx.createGain();
-    g.gain.value = gain * (bus === 'voice' ? this.voiceGain : this.sfxGain);
+    g.gain.value = gain;
     const pan = ctx.createStereoPanner();
     pan.pan.value = panFor(id);
     src.connect(g);

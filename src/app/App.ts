@@ -13,6 +13,7 @@ import { SlingInput, clientToWorld } from '../sling/SlingInput';
 import { ShotTrail } from '../sling/ShotTrail';
 import { SoundBank } from '../audio/SoundBank';
 import { createDebugApi } from '../debug/DebugApi';
+import { effectiveReducedMotion } from './motion';
 import { Hud } from '../ui/Hud';
 import { PauseMenu } from '../ui/PauseMenu';
 import { ResultsPanel } from '../ui/ResultsPanel';
@@ -58,6 +59,9 @@ export class App {
 
   constructor(root: HTMLElement) {
     this.save.load();
+    this.audio.setMusicVolume(this.save.settings.music);
+    this.audio.setSfxVolume(this.save.settings.sfx);
+    this.audio.setVoiceVolume(this.save.settings.voice);
     root.setAttribute('data-game', 'angrybots');
     this.shell = document.createElement('div');
     this.shell.setAttribute('data-game', 'angrybots');
@@ -208,7 +212,7 @@ export class App {
     this.levelSelect.populate(
       allLevels(),
       (id) => this.isLevelUnlocked(id),
-      (id) => this.save.load().levels[id]?.stars ?? 0
+      (id) => this.save.levelProgress(id)?.stars ?? 0
     );
     this.levelSelect.show();
     this.hud.hide();
@@ -229,7 +233,8 @@ export class App {
     this.trail.clear();
     this.introElapsed = 0;
     this.impactCenter = null;
-    this.session.loadLevel(def, this.save.settings.reducedMotion === true);
+    this.renderer.clearLevel();
+    this.session.loadLevel(def, effectiveReducedMotion(this.save.settings.reducedMotion));
     this.renderer.setChapter(def.chapter);
     this.renderer.setTerrain(def.terrain);
     this.audio.setChapter(def.chapter);
@@ -272,6 +277,10 @@ export class App {
     if (this.paused) {
       this.sling.cancelActive();
       this.audio.onPause();
+      this.pauseMenu.setValues({
+        music: this.save.settings.music,
+        sfx: this.save.settings.sfx,
+      });
     } else {
       this.audio.onResume();
     }
@@ -416,7 +425,7 @@ export class App {
           : null,
         impactCenter: this.impactCenter,
         introElapsed: this.introElapsed,
-        reducedMotion: this.save.settings.reducedMotion === true,
+        reducedMotion: effectiveReducedMotion(this.save.settings.reducedMotion),
         topHudPx: 56,
         canvasPxH: this.canvas.clientHeight,
         manualOffset: null,
@@ -424,7 +433,7 @@ export class App {
       dt
     );
 
-    const best = this.levelId ? (this.save.load().levels[this.levelId]?.bestScore ?? 0) : 0;
+    const best = this.levelId ? (this.save.levelProgress(this.levelId)?.bestScore ?? 0) : 0;
     this.hud.setScore(this.session.getScore(), best);
     this.hud.setShots(this.session.getBotQueue().length);
     const showTip = state === 'aim' || state === 'intro';
@@ -437,7 +446,7 @@ export class App {
     this.sling.setProjector((cx, cy) =>
       clientToWorld(cx, cy, this.canvas, this.currentView)
     );
-    this.renderer.syncLevel(this.session.getSim());
+    this.renderer.syncLevel(this.session.getSim(), frameDt);
     const aiming = this.phase === 'play' && this.session.getState() === 'aim';
     this.renderer.syncSling(
       this.sling.model,

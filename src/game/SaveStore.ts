@@ -31,8 +31,12 @@ const DEFAULTS: SaveV2 = {
   lastLevelId: null,
 };
 
+function freshDefaults(): SaveV2 {
+  return structuredClone(DEFAULTS);
+}
+
 function migrateV1(raw: Record<string, unknown>): SaveV2 {
-  const s = { ...DEFAULTS };
+  const s = freshDefaults();
   if (typeof raw.masterVolume === 'number') {
     s.settings.music = raw.masterVolume as number;
     s.settings.sfx = raw.masterVolume as number;
@@ -50,7 +54,7 @@ function migrateV1(raw: Record<string, unknown>): SaveV2 {
 }
 
 export class SaveStore {
-  private data: SaveV2 = { ...DEFAULTS, levels: {}, tutorialsSeen: {} };
+  private data: SaveV2 = freshDefaults();
 
   load(): SaveV2 {
     try {
@@ -62,18 +66,18 @@ export class SaveStore {
           this.persist();
           return this.data;
         }
-        this.data = { ...DEFAULTS, levels: {}, tutorialsSeen: {} };
+        this.data = freshDefaults();
         return this.data;
       }
       const parsed = JSON.parse(raw) as SaveV2;
       if (parsed.version !== 2) {
-        this.data = { ...DEFAULTS, levels: {}, tutorialsSeen: {} };
+        this.data = freshDefaults();
         return this.data;
       }
       this.data = parsed;
       return this.data;
     } catch {
-      this.data = { ...DEFAULTS, levels: {}, tutorialsSeen: {} };
+      this.data = freshDefaults();
       return this.data;
     }
   }

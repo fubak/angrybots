@@ -33,6 +33,14 @@ export class PauseMenu {
     }
   }
 
+  setValues(v: { music: number; sfx: number }): void {
+    for (const input of this.el.querySelectorAll<HTMLInputElement>('input[data-s]')) {
+      const k = input.dataset.s;
+      if (k === 'music') input.value = String(v.music);
+      if (k === 'sfx') input.value = String(v.sfx);
+    }
+  }
+
   toggle(on: boolean): void {
     this.visible = on;
     this.el.style.display = on ? 'flex' : 'none';

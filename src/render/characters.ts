@@ -51,7 +51,6 @@ export function makeBotCharacter(kind: BotKind, r: number): THREE.Group {
   g.name = `bot:${kind}`;
   const [sx, sy] = BOT_SIZE[kind];
   const face = facePlane(r * sx, r * sy, botFaces(kind));
-  face.castShadow = true;
   g.add(face);
   return g;
 }
@@ -61,7 +60,6 @@ export function makePigCharacter(r: number, look: PigLook): THREE.Group {
   g.name = look.king ? 'pig:king' : `pig:${look.helmet}`;
   const face = facePlane(r * 2.6, r * 2.6, pigFaces(look.king, look.helmet));
   face.userData.role = 'pig-skin';
-  face.castShadow = true;
   g.add(face);
   return g;
 }

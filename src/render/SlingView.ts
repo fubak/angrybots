@@ -5,9 +5,10 @@ import type { BotKind } from '../levels/schema';
 import { SLING, launchVelocity, previewArc } from '../sling/launch';
 import type { SlingModel } from '../sling/SlingModel';
 import type { ShotTrail } from '../sling/ShotTrail';
-import { toon } from './toon';
 import { makeBotCharacter, tickFace } from './characters';
+import { disposeObject } from './dispose';
 import { ILL } from './illustrations';
+import type { ShadowCaster } from './BlobShadows';
 
 const FORK = 1.08;
 const TIP_Y = 3.15;
@@ -25,6 +26,7 @@ export class SlingView {
   private readonly trailDots: THREE.Mesh[] = [];
   private loadedKind: BotKind | null = null;
   private queueKinds: string = '';
+  readonly shadowCasters: ShadowCaster[] = [];
 
   constructor(scene: THREE.Scene) {
     const postMap = ILL.plank.clone();
@@ -35,7 +37,6 @@ export class SlingView {
     for (const side of [-1, 1]) {
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.34, 3.2, 0.28), postMat);
       post.position.set(SLING.anchor.x + side * FORK, 1.6, -0.55);
-      post.castShadow = true;
       post.renderOrder = 4;
       this.group.add(post);
     }
@@ -44,7 +45,6 @@ export class SlingView {
       new THREE.MeshBasicMaterial({ map: ILL.plank })
     );
     yoke.position.set(SLING.anchor.x, TIP_Y + 0.08, -0.5);
-    yoke.castShadow = true;
     this.group.add(yoke);
 
     this.pouch = new THREE.Mesh(
@@ -71,7 +71,12 @@ export class SlingView {
       this.group.add(q);
     }
 
-    const previewMat = toon('#ffffff', { transparent: true, opacity: 0.85 });
+    const previewMat = new THREE.MeshBasicMaterial({
+      color: '#ffffff',
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+    });
     for (let i = 0; i < 24; i++) {
       const d = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 10), previewMat);
       d.visible = false;
@@ -79,7 +84,12 @@ export class SlingView {
       this.group.add(d);
     }
 
-    const trailMat = toon(PALETTE.trail, { transparent: true, opacity: 0.45 });
+    const trailMat = new THREE.MeshBasicMaterial({
+      color: PALETTE.trail,
+      transparent: true,
+      opacity: 0.45,
+      depthWrite: false,
+    });
     for (let i = 0; i < 32; i++) {
       const d = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), trailMat);
       d.visible = false;
@@ -97,9 +107,11 @@ export class SlingView {
     trail: ShotTrail
   ): void {
     this.group.visible = true;
+    this.shadowCasters.length = 0;
     const kind = queue[0] ?? null;
     if (aiming && kind) {
       if (this.loadedKind !== kind) {
+        for (const child of [...this.loaded.children]) disposeObject(child);
         this.loaded.clear();
         const mesh = makeBotCharacter(kind, TUNING.bots[kind].r);
         this.loaded.add(mesh);
@@ -128,6 +140,11 @@ export class SlingView {
       this.frontLeft.visible = true;
       this.frontRight.visible = true;
       this.syncPreview(model);
+      this.shadowCasters.push({
+        x: p.x,
+        y: p.y - TUNING.bots[kind].r,
+        w: TUNING.bots[kind].r * 2,
+      });
     } else {
       this.loaded.visible = false;
       this.loaded.scale.set(1, 1, 1);
@@ -147,10 +164,7 @@ export class SlingView {
       for (let i = 0; i < this.queue.length; i++) {
         const prev = this.queue[i]!;
         this.group.remove(prev);
-        prev.traverse((obj) => {
-          const m = obj as THREE.Mesh;
-          if (m.geometry) m.geometry.dispose();
-        });
+        disposeObject(prev);
         const qk = waiting[i];
         const next = qk ? makeBotCharacter(qk, TUNING.bots[qk].r) : new THREE.Group();
         next.visible = Boolean(qk);
@@ -170,6 +184,7 @@ export class SlingView {
       node.visible = true;
       queueX -= rad;
       node.position.set(queueX, rad, DEPTH.entities);
+      this.shadowCasters.push({ x: queueX, y: 0, w: rad * 2 });
       queueX -= rad + 0.28;
     }
 

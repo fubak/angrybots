@@ -53,11 +53,12 @@ if (samples.length < 30) {
 
 samples.sort((a, b) => a - b);
 const p50 = percentile(samples, 50);
-const p95 = percentile(samples, 95);
+// Frame-time p95 is the worst-case tail (equivalently the p5Low fps tail).
+const p5LowMs = percentile(samples, 95);
 console.log(
-  `perf:smoke samples=${samples.length} p50=${p50.toFixed(2)}ms p95=${p95.toFixed(2)}ms (headless)`
+  `perf:smoke samples=${samples.length} p50=${p50.toFixed(2)}ms p95=${p5LowMs.toFixed(2)}ms (headless, worst tail)`
 );
-if (p95 > 32) {
+if (p5LowMs > 32) {
   console.warn('WARN: p95 above 32ms smoke threshold');
   process.exit(1);
 }

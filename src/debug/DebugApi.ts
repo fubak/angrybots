@@ -24,7 +24,7 @@ export type DebugSnapshot = {
     speed: number;
   } | null;
   camera: { cx: number; cy: number; height: number };
-  fps: { p50: number; p95: number };
+  fps: { p50: number; p5Low: number };
   renderer: { calls: number; triangles: number; geometries: number; textures: number };
 };
 

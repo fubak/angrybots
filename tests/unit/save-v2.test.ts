@@ -36,6 +36,18 @@ describe('SaveStore v2', () => {
     expect(s.levelProgress('first-flight')!.stars).toBe(1);
   });
 
+  it('mutating one store\'s settings does not leak into fresh defaults', () => {
+    localStorage.clear();
+    const a = new SaveStore();
+    a.load();
+    a.settings.music = 0.05;
+    a.settings.reducedMotion = true;
+    const b = new SaveStore();
+    const d = b.load();
+    expect(d.settings.music).toBe(0.8);
+    expect(d.settings.reducedMotion).toBeNull();
+  });
+
   it('keeps every level playable from the list', () => {
     const ids = [
       'first-flight',
