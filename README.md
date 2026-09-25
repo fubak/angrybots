@@ -15,7 +15,7 @@ npm run dev
 - **Local:** Vite prints the URL. `npm run dev` is `vite --host` (default port 5173). A LAN share has used port 5175.
 - **Live progress:** same host, path `/progress.html`
 
-Every level is selectable. The things you knock down are chat bubbles, hosts, models, and a flagship. The bots are Grok Bot forms. Hills, ramps, and ledges are drawn. This is not an Angry Birds parity claim.
+Thirty levels across three chapters, gated by progression: clearing a level unlocks the next, and later chapters require star thresholds (dev builds can pass `?unlockAll=1` to bypass). The things you knock down are chat bubbles, hosts, models, and a flagship. The five bot kinds are distinct Grok Bot forms with their own abilities. Hills, ramps, and ledges are drawn. This is not an Angry Birds parity claim.
 
 ## Quality pipeline
 
@@ -32,7 +32,7 @@ Rubrics: `docs/CRITIC_RUBRIC.md` · Ownership: `docs/PIECE_OWNERS.md`
 
 ## Controls
 
-Drag the Grok bot backward on the slingshot and release. Three shots per level.
+Drag the bot backward on the slingshot and release; tap in flight to trigger its ability. The bot queue varies per level.
 ## Production completion gauntlet
 
 - [Execution prompt](docs/PRODUCTION_GAUNTLET_PROMPT.md): the canonical build, verify, and critique loop with five production gates.
