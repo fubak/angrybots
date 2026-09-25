@@ -1,7 +1,7 @@
 import type { LevelV2 } from '../levels/schema';
 import { TUNING } from '../config/tuning';
 import { Level } from './Level';
-import { starsForScore, comboBonus } from './Scoring';
+import { starsForScore } from './Scoring';
 import type { GameStateId } from './states';
 import { StateMachine } from '../core/StateMachine';
 import { SESSION_TRANSITIONS } from './sessionTransitions';
@@ -39,7 +39,6 @@ export class GameSession {
   private hopTimer = 0;
   private launchTime = 0;
   private shotSlowTime = 0;
-  private shotDestroyed = 0;
   private primaryShotBotId: string | null = null;
 
   constructor() {
@@ -65,9 +64,6 @@ export class GameSession {
   loadLevel(def: LevelV2, skipIntro = false): void {
     this.levelDef = def;
     this.sim = Level.load(def);
-    this.sim.bus.on('block:destroyed', () => {
-      if (this.state === 'flight' || this.state === 'resolve') this.shotDestroyed += 1;
-    });
     this.sim.settle();
     this.botQueue = [...def.bots];
     this.score = 0;
@@ -111,7 +107,6 @@ export class GameSession {
     this.transition('flight');
     this.flightTime = 0;
     this.shotSlowTime = 0;
-    this.shotDestroyed = 0;
     this.launchTime = this.sim.getSimTime();
     this.primaryShotBotId = bot.id;
     this.botQueue.shift();
@@ -212,11 +207,6 @@ export class GameSession {
 
   private finishResolve(): void {
     if (!this.sim || !this.levelDef) return;
-    const combo = comboBonus(this.shotDestroyed);
-    if (combo > 0) {
-      this.sim.hooks.score += combo;
-      this.score = this.sim.hooks.score;
-    }
     const pigsLeft = this.sim.pigsAlive();
     const botsLeft = this.botQueue.length;
     if (pigsLeft === 0) {

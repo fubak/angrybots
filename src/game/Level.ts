@@ -11,6 +11,7 @@ import { attachDamagePipeline } from '../physics/damage';
 import { defaultTntExplosion } from '../physics/explosions';
 import { isOutOfBounds, shouldRemoveOob } from '../physics/bounds';
 import { isQuiet } from '../physics/quiet';
+import { freezeDynamicBodies } from '../physics/freeze';
 import {
   fragmentCountForMaterial,
   splitRect,
@@ -133,6 +134,7 @@ export class Level {
         maxRot = Math.max(maxRot, Math.abs(s.e.body.getAngle() - s.a));
       }
     }
+    freezeDynamicBodies(this.pw.world);
     this.damageEnabled = true;
     this.bus.emit('level:settled', {});
     return { maxMove, maxRotDeg: (maxRot * 180) / Math.PI };

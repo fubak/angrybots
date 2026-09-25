@@ -22,7 +22,7 @@ const RULES = [
     id: 'F1',
     pattern: /setLinearVelocity\(|setAngularVelocity\(/g,
     scope: 'src',
-    allow: ['src/bots/abilities.ts', 'src/sling/launch.ts', 'src/entities/Bot.ts'],
+    allow: ['src/bots/abilities.ts', 'src/sling/launch.ts', 'src/entities/Bot.ts', 'src/physics/freeze.ts'],
   },
   {
     id: 'F2',

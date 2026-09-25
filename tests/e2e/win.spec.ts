@@ -8,7 +8,7 @@ test('First Flight win uses real pointer input', async ({ page }, testInfo) => {
   expect(before.state).toBe('aim');
   expect(before.botsLeft).toBe(3);
   const touch = testInfo.project.name.includes('phone');
-  await launchSolution(page, 34, 20, { holdMs: 800, pointerType: touch ? 'touch' : 'mouse' });
+  await launchSolution(page, 22, 23, { holdMs: 800, pointerType: touch ? 'touch' : 'mouse' });
   await expect
     .poll(async () => (await snapshot(page)).state, { timeout: 70_000 })
     .toBe('won');

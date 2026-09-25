@@ -5,85 +5,494 @@
   "chapter": "citadel",
   "order": 10,
   "bots": [
-    "blast",
-    "heavy",
+    "grok",
+    "dash",
     "split",
-    "dash"
+    "heavy",
+    "blast"
   ],
   "stars": [
-    20000,
-    32000,
-    42000
+    49000,
+    49500,
+    50000
   ],
   "camera": {
     "minX": -11,
-    "maxX": 22,
+    "maxX": 26,
     "minY": 0,
-    "maxY": 12
+    "maxY": 13
   },
-  "hint": "Flagship, model, TNT. Spend every bot if you must.",
   "sling": {
     "x": -7.5
   },
-  "terrain": [],
+  "terrain": [
+    {
+      "kind": "plateau",
+      "x0": 19.4,
+      "x1": 22.6,
+      "top": 1.4
+    }
+  ],
   "blocks": [
     {
-      "id": "pL",
+      "id": "b1",
       "material": "stone",
       "kit": "postL",
-      "x": 10,
+      "x": 10.6,
       "y": 0
     },
     {
-      "id": "pR",
+      "id": "b2",
       "material": "stone",
       "kit": "postL",
-      "x": 13.2,
+      "x": 13.799999999999999,
       "y": 0
     },
     {
-      "id": "deck",
-      "material": "wood",
+      "id": "b3",
+      "material": "stone",
       "kit": "plankL",
-      "x": 11.6,
+      "x": 12.2,
       "y": 2
     },
     {
-      "id": "tnt",
-      "material": "tnt",
+      "id": "b4",
+      "material": "glass",
       "kit": "cube",
-      "x": 15.4,
+      "x": 12.2,
+      "y": 2.4
+    },
+    {
+      "id": "b5",
+      "material": "glass",
+      "kit": "cube",
+      "x": 12.2,
+      "y": 3.2
+    },
+    {
+      "id": "b6",
+      "material": "glass",
+      "kit": "cube",
+      "x": 11.3,
+      "y": 2.4
+    },
+    {
+      "id": "b7",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.1,
+      "y": 2.4
+    },
+    {
+      "id": "b8",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.1,
+      "y": 3.2
+    },
+    {
+      "id": "b9",
+      "material": "wood",
+      "kit": "postM",
+      "x": 7.699999999999999,
       "y": 0
     },
     {
-      "id": "stub",
+      "id": "b10",
       "material": "wood",
+      "kit": "postM",
+      "x": 9.5,
+      "y": 0
+    },
+    {
+      "id": "b11",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 8.6,
+      "y": 1.2
+    },
+    {
+      "id": "b12",
+      "material": "wood",
+      "kit": "postM",
+      "x": 7.699999999999999,
+      "y": 1.6
+    },
+    {
+      "id": "b13",
+      "material": "wood",
+      "kit": "postM",
+      "x": 9.5,
+      "y": 1.6
+    },
+    {
+      "id": "b14",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 8.6,
+      "y": 2.8
+    },
+    {
+      "id": "b15",
+      "material": "wood",
+      "kit": "postM",
+      "x": 14.7,
+      "y": 0
+    },
+    {
+      "id": "b16",
+      "material": "wood",
+      "kit": "postM",
+      "x": 16.5,
+      "y": 0
+    },
+    {
+      "id": "b17",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 15.6,
+      "y": 1.2
+    },
+    {
+      "id": "b18",
+      "material": "wood",
+      "kit": "postM",
+      "x": 14.7,
+      "y": 1.6
+    },
+    {
+      "id": "b19",
+      "material": "wood",
+      "kit": "postM",
+      "x": 16.5,
+      "y": 1.6
+    },
+    {
+      "id": "b20",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 15.6,
+      "y": 2.8
+    },
+    {
+      "id": "b21",
+      "material": "tnt",
       "kit": "cube",
-      "x": 14.0,
+      "x": 8.6,
+      "y": 0
+    },
+    {
+      "id": "b22",
+      "material": "tnt",
+      "kit": "cube",
+      "x": 8.6,
+      "y": 1.6
+    },
+    {
+      "id": "b23",
+      "material": "tnt",
+      "kit": "cube",
+      "x": 15.6,
+      "y": 0
+    },
+    {
+      "id": "b24",
+      "material": "tnt",
+      "kit": "cube",
+      "x": 15.6,
+      "y": 1.6
+    },
+    {
+      "id": "b25",
+      "material": "stone",
+      "kit": "cube",
+      "x": 5.3,
+      "y": 0
+    },
+    {
+      "id": "b26",
+      "material": "stone",
+      "kit": "cube",
+      "x": 5.3,
+      "y": 0.8
+    },
+    {
+      "id": "b27",
+      "material": "stone",
+      "kit": "cube",
+      "x": 5.3,
+      "y": 1.6
+    },
+    {
+      "id": "b28",
+      "material": "stone",
+      "kit": "cube",
+      "x": 5.3,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b29",
+      "material": "stone",
+      "kit": "cube",
+      "x": 6.2,
+      "y": 0
+    },
+    {
+      "id": "b30",
+      "material": "stone",
+      "kit": "cube",
+      "x": 6.2,
+      "y": 0.8
+    },
+    {
+      "id": "b31",
+      "material": "stone",
+      "kit": "cube",
+      "x": 6.2,
+      "y": 1.6
+    },
+    {
+      "id": "b32",
+      "material": "stone",
+      "kit": "cube",
+      "x": 6.2,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b33",
+      "material": "glass",
+      "kit": "cube",
+      "x": 7,
+      "y": 0
+    },
+    {
+      "id": "b34",
+      "material": "glass",
+      "kit": "cube",
+      "x": 7,
+      "y": 0.8
+    },
+    {
+      "id": "b35",
+      "material": "glass",
+      "kit": "cube",
+      "x": 7,
+      "y": 1.6
+    },
+    {
+      "id": "b36",
+      "material": "glass",
+      "kit": "cube",
+      "x": 7,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b37",
+      "material": "glass",
+      "kit": "cube",
+      "x": 17.4,
+      "y": 0
+    },
+    {
+      "id": "b38",
+      "material": "glass",
+      "kit": "cube",
+      "x": 17.4,
+      "y": 0.8
+    },
+    {
+      "id": "b39",
+      "material": "glass",
+      "kit": "cube",
+      "x": 17.4,
+      "y": 1.6
+    },
+    {
+      "id": "b40",
+      "material": "glass",
+      "kit": "cube",
+      "x": 17.4,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b41",
+      "material": "stone",
+      "kit": "cube",
+      "x": 23,
+      "y": 0
+    },
+    {
+      "id": "b42",
+      "material": "stone",
+      "kit": "cube",
+      "x": 23,
+      "y": 0.8
+    },
+    {
+      "id": "b43",
+      "material": "stone",
+      "kit": "cube",
+      "x": 23,
+      "y": 1.6
+    },
+    {
+      "id": "b44",
+      "material": "stone",
+      "kit": "cube",
+      "x": 23,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b45",
+      "material": "stone",
+      "kit": "cube",
+      "x": 23.9,
+      "y": 0
+    },
+    {
+      "id": "b46",
+      "material": "stone",
+      "kit": "cube",
+      "x": 23.9,
+      "y": 0.8
+    },
+    {
+      "id": "b47",
+      "material": "stone",
+      "kit": "cube",
+      "x": 23.9,
+      "y": 1.6
+    },
+    {
+      "id": "b48",
+      "material": "stone",
+      "kit": "cube",
+      "x": 23.9,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b49",
+      "material": "stone",
+      "kit": "cube",
+      "x": 24.8,
+      "y": 0
+    },
+    {
+      "id": "b50",
+      "material": "stone",
+      "kit": "cube",
+      "x": 24.8,
+      "y": 0.8
+    },
+    {
+      "id": "b51",
+      "material": "stone",
+      "kit": "cube",
+      "x": 24.8,
+      "y": 1.6
+    },
+    {
+      "id": "b52",
+      "material": "stone",
+      "kit": "cube",
+      "x": 24.8,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b53",
+      "material": "stone",
+      "kit": "postM",
+      "x": 19.5,
+      "y": 1.4
+    },
+    {
+      "id": "b54",
+      "material": "stone",
+      "kit": "postM",
+      "x": 21.299999999999997,
+      "y": 1.4
+    },
+    {
+      "id": "b55",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 20.4,
+      "y": 2.5999999999999996
+    },
+    {
+      "id": "b56",
+      "material": "stone",
+      "kit": "cube",
+      "x": 22.2,
+      "y": 1.4
+    },
+    {
+      "id": "b57",
+      "material": "stone",
+      "kit": "cube",
+      "x": 22.2,
+      "y": 2.2
+    },
+    {
+      "id": "b58",
+      "material": "stone",
+      "kit": "cube",
+      "x": 22.2,
+      "y": 3
+    },
+    {
+      "id": "b59",
+      "material": "stone",
+      "kit": "cube",
+      "x": 22.2,
+      "y": 3.8
+    },
+    {
+      "id": "b60",
+      "material": "tnt",
+      "kit": "cube",
+      "x": 19,
       "y": 0
     }
   ],
   "pigs": [
     {
-      "id": "king",
+      "id": "p1",
       "size": "L",
-      "x": 11.6,
-      "y": 2.4,
+      "x": 12.2,
+      "y": 0,
       "king": true
     },
     {
-      "id": "helm",
-      "size": "M",
-      "x": 16.8,
-      "y": 0,
-      "helmet": "helmet"
+      "id": "p2",
+      "size": "S",
+      "x": 17.4,
+      "y": 3.2
     },
     {
-      "id": "hat",
+      "id": "p3",
+      "size": "S",
+      "x": 8.6,
+      "y": 3.1999999999999997
+    },
+    {
+      "id": "p4",
+      "size": "S",
+      "x": 15.6,
+      "y": 3.1999999999999997
+    },
+    {
+      "id": "p5",
       "size": "M",
-      "x": 18.6,
-      "y": 0,
-      "helmet": "hat"
+      "x": 20.4,
+      "y": 1.4
+    },
+    {
+      "id": "p6",
+      "size": "S",
+      "x": 22.2,
+      "y": 4.6
     }
-  ]
+  ],
+  "hint": "The final fortress. Everything must fall."
 }

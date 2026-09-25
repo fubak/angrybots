@@ -9,7 +9,7 @@ async function openTraining(page: import('@playwright/test').Page): Promise<void
 test('winning First Flight unlocks the next level after reload', async ({ page }) => {
   test.setTimeout(90_000);
   await skipToPlay(page, 'first-flight');
-  await launchSolution(page, 34, 20, { holdMs: 700 });
+  await launchSolution(page, 22, 23, { holdMs: 700 });
   await expect.poll(async () => (await snapshot(page)).state, { timeout: 70_000 }).toBe('won');
   await page.getByRole('button', { name: 'Levels' }).click();
   await page.locator('.chapter-card').first().click();

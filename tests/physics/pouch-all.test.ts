@@ -14,14 +14,16 @@ function pouchClear(id: string, shots: Shot[]): string {
   const s = new GameSession();
   s.loadLevel(def, true);
   for (const shot of shots) {
-    for (let i = 0; i < 50 && s.getState() !== 'aim'; i++) s.update(TUNING.dt);
+    for (let i = 0; i < 60 && s.getState() !== 'aim'; i++) s.update(TUNING.dt);
     if (s.getState() !== 'aim') return s.getState();
     const p = pouchForLaunch(shot.angleDeg, shot.speed);
     const lv = launchVelocity(p.pull);
     if (!lv) return 'no-velocity';
     s.launchFromPull(lv.vx, lv.vy, p.x, p.y);
     let fired = shot.abilityAt == null;
-    for (let i = 0; i < 60 * 8; i++) {
+    // Real-play bound: a shot may resolve for up to SHOT_MAX_S (14s) before the
+    // session hands back 'aim'; slow collapses must not be truncated here.
+    for (let i = 0; i < 60 * 12; i++) {
       if (!fired && i * TUNING.dt >= shot.abilityAt!) {
         s.activateAbility();
         fired = true;
@@ -32,7 +34,7 @@ function pouchClear(id: string, shots: Shot[]): string {
     }
     if (s.getState() === 'won' || s.getState() === 'bonus' || s.getState() === 'lost') break;
   }
-  for (let i = 0; i < 60 * 2; i++) {
+  for (let i = 0; i < 60 * 4; i++) {
     const st = s.getState();
     if (st === 'won' || st === 'bonus') return 'won';
     if (st === 'lost') return 'lost';

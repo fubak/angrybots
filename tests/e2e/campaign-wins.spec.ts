@@ -3,10 +3,10 @@ import { launchSolution, seedCleared, skipToPlay, snapshot } from './helpers';
 
 const CASES = [
   {
-    id: 'lone-guard',
-    angleDeg: 16,
-    speed: 22,
-    cleared: ['first-flight', 'powder-row', 'glass-house', 'stone-keep', 'hilltop'],
+    id: 'powder-row',
+    angleDeg: 58,
+    speed: 20,
+    cleared: ['first-flight'],
   },
 ] as const;
 

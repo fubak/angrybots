@@ -3,8 +3,15 @@ import { launchSolution, seedCleared, skipToPlay, snapshot, tapPlayfield, waitFo
 
 test('touch tap activates dash once during flight', async ({ page }) => {
   test.setTimeout(60_000);
-  await seedCleared(page, ['first-flight']);
-  await skipToPlay(page, 'powder-row');
+  await seedCleared(page, [
+    'first-flight',
+    'powder-row',
+    'glass-house',
+    'stone-keep',
+    'hilltop',
+    'lone-guard',
+  ]);
+  await skipToPlay(page, 'twin-posts');
   await waitForAim(page);
   await launchSolution(page, 20, 16, { holdMs: 400 });
   await expect.poll(async () => (await snapshot(page)).state, { timeout: 10_000 }).toBe('flight');

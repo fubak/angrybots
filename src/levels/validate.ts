@@ -227,8 +227,18 @@ export function validatePhysics(level: LevelV2): string[] {
   const st = sim.settle();
   if (st.maxMove > 0.08) errs.push(`P1: settle move ${st.maxMove.toFixed(3)}`);
   if (st.maxRotDeg > 1) errs.push(`P2: settle rot ${st.maxRotDeg.toFixed(2)}`);
-  const deaths = sim.idle(3);
+  const rest = sim.registry
+    .all()
+    .filter((e) => e.alive && e.body)
+    .map((e) => ({ e, p: e.body!.getPosition().clone() }));
+  const deaths = sim.idle(5);
   if (deaths.length) errs.push(`P3: idle deaths ${deaths.join(',')}`);
+  let drift = 0;
+  for (const s of rest) {
+    if (!s.e.alive || !s.e.body) continue;
+    drift = Math.max(drift, Math.hypot(s.p.x - s.e.body.getPosition().x, s.p.y - s.e.body.getPosition().y));
+  }
+  if (drift > 0.02) errs.push(`P1: idle drift ${drift.toFixed(3)}`);
   const sol = (solutions as Record<string, SolutionEntry>)[level.id];
   if (!sol) {
     errs.push('P4: no committed solution');

@@ -6,46 +6,295 @@
   "order": 6,
   "bots": [
     "dash",
-    "heavy"
+    "grok",
+    "grok"
   ],
   "stars": [
-    10000,
-    18000,
-    26000
+    34000,
+    34500,
+    35000
   ],
   "camera": {
     "minX": -11,
-    "maxX": 22,
+    "maxX": 24,
     "minY": 0,
     "maxY": 12
   },
-  "hint": "Stone shield in front. Dash over or through.",
   "sling": {
     "x": -7.5
   },
-  "terrain": [],
+  "terrain": [
+    {
+      "kind": "ramp",
+      "x0": 4.5,
+      "x1": 8.5,
+      "y0": 0,
+      "y1": 1.6
+    }
+  ],
   "blocks": [
     {
-      "id": "slab",
+      "id": "b1",
       "material": "stone",
-      "kit": "slab",
-      "x": 10.4,
+      "kit": "cube",
+      "x": 9.55,
       "y": 0
     },
     {
-      "id": "cube",
+      "id": "b2",
       "material": "stone",
       "kit": "cube",
-      "x": 12.8,
+      "x": 9.55,
+      "y": 0.8
+    },
+    {
+      "id": "b3",
+      "material": "stone",
+      "kit": "cube",
+      "x": 9.55,
+      "y": 1.6
+    },
+    {
+      "id": "b4",
+      "material": "stone",
+      "kit": "cube",
+      "x": 10.45,
       "y": 0
+    },
+    {
+      "id": "b5",
+      "material": "stone",
+      "kit": "cube",
+      "x": 10.45,
+      "y": 0.8
+    },
+    {
+      "id": "b6",
+      "material": "stone",
+      "kit": "cube",
+      "x": 10.45,
+      "y": 1.6
+    },
+    {
+      "id": "b7",
+      "material": "wood",
+      "kit": "plankL",
+      "x": 12,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b8",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.55,
+      "y": 0
+    },
+    {
+      "id": "b9",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.55,
+      "y": 0.8
+    },
+    {
+      "id": "b10",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.55,
+      "y": 1.6
+    },
+    {
+      "id": "b11",
+      "material": "stone",
+      "kit": "cube",
+      "x": 14.45,
+      "y": 0
+    },
+    {
+      "id": "b12",
+      "material": "stone",
+      "kit": "cube",
+      "x": 14.45,
+      "y": 0.8
+    },
+    {
+      "id": "b13",
+      "material": "stone",
+      "kit": "cube",
+      "x": 14.45,
+      "y": 1.6
+    },
+    {
+      "id": "b14",
+      "material": "wood",
+      "kit": "plankL",
+      "x": 16,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b15",
+      "material": "stone",
+      "kit": "cube",
+      "x": 17.55,
+      "y": 0
+    },
+    {
+      "id": "b16",
+      "material": "stone",
+      "kit": "cube",
+      "x": 17.55,
+      "y": 0.8
+    },
+    {
+      "id": "b17",
+      "material": "stone",
+      "kit": "cube",
+      "x": 17.55,
+      "y": 1.6
+    },
+    {
+      "id": "b18",
+      "material": "stone",
+      "kit": "cube",
+      "x": 18.45,
+      "y": 0
+    },
+    {
+      "id": "b19",
+      "material": "stone",
+      "kit": "cube",
+      "x": 18.45,
+      "y": 0.8
+    },
+    {
+      "id": "b20",
+      "material": "stone",
+      "kit": "cube",
+      "x": 18.45,
+      "y": 1.6
+    },
+    {
+      "id": "b21",
+      "material": "wood",
+      "kit": "plankL",
+      "x": 20,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b22",
+      "material": "stone",
+      "kit": "cube",
+      "x": 21.55,
+      "y": 0
+    },
+    {
+      "id": "b23",
+      "material": "stone",
+      "kit": "cube",
+      "x": 21.55,
+      "y": 0.8
+    },
+    {
+      "id": "b24",
+      "material": "stone",
+      "kit": "cube",
+      "x": 21.55,
+      "y": 1.6
+    },
+    {
+      "id": "b25",
+      "material": "stone",
+      "kit": "cube",
+      "x": 22.45,
+      "y": 0
+    },
+    {
+      "id": "b26",
+      "material": "stone",
+      "kit": "cube",
+      "x": 22.45,
+      "y": 0.8
+    },
+    {
+      "id": "b27",
+      "material": "stone",
+      "kit": "cube",
+      "x": 22.45,
+      "y": 1.6
+    },
+    {
+      "id": "b28",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 8.8,
+      "y": 0
+    },
+    {
+      "id": "b29",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 8.8,
+      "y": 0.4
+    },
+    {
+      "id": "b30",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 8.8,
+      "y": 0.8
+    },
+    {
+      "id": "b31",
+      "material": "wood",
+      "kit": "cube",
+      "x": 23.3,
+      "y": 0
+    },
+    {
+      "id": "b32",
+      "material": "wood",
+      "kit": "cube",
+      "x": 23.3,
+      "y": 0.8
+    },
+    {
+      "id": "b33",
+      "material": "wood",
+      "kit": "cube",
+      "x": 23.3,
+      "y": 1.6
     }
   ],
   "pigs": [
     {
-      "id": "pig1",
+      "id": "p1",
       "size": "M",
-      "x": 14.8,
-      "y": 0
+      "x": 13,
+      "y": 2.8000000000000003
+    },
+    {
+      "id": "p2",
+      "size": "M",
+      "x": 17,
+      "y": 2.8000000000000003
+    },
+    {
+      "id": "p3",
+      "size": "S",
+      "x": 16,
+      "y": 2.8000000000000003
+    },
+    {
+      "id": "p4",
+      "size": "M",
+      "x": 10.5,
+      "y": 2.8000000000000003
+    },
+    {
+      "id": "p5",
+      "size": "S",
+      "x": 19,
+      "y": 2.8000000000000003
     }
   ]
 }

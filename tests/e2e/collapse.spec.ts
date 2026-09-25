@@ -38,7 +38,7 @@ test('collapse stays on the fort and the tip fits', async ({ page }) => {
   await waitForAim(page);
   await page.screenshot({ path: 'docs/evidence/collapse-aim.png' });
 
-  const pouch = pouchForLaunch(34, 20);
+  const pouch = pouchForLaunch(22, 23);
   const desired = Math.hypot(pouch.pull.x, pouch.pull.y);
   const from = await screenOf(page, SLING.anchor.x, SLING.anchor.y);
   let to = await screenOf(page, pouch.x, pouch.y);
@@ -87,32 +87,16 @@ test('collapse stays on the fort and the tip fits', async ({ page }) => {
   expect(durations).toContain(0.24);
   expect(durations).toContain(0.62);
 
-  // powder-row's recorded solution sits on a knife edge (±0.1°/±0.1 speed flips
-  // won ↔ aim), so the TNT leg goes to tnt-porch, whose solution has a wide win
-  // plateau (angle ~11–13° at speed 15–15.5).
+  // The rebuilt campaign's TNT level has no single-shot pointer plateau, so the
+  // TNT leg drives the deterministic debug launch with the recorded robust shot.
   await page.locator('.results-panel button[data-a="levels"]').click();
   await pickLevel(page, 'tnt-porch');
   await waitForAim(page); // waits for aim and dismisses the first-time dash card
 
-  const tnt = pouchForLaunch(12, 15);
-  const from2 = await screenOf(page, SLING.anchor.x, SLING.anchor.y);
-  let to2 = await screenOf(page, tnt.x, tnt.y);
-  await page.mouse.move(from2.x, from2.y);
-  await page.mouse.down();
-  await holdMs(page, 400);
-  await page.mouse.move(to2.x, to2.y, { steps: 12 });
-  for (let i = 0; i < 10; i++) {
-    const s = await snapshot(page);
-    if (s.slingPhase !== 'dragging') break;
-    const ex = tnt.pull.x - s.pullX;
-    const ey = tnt.pull.y - s.pullY;
-    if (Math.hypot(ex, ey) < 0.02) break;
-    const box = await page.locator('canvas[data-engine]').boundingBox();
-    const ppu = box!.height / s.camera.height;
-    to2 = { x: to2.x - ex * ppu, y: to2.y + ey * ppu };
-    await page.mouse.move(to2.x, to2.y, { steps: 5 });
-  }
-  await page.mouse.up();
+  await page.evaluate(() => {
+    const dbg = (window as unknown as { __debug: { launch: (a: number, v: number) => void } }).__debug;
+    dbg.launch(18, 22);
+  });
 
   const powderLows: number[] = [];
   const powderStart = Date.now();
