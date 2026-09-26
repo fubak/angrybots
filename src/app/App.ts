@@ -156,7 +156,7 @@ export class App {
 
     this.loop = new FixedStepLoop({
       step: TUNING.dt,
-      maxStepsPerFrame: 5,
+      maxStepsPerFrame: 40,
       update: (dt) => this.tick(dt),
       render: (alpha, frameDt) => this.draw(alpha, frameDt),
       schedule: (cb) => requestAnimationFrame(cb),
