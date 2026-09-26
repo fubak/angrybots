@@ -6,14 +6,14 @@
 
 ## Current
 
-**Resume instruction:** Work is on branch `feature/launch-readiness` (not pushed, no PR). `main` is still `6d31c19`. The branch executes a launch-readiness review against an Angry Birds production bar in five phases. Phases 1–4 are committed and phase 4 is DONE (camera bounds, star recalibration, difficulty floors + retune, screenshots, full gate). Phase 5 is not started. Start with "Next steps" below.
+**Resume instruction:** Work is on branch `feature/launch-readiness` (not pushed, no PR). `main` is still `6d31c19`. The branch executes a launch-readiness review against an Angry Birds production bar in five phases. All five phases are DONE (phase 5: procedural music, citadel palette, terrain + damage textures, PWA/offline, analytics hook, daily challenge + save v4, issues I-02/I-03/I-05 resolved, docs refreshed). Remaining: review diff, PR, deploy.
 
 | Field | Value |
 | --- | --- |
-| Branch | `feature/launch-readiness` at docs commit on top of `1c880c7`, not pushed |
-| Tests | typecheck, lint:forbidden, unit 119/119, physics 178/178 (incl. robustness ≥3/4 per level), level:check 30 ok, level:curve ok (floors + star gaps), build ok, size 236.64 kB gzip (budget 350). e2e --workers=1: 37 passed, 1 intentionally skipped (portrait rotate prompt) |
-| Public site | https://fubak.github.io/angrybots/ still serves `main` (old build) |
-| Review artifacts | `/tmp/angrybots-review/` (phase1..phase4b screenshots). Phase-4b idles also committed at `docs/evidence/phase4/` so they survive reboots |
+| Branch | `feature/launch-readiness`, phase-5 commits through docs closeout, not pushed |
+| Tests | see gate line below (final `verify:full` + dual-base builds) |
+| Public site | https://angrybots.lol/ is the primary target (root base); https://fubak.github.io/angrybots/ mirror still serves `main` (old build) |
+| Review artifacts | `/tmp/angrybots-review/` (phase1..phase5 screenshots). Key idles committed at `docs/evidence/phase4/` + `docs/evidence/phase5/` so they survive reboots |
 
 ## Commits on the branch
 
@@ -30,20 +30,20 @@
 | `afc6d47` + `f9e18fb` | 4C | Difficulty floors (L1 ≥20, L2–3 ≥10, bot intros + chapter openers ≥5, anyKill ≥15) + retuned 8 levels (powder-row, glass-house, stone-keep, twin-posts, split-lesson, blast-shed, king-court, triple-keep). New robust anchor + pouch solutions; hat-row/triple-keep re-solved for star span. level:curve green |
 | `8c1e834` + `14d6670` | 4C | phase4b idle screenshots (11 levels) at `/tmp/angrybots-review/phase4b/` + `docs/evidence/phase4/` |
 | `1c880c7` | 4C | campaign-wins e2e updated to powder-row's new two-shot pouch plan (24/21 then 34/20); verified passing on desktop + phone-landscape |
+| `82f4462` | 4C | phase 4 closeout — state, catalog, solutions, lessons |
+| `e0ba3c2` | 5 | Procedural music: deterministic note sequences → lazy `OfflineAudioContext` render + cache (`src/audio/music.ts`); title + 3 chapter tracks (60–90s) + victory/defeat stings; peak ≤0.9 |
+| `46e65e3` | 5 | Citadel night clouds (`ChapterLook.cloud`) + pale rim on dark bots (`shadeAndOutline` rim arg); idle screenshots in `docs/evidence/phase5/` |
+| `0a4de20` | 5 | Terrain textures (`TEX.terrainBody`/`terrainCap` on plateau/ramp/ledge) + shared 3-state damage maps (`damagedBlockTexture`, hp ≤66% cracked / ≤33% broken) replacing crack overlay; `__debug.damage` for evidence captures |
+| `e7578c2` | 5 | PWA: `public/manifest.webmanifest`, generated PNG/maskable icons (`scripts/gen-icons.mjs`), build-time `sw.js` (precache all assets + public, hash-versioned, cache-first assets / network-first index), prod-only registration at `BASE_URL` scope, offline e2e |
+| `f16b946` | 5 | `src/analytics/` typed events + pluggable sink (noop default, DEV console), wired at App/screens seams |
+| `d620420` | 5 | Daily challenge: FNV-1a date picker (`src/game/daily.ts`), save v4 + migration, streak/best (last 30 dates), title Daily button, results daily best+streak, no campaign side effects |
+| `1f9ef99` | 5 | Issues: I-05 invalid-fixture matrix (9 fixtures incl. camera-margin S5, iterated in validate-static.test), I-03 `verify:full` script, I-02 visual baselines (title + level 1 idle, desktop, 3× stable) |
 
 ## Next steps (in order)
 
-1. **Phase 4 — DONE.** Full gate green including e2e single-worker (37 passed, 1 intentional skip).
-2. **Phase 5 (not started):**
-   - longer procedural music (60–90 s per chapter plus a title theme) and a victory/defeat sting
-   - finished citadel palette (clouds tinted, contrast for black bots)
-   - terrain textures, and 3 damage-state textures per material
-   - PWA (manifest, service worker, offline)
-   - an analytics hook: a vendor-neutral event interface, no vendor SDK
-   - daily challenge (seeded level of the day, local only)
-   - update stale docs: `docs/ASSET_MANIFEST.md` references nonexistent `abTextures.ts`/Cannon; README "every level is selectable" is no longer true
-3. **Needs the user (cannot be done in code):** artist sprite atlas + skeletal animation, licensed or commissioned music, recorded VO, real-device soak (iOS Safari and Android Chrome), headphone listen, leaderboards or analytics vendor choice (needs a backend).
-4. **Ship:** review the whole branch diff, open a PR (`gh pr create`), deploy Pages from `main` after merge.
+1. **Phases 1–5 — DONE.** Phase 5 delivered: procedural music, citadel night palette + bot rims, terrain + 3-state damage textures, PWA/offline, analytics hook, daily challenge + save v4, I-02/I-03/I-05 resolved, docs refreshed.
+2. **Needs the user (cannot be done in code):** artist sprite atlas + skeletal animation, licensed or commissioned music, recorded VO, real-device soak (iOS Safari and Android Chrome), headphone listen, leaderboards or analytics vendor choice (needs a backend).
+3. **Ship:** review the whole branch diff, open a PR (`gh pr create`), deploy: angrybots.lol at root + Pages from `main` after merge.
 
 ## Open
 

@@ -26,8 +26,11 @@ Vite + TypeScript slingshot game. Rendering is Three.js ortho. Physics is Planck
 - First Flight wins from the pouch at 22° / speed 23. `window.__debug.launch(angleDeg, speed)` is that order, and only exists when `import.meta.env.DEV`.
 - `window.__debug.loadLevel` updates the sim only. It does not change `App.levelId`.
 - `import.meta.glob` in `src/levels/registry.ts` only works under Vite. Do not pouch-search with `npx tsx` against the registry.
-- Save is `angrybots-save-v3`, migrating from v2/v1; adds `skipped`, `fails`, `achievements`, `stats`.
+- Save is `angrybots-save-v4`, migrating from v3/v2/v1; adds `daily` ({lastDate, bestByDate (kept to last 30), streak}). Daily challenge = FNV-1a of the LOCAL `YYYY-MM-DD` string mod 30 levels (`src/game/daily.ts`); daily runs call `recordDailyResult`, never `recordLevel`/`recordFail`/`skipLevel`.
 - `src/app/App.ts` is split: sim-event → juice/audio wiring lives in `src/app/simFeedback.ts`, screen/navigation flow in `src/app/screens.ts`. Game time scale (hit-stop, collapse slow-mo) lives on `loop.timeScale`.
+- Analytics: `src/analytics/` exports `track(name, props)` with a typed event union and `setAnalyticsSink`. Default no-op, DEV console sink. No network, no PII.
+- PWA: `vite.config.ts` emits `sw.js` at build (precache = bundle + `public/` + index.html, cache version from content hash). Registered only in prod with scope `import.meta.env.BASE_URL`; deploys at both `/` (angrybots.lol) and `/angrybots/` (Pages). In the SW, match cache entries by URL string — `caches.match(request)` can miss entries stored by `addAll` (Vary check against synthesized requests).
+- Music: `src/audio/music.ts` builds deterministic note sequences (title + 3 chapter tracks + victory/defeat stings) rendered lazily with `OfflineAudioContext` and cached — no boot-time render. Peak kept ≤ 0.9.
 - Fragments spawn only when `Level.fragmentsEnabled` is true. `App` turns that on for a played level.
 - Sling posts are visual, not physics bodies.
 - Pages build sets `GITHUB_PAGES=1`, so Vite `base` is `/angrybots/`. Local `npm run dev` keeps base `/`.
@@ -36,6 +39,7 @@ Vite + TypeScript slingshot game. Rendering is Three.js ortho. Physics is Planck
 
 - No real-time lights or shadow maps. Every material is `MeshBasicMaterial`; lighting is painted into textures (2D cartoon look).
 - Shadows are instanced blob shadows (`src/render/BlobShadows.ts`); parallax layers live in `Scenery.applyParallax`.
+- Damage visuals: `Renderer.tintDamage` swaps the block-face `map` to shared `damagedBlockTexture(material, stage)` at hp ≤ 66% (cracked) and ≤ 33% (broken); terrain bodies/caps use shared `TEX.terrainBody`/`TEX.terrainCap`. Citadel clouds are night-tinted; dark bots get a pale rim via `shadeAndOutline`.
 - Particles are 8 instanced pools (wood/glass/stone/feather/smoke/spark/glow/ring); popups come from a glyph atlas (`textSprite` in `src/render/Juice.ts`).
 
 ## Audio

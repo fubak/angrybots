@@ -12,3 +12,6 @@
 - The rater's `best` (star3 axis) only counts `solutions.json` + grid wins — pouch/ability plans don't feed it. Raising star3 for an unchanged level needs a better anchor solution or a layout change that unlocks spare bots.
 - Pigs sitting exactly on plank seams or slab edges cause settle drift (>0.08). Place pigs mid-plank with clearance on both sides.
 - `solve-robust` budget is `CANDS` env (default 10); `batch-solve` can find higher scores but unrobust shots — always re-check perturbed wins (±0.3°, ±0.2 speed, ≥3/4) after any book change.
+- In a service worker, `caches.match(requestObject)` can miss entries stored by `addAll` (Vary check compares the browser request's headers against the synthesized addAll request). Match precached entries by URL string (`caches.match(url.href)`).
+- `Array.prototype.slice(0, negative)` counts from the end, not zero — guard `arr.length > K` before `slice(0, len - K)` pruning, or it deletes nearly everything.
+- `index.html` is not part of the rolldown `bundle` map in `generateBundle` — a build-plugin precache list must add it (and `public/` files) explicitly.
