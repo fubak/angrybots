@@ -11,7 +11,7 @@
 | Field | Value |
 | --- | --- |
 | Branch | `feature/launch-readiness`, phase-5 commits through docs closeout, not pushed |
-| Tests | see gate line below (final `verify:full` + dual-base builds) |
+| Tests | `verify:full` green: typecheck, lint:forbidden, unit 138/138, physics 187/187, level:check 30 ok, level:curve ok, size 240.43 kB gzip (budget 350). e2e --workers=1: 43 passed, 3 skipped (1 portrait-rotate on desktop + 2 visual baselines on phone). Dual-base builds verified: root `/` and Pages `/angrybots/` (manifest link + SW register/scope per base) |
 | Public site | https://angrybots.lol/ is the primary target (root base); https://fubak.github.io/angrybots/ mirror still serves `main` (old build) |
 | Review artifacts | `/tmp/angrybots-review/` (phase1..phase5 screenshots). Key idles committed at `docs/evidence/phase4/` + `docs/evidence/phase5/` so they survive reboots |
 
