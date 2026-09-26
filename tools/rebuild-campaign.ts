@@ -129,12 +129,13 @@ const specs: Spec[] = [
       const r = cell(b, 11.4, 0, { wall: 'glass', roof: 'stone' }); // 3
       stack(b, 11.4, r, 2, 'stone');                              // 2
       b.push(B('stone', 'plankM', 11.4, r + 1.6));                // 1
-      stack(b, 13.8, 0, 3, 'wood');                               // 3
-      b.push(B('wood', 'plankS', 13.8, 2.4));                     // 1
-      stack(b, 9.2, 0, 2, 'wood');                                // 2
-      b.push(B('wood', 'slab', 9.2, 1.6));                        // 1
-      b.push(B('wood', 'cubeS', 9.9, 0));                         // 1 => 14
-      const pigs = [P('M', 11.4, 0), P('S', 13.8, 2.8), P('S', 9.2, 2.4)];
+      stack(b, 13.4, 0, 2, 'wood');                               // 2 right stack hugs the cell
+      b.push(B('wood', 'plankS', 13.4, 1.6));                     // 1
+      stack(b, 9.4, 0, 2, 'wood');                                // 2 left stack first in line
+      b.push(B('wood', 'plankS', 9.4, 1.6));                      // 1
+      b.push(B('wood', 'cubeS', 14.3, 0));                        // 1
+      stack(b, 8.5, 0, 1, 'glass');                               // 1 glass chip => 14
+      const pigs = [P('M', 11.4, 0), P('S', 13.4, 2.0), P('S', 9.4, 2.0)];
       return { blocks: b, pigs, terrain: [] };
     },
   },
@@ -144,7 +145,7 @@ const specs: Spec[] = [
     hint: 'The glass piers are weak. One hit drops the span.',
     build: () => {
       const b: BlockV2[] = [];
-      for (const x of [10.3, 14.5]) b.push(B('stone', 'postL', x, 0)); // 2 armored piers
+      for (const x of [10.3, 14.5]) b.push(B('wood', 'postL', x, 0));  // 2 outer piers
       for (const x of [11.1, 13.7]) b.push(B('glass', 'postL', x, 0)); // 2 glass piers
       b.push(B('stone', 'plankL', 12.4, 2.0));                          // 1
       b.push(B('wood', 'slab', 12.4, 2.4));                             // 1
@@ -152,7 +153,7 @@ const specs: Spec[] = [
       stack(b, 12.4, 4.0, 1, 'glass');                                  // 1 crown on the perch cube
       stack(b, 10.9, 2.4, 3, 'wood');                                   // 3 (on the stone span ends)
       stack(b, 13.9, 2.4, 3, 'wood');                                   // 3 => 14
-      const pigs = [P('S', 12.4, 0), P('S', 12.4, 4.8), P('S', 10.9, 4.8), P('S', 13.9, 4.8)];
+      const pigs = [P('S', 12.4, 0), P('S', 12.4, 4.8), P('S', 10.9, 4.8)];
       return { blocks: b, pigs, terrain: [] };
     },
   },
@@ -162,12 +163,15 @@ const specs: Spec[] = [
     hint: 'Split hits three places at once. Tap in mid-air.',
     build: () => {
       const b: BlockV2[] = [];
-      for (const x of [9.6, 12.6, 15.6, 18.2]) {
-        stack(b, x - 0.4, 0, 2, ['wood', 'glass']);                   // 2
-        stack(b, x + 0.4, 0, 2, ['wood', 'glass']);                   // 2
-        b.push(B('stone', 'plankM', x, 1.6));                         // 1
-      }
-      const pigs = [P('S', 9.6, 2.0), P('S', 12.6, 2.0), P('S', 15.6, 2.0), P('S', 18.2, 2.0)];
+      // twin glass columns carry a heavy crown — shatter a leg and it all drops
+      stack(b, 11.6, 0, 3, 'glass');                                  // 3
+      stack(b, 12.6, 0, 3, 'glass');                                  // 3
+      stack(b, 12.1, 2.4, 3, 'stone');                                // 3 crown
+      stack(b, 9.0, 0, 3, 'wood');                                    // 3 flanks
+      stack(b, 15.2, 0, 3, 'wood');                                   // 3
+      b.push(B('wood', 'plankS', 9.0, 2.4));                          // 1
+      b.push(B('wood', 'plankS', 15.2, 2.4));                         // 1 => 17
+      const pigs = [P('S', 10.7, 0), P('M', 13.6, 0), P('S', 12.1, 4.8)];
       return { blocks: b, pigs, terrain: [] };
     },
   },
@@ -214,12 +218,20 @@ const specs: Spec[] = [
     hint: 'Tap during flight to dash through the beam.',
     build: () => {
       const b: BlockV2[] = [];
-      const br = bridge(b, 9.6, 2, { pier: 'stone', span: 'wood', pierH: 2 }); // 8
-      b.push(B('wood', 'slab', 11.6, br.deckY));                       // 1
-      b.push(B('wood', 'slab', 15.6, br.deckY));                       // 1
-      stack(b, 11.6, br.deckY + 0.8, 1, 'glass');                      // 1 => 13
-      stack(b, 15.6, br.deckY + 0.8, 1, 'glass');                      // 1 => 14
-      const pigs = [P('S', 11.6, br.deckY + 1.6), P('M', 13.2, br.deckY), P('S', 14.2, br.deckY), P('S', 15.6, br.deckY + 1.6)];
+      // the twin posts carry a heavy stone beam; the pigs huddle between them
+      for (const x of [11.5, 15.5]) {
+        b.push(B('wood', 'postL', x, 0));
+        b.push(B('wood', 'postL', x, 2.0));
+      }                                                             // 4
+      b.push(B('stone', 'plankL', 13.5, 4.0));                        // 1 beam
+      b.push(B('stone', 'slab', 13.5, 4.4));                          // 1 weight
+      stack(b, 9.4, 0, 2, 'wood');                                    // 2 flank fillers
+      stack(b, 17.6, 0, 2, 'wood');                                   // 2
+      stack(b, 10.3, 0, 1, 'glass');                                  // 1 chips beside the pen
+      stack(b, 16.7, 0, 1, 'glass');                                  // 1
+      b.push(B('wood', 'cubeS', 12.2, 4.4));                          // 1
+      b.push(B('wood', 'cubeS', 14.8, 4.4));                          // 1 => 14
+      const pigs = [P('S', 12.5, 0), P('S', 13.5, 0), P('S', 14.5, 0)];
       return { blocks: b, pigs, terrain: [] };
     },
   },
@@ -269,7 +281,7 @@ const specs: Spec[] = [
       const b: BlockV2[] = [];
       // three bunkers spread wide apart; stepped wall columns between them
       cell(b, 8.8, 0, { h: 'postL', gap: 1.0, wall: 'stone', roof: 'stone' });  // 3
-      cell(b, 13.6, 0, { h: 'postL', gap: 1.0, wall: 'stone', roof: 'stone' }); // 3
+      cell(b, 13.6, 0, { h: 'postL', gap: 1.0, wall: 'glass', roof: 'stone' }); // 3 weak face
       cell(b, 18.4, 0, { h: 'postL', gap: 1.0, wall: 'stone', roof: 'stone' }); // 3
       stack(b, 6.3, 0, 3, 'stone');                                  // 3 stepped left wall
       stack(b, 7.2, 0, 4, 'stone');                                  // 4
@@ -278,7 +290,7 @@ const specs: Spec[] = [
       stack(b, 15.7, 0, 4, 'stone');                                 // 4
       stack(b, 16.5, 0, 3, 'glass');                                 // 3 weak column => 30
       const pigs = [
-        P('M', 8.8, 0), P('M', 13.6, 0), P('S', 18.4, 0),
+        P('S', 8.8, 2.4), P('M', 13.6, 0), P('S', 18.4, 2.4),
       ];
       return { blocks: b, pigs, terrain: [] };
     },
@@ -452,10 +464,12 @@ const specs: Spec[] = [
       b.push(B('wood', 'plankL', 12.6, 4.0));                          // 1 cap
       const t1 = tower(b, 9.4, 0, 2, { h: 'postM', wall: 'wood', roof: 'wood' });   // 6 -> 3.2
       const t2 = tower(b, 15.8, 0, 2, { h: 'postM', wall: 'wood', roof: 'wood' });  // 6 -> 3.2
+      b.push(B('tnt', 'cube', 9.4, 0));                                // kegs in the towers
+      b.push(B('tnt', 'cube', 15.8, 0));                               // 2
       stack(b, 12.6, 4.4, 1, 'wood');                                  // 1
       stack(b, 9.4, t1, 1, 'wood', 'slab');                            // 1 cap slabs: flat seats
-      stack(b, 15.8, t2, 1, 'wood', 'slab');                           // 1 => 22
-      const pigs = [P('M', 13.25, 0), P('S', 12.6, 5.2), P('M', 9.4, 0), P('M', 15.8, 0), P('S', 15.8, t2 + 0.8)];
+      stack(b, 15.8, t2, 1, 'wood', 'slab');                           // 1 => 24
+      const pigs = [P('M', 13.25, 0), P('S', 12.6, 5.2), P('S', 9.4, t1 + 0.8), P('S', 7.9, 0), P('S', 15.8, t2 + 0.8)];
       return { blocks: b, pigs, terrain: [] };
     },
   },
@@ -515,8 +529,8 @@ const specs: Spec[] = [
     archetype: 'bunker', bots: ['grok', 'grok', 'grok', 'grok', 'grok'],
     build: () => {
       const b: BlockV2[] = [];
-      // wide royal vault: posts at ±1.8, plankL roof, king inside
-      const r = cell(b, 12.6, 0, { h: 'postL', gap: 1.8, wall: 'stone', roof: 'stone' }); // 3 -> 2.4
+      // wide royal vault: glass posts carry the stone roof + crown; king inside
+      const r = cell(b, 12.6, 0, { h: 'postL', gap: 1.8, wall: 'glass', roof: 'stone' }); // 3 -> 2.4
       stack(b, 12.6, r, 5, 'stone');                                 // 5 column crown
       // flanking guard cells (wider, clear of vault posts at 10.8/14.4)
       const g1 = cell(b, 8.8, 0, { h: 'postM', wall: 'wood', roof: 'wood' });   // 3
@@ -527,10 +541,9 @@ const specs: Spec[] = [
       stack(b, 10.25, 0, 4, 'stone', 'cubeS');                       // 4
       stack(b, 14.95, 0, 4, 'stone', 'cubeS');                       // 4
       stack(b, 7.2, 0, 3, 'wood');                                   // 3 outriggers
-      stack(b, 18.0, 0, 3, 'wood');                                  // 3 => 30
+      stack(b, 18.0, 0, 3, 'wood');                                  // 3 => 34
       const pigs = [
-        P('L', 12.6, 0, { king: true }), P('M', 8.8, 0), P('M', 16.4, 0),
-        P('S', 8.8, g1 + 2.4), P('S', 16.4, g2 + 2.4),
+        P('L', 12.6, 0, { king: true }), P('S', 11.45, 0), P('S', 13.8, 0),
       ];
       return { blocks: b, pigs, terrain: [] };
     },

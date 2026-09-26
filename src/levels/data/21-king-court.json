@@ -12,9 +12,9 @@
     "grok"
   ],
   "stars": [
-    30000,
-    37000,
-    43000
+    1,
+    2,
+    3
   ],
   "camera": {
     "minX": -11,
@@ -29,14 +29,14 @@
   "blocks": [
     {
       "id": "b1",
-      "material": "stone",
+      "material": "glass",
       "kit": "postL",
       "x": 10.799999999999999,
       "y": 0
     },
     {
       "id": "b2",
-      "material": "stone",
+      "material": "glass",
       "kit": "postL",
       "x": 14.4,
       "y": 0
@@ -276,27 +276,15 @@
     },
     {
       "id": "p2",
-      "size": "M",
-      "x": 8.8,
+      "size": "S",
+      "x": 11.45,
       "y": 0
     },
     {
       "id": "p3",
-      "size": "M",
-      "x": 16.4,
+      "size": "S",
+      "x": 13.8,
       "y": 0
-    },
-    {
-      "id": "p4",
-      "size": "S",
-      "x": 8.8,
-      "y": 4
-    },
-    {
-      "id": "p5",
-      "size": "S",
-      "x": 16.4,
-      "y": 4
     }
   ]
 }

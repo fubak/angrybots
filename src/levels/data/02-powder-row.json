@@ -10,9 +10,9 @@
     "grok"
   ],
   "stars": [
-    15000,
-    28500,
-    39500
+    1,
+    2,
+    3
   ],
   "camera": {
     "minX": -11,
@@ -71,56 +71,56 @@
       "id": "b7",
       "material": "wood",
       "kit": "cube",
-      "x": 13.8,
+      "x": 13.4,
       "y": 0
     },
     {
       "id": "b8",
       "material": "wood",
       "kit": "cube",
-      "x": 13.8,
+      "x": 13.4,
       "y": 0.8
     },
     {
       "id": "b9",
       "material": "wood",
-      "kit": "cube",
-      "x": 13.8,
+      "kit": "plankS",
+      "x": 13.4,
       "y": 1.6
     },
     {
       "id": "b10",
       "material": "wood",
-      "kit": "plankS",
-      "x": 13.8,
-      "y": 2.4
+      "kit": "cube",
+      "x": 9.4,
+      "y": 0
     },
     {
       "id": "b11",
       "material": "wood",
       "kit": "cube",
-      "x": 9.2,
-      "y": 0
+      "x": 9.4,
+      "y": 0.8
     },
     {
       "id": "b12",
       "material": "wood",
-      "kit": "cube",
-      "x": 9.2,
-      "y": 0.8
+      "kit": "plankS",
+      "x": 9.4,
+      "y": 1.6
     },
     {
       "id": "b13",
       "material": "wood",
-      "kit": "slab",
-      "x": 9.2,
-      "y": 1.6
+      "kit": "cubeS",
+      "x": 14.3,
+      "y": 0
     },
     {
       "id": "b14",
-      "material": "wood",
-      "kit": "cubeS",
-      "x": 9.9,
+      "material": "glass",
+      "kit": "cube",
+      "x": 8.5,
       "y": 0
     }
   ],
@@ -134,14 +134,14 @@
     {
       "id": "p2",
       "size": "S",
-      "x": 13.8,
-      "y": 2.8
+      "x": 13.4,
+      "y": 2
     },
     {
       "id": "p3",
       "size": "S",
-      "x": 9.2,
-      "y": 2.4
+      "x": 9.4,
+      "y": 2
     }
   ],
   "hint": "Break the glass face to drop the roof."

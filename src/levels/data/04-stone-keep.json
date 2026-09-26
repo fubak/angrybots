@@ -10,15 +10,15 @@
     "grok"
   ],
   "stars": [
-    20000,
-    26000,
-    31000
+    1,
+    2,
+    3
   ],
   "camera": {
     "minX": -11,
-    "maxX": 20,
+    "maxX": 17,
     "minY": 0,
-    "maxY": 4
+    "maxY": 7
   },
   "sling": {
     "x": -7.5
@@ -27,169 +27,142 @@
   "blocks": [
     {
       "id": "b1",
-      "material": "wood",
+      "material": "glass",
       "kit": "cube",
-      "x": 9.2,
+      "x": 11.6,
       "y": 0
     },
     {
       "id": "b2",
       "material": "glass",
       "kit": "cube",
-      "x": 9.2,
+      "x": 11.6,
       "y": 0.8
     },
     {
       "id": "b3",
-      "material": "wood",
+      "material": "glass",
       "kit": "cube",
-      "x": 10,
-      "y": 0
+      "x": 11.6,
+      "y": 1.6
     },
     {
       "id": "b4",
       "material": "glass",
       "kit": "cube",
-      "x": 10,
-      "y": 0.8
+      "x": 12.6,
+      "y": 0
     },
     {
       "id": "b5",
-      "material": "stone",
-      "kit": "plankM",
-      "x": 9.6,
-      "y": 1.6
+      "material": "glass",
+      "kit": "cube",
+      "x": 12.6,
+      "y": 0.8
     },
     {
       "id": "b6",
-      "material": "wood",
+      "material": "glass",
       "kit": "cube",
-      "x": 12.2,
-      "y": 0
+      "x": 12.6,
+      "y": 1.6
     },
     {
       "id": "b7",
-      "material": "glass",
+      "material": "stone",
       "kit": "cube",
-      "x": 12.2,
-      "y": 0.8
+      "x": 12.1,
+      "y": 2.4
     },
     {
       "id": "b8",
-      "material": "wood",
+      "material": "stone",
       "kit": "cube",
-      "x": 13,
-      "y": 0
+      "x": 12.1,
+      "y": 3.2
     },
     {
       "id": "b9",
-      "material": "glass",
+      "material": "stone",
       "kit": "cube",
-      "x": 13,
-      "y": 0.8
+      "x": 12.1,
+      "y": 4
     },
     {
       "id": "b10",
-      "material": "stone",
-      "kit": "plankM",
-      "x": 12.6,
-      "y": 1.6
+      "material": "wood",
+      "kit": "cube",
+      "x": 9,
+      "y": 0
     },
     {
       "id": "b11",
       "material": "wood",
       "kit": "cube",
-      "x": 15.2,
-      "y": 0
+      "x": 9,
+      "y": 0.8
     },
     {
       "id": "b12",
-      "material": "glass",
+      "material": "wood",
       "kit": "cube",
-      "x": 15.2,
-      "y": 0.8
+      "x": 9,
+      "y": 1.6
     },
     {
       "id": "b13",
       "material": "wood",
       "kit": "cube",
-      "x": 16,
+      "x": 15.2,
       "y": 0
     },
     {
       "id": "b14",
-      "material": "glass",
+      "material": "wood",
       "kit": "cube",
-      "x": 16,
+      "x": 15.2,
       "y": 0.8
     },
     {
       "id": "b15",
-      "material": "stone",
-      "kit": "plankM",
-      "x": 15.6,
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.2,
       "y": 1.6
     },
     {
       "id": "b16",
       "material": "wood",
-      "kit": "cube",
-      "x": 17.8,
-      "y": 0
+      "kit": "plankS",
+      "x": 9,
+      "y": 2.4
     },
     {
       "id": "b17",
-      "material": "glass",
-      "kit": "cube",
-      "x": 17.8,
-      "y": 0.8
-    },
-    {
-      "id": "b18",
       "material": "wood",
-      "kit": "cube",
-      "x": 18.599999999999998,
-      "y": 0
-    },
-    {
-      "id": "b19",
-      "material": "glass",
-      "kit": "cube",
-      "x": 18.599999999999998,
-      "y": 0.8
-    },
-    {
-      "id": "b20",
-      "material": "stone",
-      "kit": "plankM",
-      "x": 18.2,
-      "y": 1.6
+      "kit": "plankS",
+      "x": 15.2,
+      "y": 2.4
     }
   ],
   "pigs": [
     {
       "id": "p1",
       "size": "S",
-      "x": 9.6,
-      "y": 2
+      "x": 10.7,
+      "y": 0
     },
     {
       "id": "p2",
-      "size": "S",
-      "x": 12.6,
-      "y": 2
+      "size": "M",
+      "x": 13.6,
+      "y": 0
     },
     {
       "id": "p3",
       "size": "S",
-      "x": 15.6,
-      "y": 2
-    },
-    {
-      "id": "p4",
-      "size": "S",
-      "x": 18.2,
-      "y": 2
+      "x": 12.1,
+      "y": 4.8
     }
   ],
   "hint": "Split hits three places at once. Tap in mid-air."

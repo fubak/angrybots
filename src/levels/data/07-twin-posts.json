@@ -10,15 +10,15 @@
     "grok"
   ],
   "stars": [
-    20000,
-    26500,
-    32000
+    1,
+    2,
+    3
   ],
   "camera": {
     "minX": -11,
     "maxX": 19,
     "minY": 0,
-    "maxY": 5
+    "maxY": 6
   },
   "sling": {
     "x": -7.5
@@ -27,155 +27,121 @@
   "blocks": [
     {
       "id": "b1",
-      "material": "stone",
-      "kit": "cube",
-      "x": 9.15,
+      "material": "wood",
+      "kit": "postL",
+      "x": 11.5,
       "y": 0
     },
     {
       "id": "b2",
-      "material": "stone",
-      "kit": "cube",
-      "x": 9.15,
-      "y": 0.8
+      "material": "wood",
+      "kit": "postL",
+      "x": 11.5,
+      "y": 2
     },
     {
       "id": "b3",
-      "material": "stone",
-      "kit": "cube",
-      "x": 10.049999999999999,
+      "material": "wood",
+      "kit": "postL",
+      "x": 15.5,
       "y": 0
     },
     {
       "id": "b4",
-      "material": "stone",
-      "kit": "cube",
-      "x": 10.049999999999999,
-      "y": 0.8
+      "material": "wood",
+      "kit": "postL",
+      "x": 15.5,
+      "y": 2
     },
     {
       "id": "b5",
-      "material": "wood",
+      "material": "stone",
       "kit": "plankL",
-      "x": 11.6,
-      "y": 1.6
+      "x": 13.5,
+      "y": 4
     },
     {
       "id": "b6",
       "material": "stone",
-      "kit": "cube",
-      "x": 13.15,
-      "y": 0
+      "kit": "slab",
+      "x": 13.5,
+      "y": 4.4
     },
     {
       "id": "b7",
-      "material": "stone",
+      "material": "wood",
       "kit": "cube",
-      "x": 13.15,
-      "y": 0.8
-    },
-    {
-      "id": "b8",
-      "material": "stone",
-      "kit": "cube",
-      "x": 14.049999999999999,
+      "x": 9.4,
       "y": 0
     },
     {
-      "id": "b9",
-      "material": "stone",
+      "id": "b8",
+      "material": "wood",
       "kit": "cube",
-      "x": 14.049999999999999,
+      "x": 9.4,
       "y": 0.8
+    },
+    {
+      "id": "b9",
+      "material": "wood",
+      "kit": "cube",
+      "x": 17.6,
+      "y": 0
     },
     {
       "id": "b10",
       "material": "wood",
-      "kit": "plankL",
-      "x": 15.6,
-      "y": 1.6
+      "kit": "cube",
+      "x": 17.6,
+      "y": 0.8
     },
     {
       "id": "b11",
-      "material": "stone",
+      "material": "glass",
       "kit": "cube",
-      "x": 17.150000000000002,
+      "x": 10.3,
       "y": 0
     },
     {
       "id": "b12",
-      "material": "stone",
+      "material": "glass",
       "kit": "cube",
-      "x": 17.150000000000002,
-      "y": 0.8
-    },
-    {
-      "id": "b13",
-      "material": "stone",
-      "kit": "cube",
-      "x": 18.05,
+      "x": 16.7,
       "y": 0
     },
     {
+      "id": "b13",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 12.2,
+      "y": 4.4
+    },
+    {
       "id": "b14",
-      "material": "stone",
-      "kit": "cube",
-      "x": 18.05,
-      "y": 0.8
-    },
-    {
-      "id": "b15",
       "material": "wood",
-      "kit": "slab",
-      "x": 11.6,
-      "y": 2
-    },
-    {
-      "id": "b16",
-      "material": "wood",
-      "kit": "slab",
-      "x": 15.6,
-      "y": 2
-    },
-    {
-      "id": "b17",
-      "material": "glass",
-      "kit": "cube",
-      "x": 11.6,
-      "y": 2.8
-    },
-    {
-      "id": "b18",
-      "material": "glass",
-      "kit": "cube",
-      "x": 15.6,
-      "y": 2.8
+      "kit": "cubeS",
+      "x": 14.8,
+      "y": 4.4
     }
   ],
   "pigs": [
     {
       "id": "p1",
       "size": "S",
-      "x": 11.6,
-      "y": 3.6
+      "x": 12.5,
+      "y": 0
     },
     {
       "id": "p2",
-      "size": "M",
-      "x": 13.2,
-      "y": 2
+      "size": "S",
+      "x": 13.5,
+      "y": 0
     },
     {
       "id": "p3",
       "size": "S",
-      "x": 14.2,
-      "y": 2
-    },
-    {
-      "id": "p4",
-      "size": "S",
-      "x": 15.6,
-      "y": 3.6
+      "x": 14.5,
+      "y": 0
     }
   ],
   "hint": "Tap during flight to dash through the beam."

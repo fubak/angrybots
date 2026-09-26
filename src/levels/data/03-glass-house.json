@@ -10,9 +10,9 @@
     "grok"
   ],
   "stars": [
-    20000,
-    34500,
-    46500
+    1,
+    2,
+    3
   ],
   "camera": {
     "minX": -11,
@@ -27,14 +27,14 @@
   "blocks": [
     {
       "id": "b1",
-      "material": "stone",
+      "material": "wood",
       "kit": "postL",
       "x": 10.3,
       "y": 0
     },
     {
       "id": "b2",
-      "material": "stone",
+      "material": "wood",
       "kit": "postL",
       "x": 14.5,
       "y": 0
@@ -141,12 +141,6 @@
       "id": "p3",
       "size": "S",
       "x": 10.9,
-      "y": 4.8
-    },
-    {
-      "id": "p4",
-      "size": "S",
-      "x": 13.9,
       "y": 4.8
     }
   ],

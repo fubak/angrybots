@@ -11,9 +11,9 @@
     "grok"
   ],
   "stars": [
-    15000,
-    17500,
-    19500
+    1,
+    2,
+    3
   ],
   "camera": {
     "minX": -11,
@@ -49,14 +49,14 @@
     },
     {
       "id": "b4",
-      "material": "stone",
+      "material": "glass",
       "kit": "postL",
       "x": 12.6,
       "y": 0
     },
     {
       "id": "b5",
-      "material": "stone",
+      "material": "glass",
       "kit": "postL",
       "x": 14.6,
       "y": 0
@@ -240,9 +240,9 @@
   "pigs": [
     {
       "id": "p1",
-      "size": "M",
+      "size": "S",
       "x": 8.8,
-      "y": 0
+      "y": 2.4
     },
     {
       "id": "p2",
@@ -254,7 +254,7 @@
       "id": "p3",
       "size": "S",
       "x": 18.4,
-      "y": 0
+      "y": 2.4
     }
   ],
   "hint": "Chapter finale: bring the whole stand down."
