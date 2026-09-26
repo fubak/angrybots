@@ -104,7 +104,9 @@ function detonateBlast(bot: BotEntity, ctx: AbilityContext): void {
   const body = bot.body!;
   const pos = body.getPosition();
   explodeAt(ctx.level.pw, pos, 3.5, 18, 45, {
-    onExplosion: () => {},
+    onExplosion: (x, y, radius) => {
+      ctx.level.bus.emit('explosion', { x, y, radius });
+    },
     onBlastDamage: (entity, damage) => {
       if (!entity.alive) return;
       const dealt = Math.min(damage, Math.max(entity.hp, 0));

@@ -6,47 +6,232 @@
   "order": 4,
   "bots": [
     "grok",
-    "split"
+    "grok",
+    "grok"
   ],
   "stars": [
-    9000,
-    17000,
-    25000
+    25000,
+    34000,
+    41500
   ],
   "camera": {
     "minX": -11,
-    "maxX": 20,
+    "maxX": 18,
     "minY": 0,
-    "maxY": 11
+    "maxY": 8
   },
-  "hint": "The nest sits on a hanging ledge.",
   "sling": {
     "x": -7.5
   },
   "terrain": [
     {
       "kind": "ledge",
-      "x0": 12,
-      "x1": 16.6,
-      "top": 2.4,
-      "thickness": 0.5
+      "x0": 13.5,
+      "x1": 17,
+      "top": 3,
+      "thickness": 0.6
     }
   ],
   "blocks": [
     {
-      "id": "cap",
+      "id": "b1",
+      "material": "wood",
+      "kit": "postM",
+      "x": 8.299999999999999,
+      "y": 0
+    },
+    {
+      "id": "b2",
+      "material": "wood",
+      "kit": "postM",
+      "x": 10.1,
+      "y": 0
+    },
+    {
+      "id": "b3",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 9.2,
+      "y": 1.2
+    },
+    {
+      "id": "b4",
+      "material": "wood",
+      "kit": "postM",
+      "x": 8.299999999999999,
+      "y": 1.6
+    },
+    {
+      "id": "b5",
+      "material": "wood",
+      "kit": "postM",
+      "x": 10.1,
+      "y": 1.6
+    },
+    {
+      "id": "b6",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 9.2,
+      "y": 2.8
+    },
+    {
+      "id": "b7",
+      "material": "glass",
+      "kit": "postM",
+      "x": 11.1,
+      "y": 0
+    },
+    {
+      "id": "b8",
+      "material": "glass",
+      "kit": "postM",
+      "x": 12.9,
+      "y": 0
+    },
+    {
+      "id": "b9",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 12,
+      "y": 1.2
+    },
+    {
+      "id": "b10",
+      "material": "glass",
+      "kit": "postM",
+      "x": 11.1,
+      "y": 1.6
+    },
+    {
+      "id": "b11",
+      "material": "glass",
+      "kit": "postM",
+      "x": 12.9,
+      "y": 1.6
+    },
+    {
+      "id": "b12",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 12,
+      "y": 2.8
+    },
+    {
+      "id": "b13",
+      "material": "stone",
+      "kit": "cubeS",
+      "x": 10.6,
+      "y": 0
+    },
+    {
+      "id": "b14",
+      "material": "stone",
+      "kit": "cubeS",
+      "x": 10.6,
+      "y": 0.4
+    },
+    {
+      "id": "b15",
+      "material": "wood",
+      "kit": "postM",
+      "x": 14.299999999999999,
+      "y": 3
+    },
+    {
+      "id": "b16",
+      "material": "wood",
+      "kit": "postM",
+      "x": 16.099999999999998,
+      "y": 3
+    },
+    {
+      "id": "b17",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 15.2,
+      "y": 4.2
+    },
+    {
+      "id": "b18",
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.2,
+      "y": 4.6000000000000005
+    },
+    {
+      "id": "b19",
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.2,
+      "y": 5.4
+    },
+    {
+      "id": "b20",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 15.2,
+      "y": 6.200000000000001
+    },
+    {
+      "id": "b21",
+      "material": "stone",
+      "kit": "cube",
+      "x": 16.7,
+      "y": 3
+    },
+    {
+      "id": "b22",
+      "material": "stone",
+      "kit": "cube",
+      "x": 16.7,
+      "y": 3.8
+    },
+    {
+      "id": "b23",
+      "material": "wood",
+      "kit": "plankS",
+      "x": 16.7,
+      "y": 4.6
+    },
+    {
+      "id": "b24",
       "material": "wood",
       "kit": "cubeS",
-      "x": 15.3,
-      "y": 2.4
+      "x": 15.2,
+      "y": 6.6000000000000005
     }
   ],
   "pigs": [
     {
-      "id": "pig1",
+      "id": "p1",
+      "size": "M",
+      "x": 9.2,
+      "y": 0
+    },
+    {
+      "id": "p2",
+      "size": "M",
+      "x": 12,
+      "y": 0
+    },
+    {
+      "id": "p3",
       "size": "S",
-      "x": 13.3,
-      "y": 2.4
+      "x": 9.2,
+      "y": 3.1999999999999997
+    },
+    {
+      "id": "p4",
+      "size": "M",
+      "x": 15.2,
+      "y": 3
+    },
+    {
+      "id": "p5",
+      "size": "S",
+      "x": 16.7,
+      "y": 5
     }
   ]
 }

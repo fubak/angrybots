@@ -33,8 +33,6 @@ export interface PigEntity extends EntityBase {
   maxHp: number;
   /** True once the target has been clearly above the grass. A later ground hit removes it. */
   airborne: boolean;
-  /** Seconds spent tumbling along the grass; a target that keeps rolling is finished off. */
-  rollTime: number;
 }
 
 export interface BotEntity extends EntityBase {

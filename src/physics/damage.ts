@@ -8,7 +8,10 @@ import { damagePoints } from '../game/Scoring';
 export type ImpactEvent = {
   aId: string;
   bId: string;
+  aKind: string;
+  bKind: string;
   impulse: number;
+  approachSpeed: number;
   point: { x: number; y: number };
 };
 
@@ -75,7 +78,10 @@ export function attachDamagePipeline(
       impactPairs.push({
         aId: a.id,
         bId: b.id,
+        aKind: a.kind,
+        bKind: b.kind,
         impulse: I,
+        approachSpeed,
         point: wm.points[0]!,
       });
     }

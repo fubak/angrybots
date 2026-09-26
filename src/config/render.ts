@@ -22,12 +22,13 @@ export const PALETTE = {
     hat: '#8b5a2b',
     crown: '#ffcc33',
   },
+  // Official sticker body colors (src/assets/bots).
   bot: {
-    grok: '#4a5160',
-    dash: '#f2a51f',
-    split: '#37b6ff',
-    heavy: '#6b5b95',
-    blast: '#2b2b2b',
+    grok: '#000000',
+    dash: '#ee3342',
+    split: '#457bbe',
+    heavy: '#98693d',
+    blast: '#ed3a95',
     accent: '#ff6a1a',
     eye: '#f5f7ff',
     visor: '#11131a',

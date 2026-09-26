@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openApp, seedCleared, snapshot } from './helpers';
+import { openApp, pickLevel, seedCleared, snapshot } from './helpers';
 
 const LEVELS = [
   'first-flight',
@@ -57,9 +57,9 @@ test.describe('levels smoke', () => {
       const errors: string[] = [];
       page.on('pageerror', (err) => errors.push(err.message));
       await seedCleared(page, PRED[id]);
-      await openApp(page);
+      await openApp(page, { unlockAll: true });
       await page.getByRole('button', { name: 'Play' }).click();
-      await page.locator(`button[data-level-id="${id}"]`).click();
+      await pickLevel(page, id);
       await expect.poll(async () => (await snapshot(page)).state, { timeout: 20_000 }).toBe('aim');
       expect(errors).toEqual([]);
     });

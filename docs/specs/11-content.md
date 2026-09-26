@@ -12,7 +12,7 @@ Goal: grow from the 5-level slice to 30 levels in 3 chapters, with new pieces, p
 | Hat pig | hp × 1.5 | Brown hat | Ch1 L9 |
 | Helmet pig | hp × 2.5 (already in the slice) | Gray helmet; dented at ≤ 50% | Slice |
 | King pig | Size L, hp × 3, **10,000 points** | Crown; cape (a flat extruded shape behind) | Finales |
-| Blast bot | [04-slingshot-and-bots.md](04-slingshot-and-bots.md#abilities) | Black round bot with a fuse | Ch3 L1 |
+| Blast bot | [04-slingshot-and-bots.md](04-slingshot-and-bots.md#abilities) | Pink cyclops sticker (05) | Ch3 L1 |
 
 ## Chapters
 

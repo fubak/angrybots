@@ -11,6 +11,7 @@ import { attachDamagePipeline } from '../physics/damage';
 import { defaultTntExplosion } from '../physics/explosions';
 import { isOutOfBounds, shouldRemoveOob } from '../physics/bounds';
 import { isQuiet } from '../physics/quiet';
+import { freezeDynamicBodies } from '../physics/freeze';
 import {
   fragmentCountForMaterial,
   splitRect,
@@ -70,7 +71,20 @@ export class Level {
         });
       },
       onDestroy: (e) => this.destroyEntity(e, 'impact'),
-      onImpact: () => {},
+      onImpact: (ev) => {
+        const blockVsStatic = (a: string, b: string) =>
+          a === 'block' && (b === 'ground' || b === 'terrain');
+        if (
+          ev.approachSpeed > 3 &&
+          (blockVsStatic(ev.aKind, ev.bKind) || blockVsStatic(ev.bKind, ev.aKind))
+        ) {
+          this.bus.emit('block:landed', {
+            x: ev.point.x,
+            y: ev.point.y,
+            approach: ev.approachSpeed,
+          });
+        }
+      },
       onBotFirstImpact: (bot) => {
         if (bot.firstImpactAt === null) bot.firstImpactAt = this.simTime;
         this.bus.emit('bot:firstImpact', {
@@ -120,6 +134,7 @@ export class Level {
         maxRot = Math.max(maxRot, Math.abs(s.e.body.getAngle() - s.a));
       }
     }
+    freezeDynamicBodies(this.pw.world);
     this.damageEnabled = true;
     this.bus.emit('level:settled', {});
     return { maxMove, maxRotDeg: (maxRot * 180) / Math.PI };
@@ -141,7 +156,6 @@ export class Level {
     this.markAirborneTargets();
     this.pw.step();
     this.simTime += TUNING.dt;
-    if (this.damageEnabled) this.finishGroundedTargets();
     this.trimFragments();
     if (runOob) this.checkOutOfBounds();
   }
@@ -150,26 +164,6 @@ export class Level {
     for (const e of this.registry.all()) {
       if (e.kind !== 'pig' || !e.alive || !e.body) continue;
       if (e.body.getPosition().y > e.r + 0.18) e.airborne = true;
-    }
-  }
-
-  /** Targets that come down onto the grass are done for; ones shoved into a roll don't get to trundle forever. */
-  private finishGroundedTargets() {
-    const grounded = (e: PigEntity) => e.body!.getPosition().y <= e.r + 0.12;
-    for (const e of [...this.registry.all()]) {
-      if (e.kind !== 'pig' || !e.alive || !e.body) continue;
-      if (!grounded(e)) {
-        e.rollTime = 0;
-        continue;
-      }
-      if (e.airborne) {
-        this.destroyEntity(e, 'impact');
-        continue;
-      }
-      const v = e.body.getLinearVelocity();
-      const rolling = Math.abs(v.x) > 1.0 || Math.abs(e.body.getAngularVelocity()) > 2.5;
-      e.rollTime = rolling ? e.rollTime + TUNING.dt : 0;
-      if (e.rollTime >= 1.0) this.destroyEntity(e, 'impact');
     }
   }
 

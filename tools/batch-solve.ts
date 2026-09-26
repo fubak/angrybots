@@ -7,29 +7,23 @@ import { validateStatic } from '../src/levels/validate';
 
 const dataDir = join(import.meta.dirname, '../src/levels/data');
 const solPath = join(import.meta.dirname, '../src/levels/solutions.json');
-const keep = new Set(['first-flight', 'powder-row', 'glass-house', 'stone-keep', 'hilltop']);
-const current = JSON.parse(readFileSync(solPath, 'utf8')) as Record<
+const filterId = process.argv[2];
+const existing = JSON.parse(readFileSync(solPath, 'utf8')) as Record<
   string,
   { shots: { angleDeg: number; speed: number }[]; score: number; source: string }
 >;
+const next: typeof existing = filterId ? { ...existing } : {};
 
 const files = readdirSync(dataDir).filter((f) => f.endsWith('.json')).sort();
-const next: typeof current = {};
-for (const [id, entry] of Object.entries(current)) {
-  if (keep.has(id)) next[id] = entry;
-}
 
 let failed = false;
 for (const file of files) {
   const level = loadLevelFromJson(JSON.parse(readFileSync(join(dataDir, file), 'utf8')));
+  if (filterId && level.id !== filterId) continue;
   const staticErrs = validateStatic(level);
   if (staticErrs.length) {
     failed = true;
     console.error(`${level.id} STATIC ${staticErrs.join('; ')}`);
-    continue;
-  }
-  if (keep.has(level.id)) {
-    console.log(`${level.id}: kept`);
     continue;
   }
   const shots: [number, number, BotKind][] = [];

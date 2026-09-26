@@ -5,68 +5,268 @@
   "chapter": "workshop",
   "order": 5,
   "bots": [
-    "dash",
+    "grok",
     "grok",
     "grok"
   ],
   "stars": [
-    14000,
-    24000,
-    34000
+    25000,
+    39000,
+    50000
   ],
   "camera": {
     "minX": -11,
-    "maxX": 20,
+    "maxX": 18,
     "minY": 0,
-    "maxY": 11
+    "maxY": 6
   },
-  "hint": "TNT on the deck. One spark clears the porch.",
   "sling": {
     "x": -7.5
   },
   "terrain": [],
   "blocks": [
     {
-      "id": "pL",
-      "material": "wood",
-      "kit": "postL",
-      "x": 10,
+      "id": "b1",
+      "material": "stone",
+      "kit": "cube",
+      "x": 10.4,
       "y": 0
     },
     {
-      "id": "pR",
+      "id": "b2",
+      "material": "stone",
+      "kit": "cube",
+      "x": 10.4,
+      "y": 0.8
+    },
+    {
+      "id": "b3",
+      "material": "stone",
+      "kit": "cube",
+      "x": 10.4,
+      "y": 1.6
+    },
+    {
+      "id": "b4",
+      "material": "stone",
+      "kit": "cube",
+      "x": 10.4,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b5",
+      "material": "stone",
+      "kit": "cube",
+      "x": 10.4,
+      "y": 3.2
+    },
+    {
+      "id": "b6",
       "material": "wood",
-      "kit": "postL",
-      "x": 13,
+      "kit": "cube",
+      "x": 11.35,
       "y": 0
     },
     {
-      "id": "deck",
+      "id": "b7",
       "material": "wood",
-      "kit": "plankL",
-      "x": 11.5,
-      "y": 2
+      "kit": "cube",
+      "x": 11.35,
+      "y": 0.8
     },
     {
-      "id": "tnt",
+      "id": "b8",
+      "material": "wood",
+      "kit": "cube",
+      "x": 11.35,
+      "y": 1.6
+    },
+    {
+      "id": "b9",
+      "material": "wood",
+      "kit": "cube",
+      "x": 11.35,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b10",
+      "material": "wood",
+      "kit": "cube",
+      "x": 12.3,
+      "y": 0
+    },
+    {
+      "id": "b11",
+      "material": "wood",
+      "kit": "cube",
+      "x": 12.3,
+      "y": 0.8
+    },
+    {
+      "id": "b12",
+      "material": "wood",
+      "kit": "cube",
+      "x": 12.3,
+      "y": 1.6
+    },
+    {
+      "id": "b13",
+      "material": "wood",
+      "kit": "cube",
+      "x": 12.3,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b14",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.25,
+      "y": 0
+    },
+    {
+      "id": "b15",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.25,
+      "y": 0.8
+    },
+    {
+      "id": "b16",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.25,
+      "y": 1.6
+    },
+    {
+      "id": "b17",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.25,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b18",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13.25,
+      "y": 3.2
+    },
+    {
+      "id": "b19",
+      "material": "wood",
+      "kit": "cube",
+      "x": 14.2,
+      "y": 0
+    },
+    {
+      "id": "b20",
+      "material": "wood",
+      "kit": "cube",
+      "x": 14.2,
+      "y": 0.8
+    },
+    {
+      "id": "b21",
+      "material": "wood",
+      "kit": "cube",
+      "x": 14.2,
+      "y": 1.6
+    },
+    {
+      "id": "b22",
+      "material": "wood",
+      "kit": "cube",
+      "x": 14.2,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b23",
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.15,
+      "y": 0
+    },
+    {
+      "id": "b24",
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.15,
+      "y": 0.8
+    },
+    {
+      "id": "b25",
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.15,
+      "y": 1.6
+    },
+    {
+      "id": "b26",
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.15,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b27",
+      "material": "stone",
+      "kit": "slab",
+      "x": 11.825,
+      "y": 3.2
+    },
+    {
+      "id": "b28",
+      "material": "stone",
+      "kit": "slab",
+      "x": 14.675,
+      "y": 3.2
+    },
+    {
+      "id": "b29",
       "material": "tnt",
       "kit": "cube",
-      "x": 11.5,
-      "y": 2.4
+      "x": 9.3,
+      "y": 0
+    },
+    {
+      "id": "b30",
+      "material": "tnt",
+      "kit": "cube",
+      "x": 16.9,
+      "y": 0
     }
   ],
   "pigs": [
     {
-      "id": "pig1",
-      "size": "M",
-      "x": 8.8,
-      "y": 0
+      "id": "p1",
+      "size": "S",
+      "x": 9.3,
+      "y": 0.8
     },
     {
-      "id": "pig2",
+      "id": "p2",
+      "size": "S",
+      "x": 10.4,
+      "y": 4
+    },
+    {
+      "id": "p3",
       "size": "M",
-      "x": 14.4,
-      "y": 0
+      "x": 11.825,
+      "y": 4
+    },
+    {
+      "id": "p4",
+      "size": "S",
+      "x": 13.25,
+      "y": 4
+    },
+    {
+      "id": "p5",
+      "size": "S",
+      "x": 16.9,
+      "y": 0.8
     }
-  ]
+  ],
+  "hint": "The keg under the face clears the base."
 }

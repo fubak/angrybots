@@ -28,20 +28,13 @@ export function fitRect(
   aspect: number,
   pad = 0.5,
   topHudPx = 0,
-  canvasPxH = 1,
-  anchorBottom = false
+  canvasPxH = 1
 ): View {
   const w = r.x1 - r.x0;
   const hRect = r.y1 - r.y0;
-  const minH = hRect + 2 * pad;
-  let h = Math.max(minH, (w + 2 * pad) / aspect);
+  let h = Math.max(hRect + 2 * pad, (w + 2 * pad) / aspect);
   const cx = (r.x0 + r.x1) / 2;
   let cy = (r.y0 + r.y1) / 2;
-  if (anchorBottom && h > minH) {
-    // Width-limited: give the spare height to the sky rather than burying the frame in dirt.
-    const extra = h - minH;
-    cy = r.y0 - pad - extra * 0.22 + h / 2;
-  }
 
   if (topHudPx > 0 && canvasPxH > 0) {
     const add = h * (topHudPx / canvasPxH);

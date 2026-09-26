@@ -14,13 +14,17 @@
     "test:perf": "vitest run tests/perf",
     "test:e2e": "playwright test",
     "level:check": "tsx tools/level-check.ts",
-    "level:solve": "tsx tools/level-solve.ts",
+    "level:solve": "tsx tools/batch-solve.ts",
     "level:rate": "tsx tools/level-rate.ts",
     "lint:forbidden": "node scripts/check-forbidden.mjs",
     "size": "node scripts/size.mjs",
     "verify": "npm run typecheck && npm run lint:forbidden && npm run test:unit && npm run test:physics && npm run level:check",
     "gauntlet": "node scripts/gauntlet-verify.mjs",
-    "perf:smoke": "node scripts/perf-smoke.mjs"
+    "perf:smoke": "node scripts/perf-smoke.mjs",
+    "level:solve:one": "tsx tools/level-solve.ts",
+    "level:curve": "tsx tools/level-curve.ts",
+    "level:pouch": "tsx tools/pouch-solve.ts",
+    "verify:full": "npm run verify && npm run level:curve && npm run build && npm run size && npm run test:e2e -- --workers=1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

@@ -2,17 +2,18 @@ import * as THREE from 'three';
 import { PALETTE, DEPTH } from '../config/render';
 import type { Level } from '../game/Level';
 import type { GameEntity } from '../entities/types';
-import { toon } from './toon';
 import { addOutline } from './outline';
 import { SlingView } from './SlingView';
 import { Scenery } from './Scenery';
 import { Juice } from './Juice';
-import { blockMaterial, decorateBlock, makeBotCharacter, makePigCharacter, tickFace } from './characters';
+import { BlobShadows, type ShadowCaster } from './BlobShadows';
+import { disposeObject } from './dispose';
+import { popScale } from './slingAnim';
+import { blockMaterial, decorateBlock, makeBotCharacter, makePigCharacter, tickBot, tickFace } from './characters';
 import { ILL } from './illustrations';
-import { crackTexture } from './textures';
+import { TEX, damagedBlockTexture, type DamageableMaterial, type DamageStage } from './textures';
 import type { View } from '../camera/fitRect';
 import type { SlingModel } from '../sling/SlingModel';
-import { SLING } from '../sling/launch';
 import type { ShotTrail } from '../sling/ShotTrail';
 import type { BotKind, LevelV2 } from '../levels/schema';
 
@@ -23,6 +24,30 @@ export type RendererInfo = {
   textures: number;
 };
 
+const DAMAGE_INTACT: Record<DamageableMaterial, THREE.Texture> = {
+  wood: ILL.plank,
+  stone: ILL.stone,
+  glass: ILL.glass,
+};
+
+let bodyMat: THREE.MeshBasicMaterial | null = null;
+let capMat: THREE.MeshBasicMaterial | null = null;
+function terrainBodyMat(): THREE.MeshBasicMaterial {
+  if (!bodyMat) bodyMat = new THREE.MeshBasicMaterial({ map: TEX.terrainBody });
+  return bodyMat;
+}
+function terrainCapMat(): THREE.MeshBasicMaterial {
+  if (!capMat) capMat = new THREE.MeshBasicMaterial({ map: TEX.terrainCap });
+  return capMat;
+}
+
+/** Scales a BoxGeometry's 0–1 UVs so the terrain texture tiles at world density. */
+function scaleUV(geo: THREE.BoxGeometry, su: number, sv: number): void {
+  const uv = geo.getAttribute('uv') as THREE.BufferAttribute;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv);
+  uv.needsUpdate = true;
+}
+
 export class Renderer {
   readonly domElement: HTMLCanvasElement;
   readonly scene = new THREE.Scene();
@@ -32,14 +57,15 @@ export class Renderer {
   private readonly slingView: SlingView;
   readonly juice: Juice;
   private readonly scenery: Scenery;
-  /** World point the sun/moon eyes follow: the flying bot, the pouch mid-drag, else the targets. */
+  /** World point the sun/moon eyes follow: flying bot or pulled pouch, else the targets. */
   private readonly focus = new THREE.Vector2(12, 2);
-  private focusHold = 0;
+  private readonly blobShadows: BlobShadows;
   private readonly terrain = new THREE.Group();
-  private readonly key: THREE.DirectionalLight;
-  private readonly rim: THREE.DirectionalLight;
-  private readonly fill: THREE.PointLight;
-  private readonly hemi: THREE.HemisphereLight;
+  private readonly casters: ShadowCaster[] = [];
+  private readonly dying: { mesh: THREE.Object3D; t: number }[] = [];
+  private aiming = false;
+  private lostActive = false;
+  reducedMotion = false;
   private aspect = 16 / 9;
   private fpsSamples: number[] = [];
   private lastFpsSample = 0;
@@ -48,88 +74,38 @@ export class Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     this.domElement = canvas;
+    // Automation (Playwright/CI) renders on SwiftShader — cut MSAA and the
+    // pixel ratio there so frames stay interactive instead of ~1 fps.
+    const automated = typeof navigator !== 'undefined' && navigator.webdriver;
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: !automated,
       powerPreference: 'high-performance',
     });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.toneMappingExposure = 1;
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.shadowMap.enabled = false;
     this.renderer.info.autoReset = false;
     this.camera = new THREE.OrthographicCamera(-10, 10, 7.5, -7.5, 0.1, 220);
     this.camera.position.z = 50;
-
-    this.hemi = new THREE.HemisphereLight('#c8e8ff', '#7a5a30', 0.95);
-    this.scene.add(this.hemi);
-
-    this.key = new THREE.DirectionalLight('#fff6d8', 2.4);
-    this.key.position.set(-10, 16, 18);
-    this.key.castShadow = true;
-    this.key.shadow.mapSize.set(512, 512);
-    this.key.shadow.camera.left = -28;
-    this.key.shadow.camera.right = 28;
-    this.key.shadow.camera.top = 18;
-    this.key.shadow.camera.bottom = -10;
-    this.key.shadow.camera.near = 2;
-    this.key.shadow.camera.far = 70;
-    this.key.shadow.bias = -0.0008;
-    this.scene.add(this.key);
-
-    this.rim = new THREE.DirectionalLight('#7ec8ff', 1.15);
-    this.rim.position.set(14, 6, 8);
-    this.scene.add(this.rim);
-
-    this.fill = new THREE.PointLight('#ffd29a', 6, 32, 1.6);
-    this.fill.position.set(4, 7, 6);
-    this.scene.add(this.fill);
 
     this.scenery = new Scenery(this.scene);
     this.scene.add(this.terrain);
     this.slingView = new SlingView(this.scene);
     this.juice = new Juice(this.scene);
+    this.blobShadows = new BlobShadows(this.scene);
   }
 
   setChapter(chapter: string): void {
     this.scenery.setChapter(chapter);
-    if (chapter === 'workshop') {
-      this.hemi.color.set('#ffd7a0');
-      this.hemi.groundColor.set('#6a3a18');
-      this.key.color.set('#ffb56a');
-      this.key.intensity = 3.1;
-      this.rim.color.set('#ff8a40');
-      this.fill.color.set('#ff9a3a');
-      this.renderer.toneMappingExposure = 1;
-      return;
-    }
-    if (chapter === 'citadel') {
-      this.hemi.color.set('#6a80d0');
-      this.hemi.groundColor.set('#1a1420');
-      this.key.color.set('#c8d8ff');
-      this.key.intensity = 2.2;
-      this.rim.color.set('#6a8cff');
-      this.fill.color.set('#4a68c8');
-      this.renderer.toneMappingExposure = 1;
-      return;
-    }
-    this.hemi.color.set('#c8e8ff');
-    this.hemi.groundColor.set('#7a5a30');
-    this.key.color.set('#fff6d8');
-    this.key.intensity = 2.4;
-    this.rim.color.set('#7ec8ff');
-    this.fill.color.set('#ffd29a');
-    this.renderer.toneMappingExposure = 1;
   }
 
   setTerrain(pieces: LevelV2['terrain']): void {
+    this.blobShadows.setTerrain(pieces);
+    this.scenery.resetParallax();
     for (const child of [...this.terrain.children]) {
-      const mesh = child as THREE.Mesh;
-      mesh.geometry?.dispose();
-      const mat = mesh.material;
-      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-      else mat?.dispose();
+      disposeObject(child);
       this.terrain.remove(child);
     }
     for (const t of pieces) {
@@ -142,8 +118,12 @@ export class Renderer {
         shape.closePath();
         const mesh = new THREE.Mesh(
           new THREE.ShapeGeometry(shape),
-          new THREE.MeshBasicMaterial({ color: '#8d5a32' })
+          terrainBodyMat()
         );
+        // ShapeGeometry UVs are world coordinates — scale to terrain texel density.
+        const uv = mesh.geometry.getAttribute('uv') as THREE.BufferAttribute;
+        for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 2.5, uv.getY(i) / 2.5);
+        uv.needsUpdate = true;
         mesh.position.z = DEPTH.ground + 0.02;
         this.terrain.add(mesh);
         continue;
@@ -152,15 +132,13 @@ export class Renderer {
       const thick = t.kind === 'ledge' ? t.thickness : top;
       const y0 = t.kind === 'ledge' ? top - t.thickness : 0;
       const w = t.x1 - t.x0;
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(w, thick, 6),
-        new THREE.MeshBasicMaterial({ color: '#8d5a32' })
-      );
+      const bodyGeo = new THREE.BoxGeometry(w, thick, 6);
+      scaleUV(bodyGeo, w / 2.5, thick / 2.5);
+      const body = new THREE.Mesh(bodyGeo, terrainBodyMat());
       body.position.set((t.x0 + t.x1) / 2, y0 + thick / 2, DEPTH.ground);
-      const cap = new THREE.Mesh(
-        new THREE.BoxGeometry(w, 0.16, 6),
-        new THREE.MeshBasicMaterial({ color: '#5aaa34' })
-      );
+      const capGeo = new THREE.BoxGeometry(w, 0.16, 6);
+      scaleUV(capGeo, w / 2, 0.16);
+      const cap = new THREE.Mesh(capGeo, terrainCapMat());
       cap.position.set((t.x0 + t.x1) / 2, top - 0.08, DEPTH.ground + 0.03);
       this.terrain.add(body, cap);
     }
@@ -170,38 +148,75 @@ export class Renderer {
     model: SlingModel,
     queue: readonly BotKind[],
     aiming: boolean,
-    trail: ShotTrail
+    trail: ShotTrail,
+    fx?: { hopT: number | null; bonusT: number | null; lostT?: number | null }
   ): void {
-    this.slingView.sync(model, queue, aiming, trail);
-    if (aiming && model.phase === 'dragging') {
-      this.focus.set(SLING.anchor.x - model.pull.x, SLING.anchor.y - model.pull.y);
-      this.focusHold = 0.6;
-    }
+    this.aiming = aiming;
+    this.lostActive = fx?.lostT != null;
+    this.slingView.sync(model, queue, aiming, trail, fx);
+  }
+
+  /** World positions of queued bots (for bonus popups). */
+  queuePositions(): readonly { x: number; y: number }[] {
+    return this.slingView.queuePositions();
+  }
+
+  /** Pop pulse on a live shot bot — driven by the sim 'bot:ability' event. */
+  pulseBot(botId: string): void {
+    const mesh = this.entityMeshes.get(botId);
+    if (mesh) mesh.userData.popAt = this.clock;
+  }
+
+  /** Trajectory preview density: 'short' truncates the arc, 'off' hides it. */
+  setAimGuide(mode: 'off' | 'short' | 'full'): void {
+    this.slingView.setGuide(mode);
   }
 
   setSize(w: number, h: number): void {
     this.renderer.setSize(w, h, false);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    const cap = typeof navigator !== 'undefined' && navigator.webdriver ? 0.6 : 1.5;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, cap));
     this.aspect = w / h;
   }
 
-  syncLevel(level: Level | null): void {
+  /** Drops every entity mesh and its owned GPU resources (level change / restart). */
+  clearLevel(): void {
+    for (const [id, mesh] of this.entityMeshes) {
+      this.scene.remove(mesh);
+      disposeObject(mesh);
+      this.entityMeshes.delete(id);
+    }
+    for (const d of this.dying) {
+      this.scene.remove(d.mesh);
+      disposeObject(d.mesh);
+    }
+    this.dying.length = 0;
+    this.juice.clear();
+    this.blobShadows.update([]);
+  }
+
+  /** Position the targets should watch: the flying bot, else the loaded sling bot. */
+  private watchTarget(level: Level | null): { x: number; y: number } | null {
+    const flying = level?.shotBots().find((b) => b.alive && b.body);
+    if (flying?.body) {
+      const p = flying.body.getPosition();
+      return { x: p.x, y: p.y };
+    }
+    return this.slingView.loadedPos();
+  }
+
+  syncLevel(level: Level | null, frameDt: number): void {
     const live = new Set<string>();
-    let focusSpeed = 1.5;
+    this.casters.length = 0;
+    const watch = this.watchTarget(level);
+    if (watch) this.focus.set(watch.x, watch.y);
     let pigX = 0;
     let pigY = 0;
     let pigs = 0;
     if (level) {
       for (const e of level.registry.all()) {
-        if (!e.alive || e.kind === 'ground') continue;
-        if (e.body && e.kind === 'bot') {
-          const s = e.body.getLinearVelocity().length();
-          if (s > focusSpeed) {
-            focusSpeed = s;
-            this.focus.set(e.body.getPosition().x, e.body.getPosition().y);
-            this.focusHold = 1.2;
-          }
-        } else if (e.body && e.kind === 'pig') {
+        if (!e.alive || e.kind === 'ground' || e.kind === 'terrain') continue;
+        if (e.kind === 'pig' && e.body) {
           pigX += e.body.getPosition().x;
           pigY += e.body.getPosition().y;
           pigs += 1;
@@ -210,6 +225,8 @@ export class Renderer {
         let mesh = this.entityMeshes.get(e.id);
         if (!mesh) {
           mesh = this.createPlaceholder(e);
+          mesh.userData.kind = e.kind;
+          if (e.kind === 'pig') mesh.userData.nextTaunt = this.clock + 4 + Math.random() * 5;
           this.entityMeshes.set(e.id, mesh);
           this.scene.add(mesh);
         }
@@ -223,60 +240,127 @@ export class Renderer {
           if (hp !== undefined) mesh.userData.hp = hp;
           let flinch = (mesh.userData.flinch as number | undefined) ?? 0;
           if (flinch > 0) {
-            flinch = Math.max(0, flinch - 0.04);
+            flinch = Math.max(0, flinch - 2.4 * frameDt);
             mesh.userData.flinch = flinch;
           }
           const bob = flinch > 0 ? Math.sin(flinch * 18) * flinch * 0.12 : 0;
           if (e.kind === 'bot') {
             const v = e.body.getLinearVelocity();
             const speed = v.length();
-            const prevSpeed = (mesh.userData.speed as number | undefined) ?? speed;
-            mesh.userData.speed = speed;
-            let impact = (mesh.userData.impact as number | undefined) ?? 0;
-            if (prevSpeed - speed > 7) impact = Math.min(1, (prevSpeed - speed) / 18);
-            impact = Math.max(0, impact - 0.05);
-            mesh.userData.impact = impact;
-            const stretch = Math.min(0.34, speed / 55);
-            const pancake = impact * 0.32;
-            if (speed > 4 && v.x > 0) {
-              // Stretch along the flight path so the streak reads at any spin angle.
-              mesh.rotation.z = Math.atan2(v.y, v.x);
-              mesh.scale.set(1 + stretch * 1.35, Math.max(0.66, 1 - stretch), 1);
-            } else {
-              mesh.scale.set(1 + pancake, Math.max(0.6, 1 - pancake), 1);
+            // Orientation: while airborne the sticker points its top along the
+            // velocity so the ≤15% stretch runs along the flight path; on the
+            // ground the collider's real roll angle shows (tumbling reads as
+            // part of the dizzy look).
+            const oriented = mesh.userData.oriented === true;
+            const flying = oriented ? speed > 1.5 : speed > 4;
+            if (e.firstImpactAt !== null && mesh.userData.impacted !== true) {
+              mesh.userData.impacted = true;
+              mesh.userData.impactT = 0;
+              mesh.userData.hurtT = 0;
             }
-            mesh.userData.flying = speed > 2;
-            const face = mesh.getObjectByName('face');
-            if (face) {
-              face.position.x = Math.max(-0.1, Math.min(0.14, v.x * 0.012));
-              face.position.y = Math.max(-0.08, Math.min(0.12, v.y * 0.01));
+            const it = mesh.userData.impactT as number | undefined;
+            let sx = 1;
+            let sy = 1;
+            if (it !== undefined && it < 0.2) {
+              const k = 1 - it / 0.2;
+              mesh.userData.impactT = it + frameDt;
+              sx = 1 + 0.35 * k;
+              sy = Math.max(0.66, 1 - 0.3 * k);
+            } else if (flying) {
+              mesh.userData.oriented = true;
+              const s = Math.min(0.15, speed * 0.0042);
+              sy = 1 + s;
+              sx = 1 - s * 0.6;
+              mesh.rotation.z = Math.atan2(v.y, v.x) - Math.PI / 2;
+            } else {
+              mesh.userData.oriented = false;
+            }
+            mesh.scale.set(sx, sy, 1);
+            mesh.userData.flying = flying;
+            if (mesh.userData.hurtT !== undefined) {
+              mesh.userData.hurtT = (mesh.userData.hurtT as number) + frameDt;
+            }
+            if (!flying && (mesh.userData.impacted === true || speed > 0.4)) {
+              mesh.userData.landed = true;
             }
           } else if (e.kind === 'pig') {
             const breathe = 1 + Math.sin(this.clock * 3.2 + mesh.id) * 0.035;
-            mesh.scale.set(breathe, 2 - breathe, 1);
+            mesh.scale.set(breathe * (1 + flinch * 0.28), (2 - breathe) * (1 - flinch * 0.3), 1);
+            let taunt = mesh.userData.nextTaunt as number | undefined;
+            if (taunt !== undefined && this.clock >= taunt && flinch <= 0) {
+              mesh.userData.tauntT = 0;
+              mesh.userData.nextTaunt = this.clock + 4 + Math.random() * 5;
+              taunt = mesh.userData.nextTaunt;
+            }
+            const tt = mesh.userData.tauntT as number | undefined;
+            if (tt !== undefined && tt < 0.4) {
+              mesh.userData.tauntT = tt + frameDt;
+              mesh.position.y += Math.sin((tt / 0.4) * Math.PI) * 0.24;
+            }
+            const pupils = mesh.getObjectByName('pupils') as THREE.Mesh | undefined;
+            if (pupils) {
+              if (watch) {
+                const dx = watch.x - p.x;
+                const dy = watch.y - p.y;
+                const d = Math.hypot(dx, dy) || 1;
+                pupils.position.x = Math.max(-0.06, Math.min(0.06, (dx / d) * 0.06));
+                pupils.position.y = -e.r * 0.08 + Math.max(-0.06, Math.min(0.06, (dy / d) * 0.06));
+              } else {
+                pupils.position.x = 0;
+                pupils.position.y = -e.r * 0.08;
+              }
+            }
           } else {
             mesh.scale.set(1, 1, 1);
           }
           mesh.position.y += bob;
+          if (e.kind === 'block' || e.kind === 'pig' || e.kind === 'bot') {
+            this.casters.push({
+              x: p.x,
+              y:
+                p.y -
+                (e.kind === 'block' ? e.h / 2 : e.r) * mesh.scale.y,
+              w: (e.kind === 'block' ? e.w : e.r * 2) * mesh.scale.x,
+            });
+          }
         }
         if (e.kind === 'block') this.tintDamage(mesh, e.hp / e.maxHp, e.material);
         if (e.kind === 'pig') this.tintPig(mesh, e.hp / e.maxHp);
-        if (e.kind === 'pig' || e.kind === 'bot') {
-          tickFace(mesh, this.clock, mesh.userData.hurt === true);
+        if (e.kind === 'pig') {
+          tickFace(mesh, this.clock, { hurt: mesh.userData.hurt === true, smug: this.aiming });
+        } else if (e.kind === 'bot') {
+          const popAt = mesh.userData.popAt as number | undefined;
+          tickBot(mesh, this.clock, {
+            lead: mesh.userData.flying === true,
+            hurtT: mesh.userData.hurtT as number | undefined,
+            dizzy:
+              mesh.userData.landed === true &&
+              mesh.userData.flying !== true &&
+              !this.lostActive,
+            // Level lost: the survivors on the field turn away and hold.
+            turnAway: this.lostActive && mesh.userData.landed === true,
+            popT: popAt === undefined ? null : this.clock - popAt,
+            reducedMotion: this.reducedMotion,
+          });
         }
       }
     }
-    if (this.focusHold <= 0 && pigs > 0) this.focus.set(pigX / pigs, pigY / pigs);
+    if (!watch && pigs > 0) this.focus.set(pigX / pigs, pigY / pigs);
     for (const [id, mesh] of this.entityMeshes) {
       if (!live.has(id)) {
-        this.scene.remove(mesh);
-        mesh.traverse((obj) => {
-          const m = obj as THREE.Mesh;
-          if (m.geometry) m.geometry.dispose();
-        });
+        if (mesh.userData.kind === 'pig') {
+          // Death pop: keep the mesh briefly as a scale-pop visual while the sim entity is gone.
+          mesh.userData.dying = true;
+          this.dying.push({ mesh, t: 0 });
+        } else {
+          this.scene.remove(mesh);
+          disposeObject(mesh);
+        }
         this.entityMeshes.delete(id);
       }
     }
+    this.casters.push(...this.slingView.shadowCasters);
+    this.blobShadows.update(this.casters);
   }
 
   private createPlaceholder(e: GameEntity): THREE.Object3D {
@@ -293,9 +377,9 @@ export class Renderer {
         map.rotation = Math.PI / 2;
         map.needsUpdate = true;
         (mesh.material as THREE.MeshBasicMaterial).map = map;
+        mesh.userData.ownedMap = map;
+        mesh.userData.rotated = true;
       }
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
       mesh.renderOrder = 10;
       return mesh;
     }
@@ -315,11 +399,13 @@ export class Renderer {
         new THREE.BoxGeometry(e.w, e.h, depth),
         blockMaterial(e.material)
       );
-      mesh.castShadow = true;
       mesh.renderOrder = 11;
       return mesh;
     }
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 0.5, 4, 2, 2), toon(PALETTE.ground.dirt));
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 0.5, 0.5, 4, 2, 2),
+      new THREE.MeshBasicMaterial({ color: PALETTE.ground.dirt })
+    );
     mesh.renderOrder = 10;
     return mesh;
   }
@@ -332,64 +418,60 @@ export class Renderer {
     this.camera.bottom = view.cy - h / 2 + shakeY;
     this.camera.top = view.cy + h / 2 + shakeY;
     this.camera.updateProjectionMatrix();
+    this.scenery.applyParallax(view.cx + shakeX, view.cy + shakeY, h);
   }
 
   private tintPig(obj: THREE.Object3D, ratio: number): void {
     obj.userData.hurt = ratio < 0.55;
   }
 
+  /** Damage states: intact > 66% hp, cracked ≤ 66%, broken ≤ 33% — shared textures. */
   private tintDamage(obj: THREE.Object3D, ratio: number, material: string): void {
-    const cracked = ratio < 0.55;
+    const stage: DamageStage = ratio <= 0.33 ? 2 : ratio <= 0.66 ? 1 : 0;
+    if (obj.userData.dmgStage === stage) return;
+    obj.userData.dmgStage = stage;
+    const damageable =
+      material === 'wood' || material === 'stone' || material === 'glass'
+        ? (material as DamageableMaterial)
+        : null;
     obj.traverse((child) => {
       const mesh = child as THREE.Mesh;
       const mat = mesh.material;
-      if (mat instanceof THREE.MeshBasicMaterial && mesh.userData.role === 'block-face') {
-        mat.color.set(cracked ? '#d0d0d0' : '#ffffff');
+      if (!(mat instanceof THREE.MeshBasicMaterial) || mesh.userData.role !== 'block-face') return;
+      mat.color.set(stage === 2 ? '#d8d8d8' : '#ffffff');
+      if (!damageable) return;
+      const rotated = obj.userData.rotated === true;
+      let map: THREE.Texture | null;
+      if (stage === 0) {
+        map = rotated ? (obj.userData.ownedMap as THREE.Texture) : DAMAGE_INTACT[damageable];
+      } else {
+        map = damagedBlockTexture(damageable, stage, rotated);
       }
-      if (mat instanceof THREE.MeshToonMaterial && mat.emissive) {
-        if (material === 'tnt') {
-          mat.emissive.set(cracked ? '#8a2208' : '#5a1008');
-        } else {
-          mat.emissive.set(cracked ? '#2a1a10' : '#000000');
-        }
+      if (mat.map !== map) {
+        mat.map = map;
+        mat.needsUpdate = true;
       }
     });
-    let crack = obj.getObjectByName('crack') as THREE.Mesh | undefined;
-    if (ratio < 0.72) {
-      if (!crack) {
-        crack = new THREE.Mesh(
-          new THREE.PlaneGeometry(1, 1),
-          new THREE.MeshBasicMaterial({
-            map: crackTexture(),
-            transparent: true,
-            depthWrite: false,
-            opacity: 0.85,
-          })
-        );
-        crack.name = 'crack';
-        crack.position.z = 0.55;
-        obj.add(crack);
-      }
-      crack.visible = true;
-      const block = obj as THREE.Mesh;
-      const geo = block.geometry;
-      if (geo instanceof THREE.BoxGeometry) {
-        const params = geo.parameters;
-        crack.scale.set(params.width * 0.92, params.height * 0.92, 1);
-        crack.position.z = params.depth / 2 + 0.02;
-      }
-      (crack.material as THREE.MeshBasicMaterial).opacity = ratio < 0.4 ? 1 : 0.65;
-    } else if (crack) {
-      crack.visible = false;
-    }
   }
 
   render(_alpha: number, frameDt: number): void {
     this.clock += frameDt;
-    this.focusHold -= frameDt;
-    this.scenery.lookAt(this.focus.x, this.focus.y, frameDt);
-    this.slingView.animate(this.clock);
+    this.slingView.animate(this.clock, this.reducedMotion);
+    for (let i = this.dying.length - 1; i >= 0; i--) {
+      const d = this.dying[i]!;
+      d.t += frameDt;
+      const s = popScale(d.t);
+      d.mesh.scale.setScalar(Math.max(0.001, s));
+      d.mesh.rotation.z += frameDt * 2.5;
+      if (s <= 0.001) {
+        this.scene.remove(d.mesh);
+        disposeObject(d.mesh);
+        this.dying.splice(i, 1);
+      }
+    }
     this.juice.update(frameDt);
+    this.scenery.lookAt(this.focus.x, this.focus.y, frameDt);
+    this.scenery.update(frameDt);
     this.renderer.info.reset();
     this.renderer.render(this.scene, this.camera);
     const now = performance.now();
@@ -414,11 +496,11 @@ export class Renderer {
     };
   }
 
-  fpsStats(): { p50: number; p95: number } {
+  fpsStats(): { p50: number; p5Low: number } {
     const s = [...this.fpsSamples].sort((a, b) => a - b);
-    if (s.length === 0) return { p50: 60, p95: 60 };
+    if (s.length === 0) return { p50: 60, p5Low: 60 };
     const p50 = s[Math.floor(s.length * 0.5)] ?? 60;
-    const p95 = s[Math.floor(s.length * 0.95)] ?? p50;
-    return { p50, p95 };
+    const p5Low = s[Math.floor(s.length * 0.05)] ?? p50;
+    return { p50, p5Low };
   }
 }

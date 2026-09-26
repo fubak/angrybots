@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "angrybots",
+  "account_id": "4654797f062b81d036f9f5142ead6bcf",
+  "compatibility_date": "2026-09-20",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    { "pattern": "angrybots.lol", "custom_domain": true },
+    { "pattern": "www.angrybots.lol", "custom_domain": true }
+  ]
+}

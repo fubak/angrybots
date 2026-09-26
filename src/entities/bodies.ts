@@ -118,7 +118,6 @@ export function createPig(world: World, p: ExpandedPig): PigEntity {
     maxHp: hp,
     alive: true,
     airborne: false,
-    rollTime: 0,
   };
   body.setUserData(entity);
   return entity;

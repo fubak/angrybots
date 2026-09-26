@@ -32,7 +32,7 @@ export const TUNING = {
   tnt: { radius: 3.0, impulse: 14, damage: 40 },
   sling: { x: -7.5, y: 2.2, maxSpeed: 23 },
   quiet: { lin: 0.12, ang: 0.2, holdSeconds: 0.5 },
-  boundsExpand: 4,
+  boundsExpand: 12, // OOB slack past camera bounds; must clear the max lob arc (~15)
   minYDestroy: -3,
 } as const;
 

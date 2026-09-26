@@ -6,59 +6,198 @@
   "order": 1,
   "bots": [
     "heavy",
+    "grok",
     "grok"
   ],
   "stars": [
-    12000,
-    22000,
-    32000
+    20000,
+    35000,
+    47500
   ],
   "camera": {
     "minX": -11,
-    "maxX": 20,
+    "maxX": 17,
     "minY": 0,
-    "maxY": 11
+    "maxY": 7
   },
-  "hint": "Stone posts need Heavy. The yard prompt is extra.",
   "sling": {
     "x": -7.5
   },
   "terrain": [],
   "blocks": [
     {
-      "id": "colL",
+      "id": "b1",
       "material": "stone",
       "kit": "postL",
-      "x": 10,
+      "x": 11.4,
       "y": 0
     },
     {
-      "id": "colR",
+      "id": "b2",
       "material": "stone",
       "kit": "postL",
-      "x": 13.2,
+      "x": 13.4,
       "y": 0
     },
     {
-      "id": "deck",
-      "material": "wood",
-      "kit": "plankL",
-      "x": 11.6,
+      "id": "b3",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 12.4,
       "y": 2
+    },
+    {
+      "id": "b4",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.4,
+      "y": 2.4
+    },
+    {
+      "id": "b5",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.4,
+      "y": 3.2
+    },
+    {
+      "id": "b6",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.4,
+      "y": 4
+    },
+    {
+      "id": "b7",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.4,
+      "y": 4.8
+    },
+    {
+      "id": "b8",
+      "material": "wood",
+      "kit": "postM",
+      "x": 8.5,
+      "y": 0
+    },
+    {
+      "id": "b9",
+      "material": "wood",
+      "kit": "postM",
+      "x": 10.3,
+      "y": 0
+    },
+    {
+      "id": "b10",
+      "material": "wood",
+      "kit": "plankM",
+      "x": 9.4,
+      "y": 1.2
+    },
+    {
+      "id": "b11",
+      "material": "wood",
+      "kit": "postM",
+      "x": 14.5,
+      "y": 0
+    },
+    {
+      "id": "b12",
+      "material": "wood",
+      "kit": "postM",
+      "x": 16.3,
+      "y": 0
+    },
+    {
+      "id": "b13",
+      "material": "wood",
+      "kit": "plankM",
+      "x": 15.4,
+      "y": 1.2
+    },
+    {
+      "id": "b14",
+      "material": "wood",
+      "kit": "cube",
+      "x": 9.4,
+      "y": 1.6
+    },
+    {
+      "id": "b15",
+      "material": "wood",
+      "kit": "cube",
+      "x": 9.4,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b16",
+      "material": "wood",
+      "kit": "cube",
+      "x": 9.4,
+      "y": 3.2
+    },
+    {
+      "id": "b17",
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.4,
+      "y": 1.6
+    },
+    {
+      "id": "b18",
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.4,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b19",
+      "material": "wood",
+      "kit": "cube",
+      "x": 15.4,
+      "y": 3.2
+    },
+    {
+      "id": "b20",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 9.4,
+      "y": 4
+    },
+    {
+      "id": "b21",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 15.4,
+      "y": 4
     }
   ],
   "pigs": [
     {
-      "id": "pig1",
-      "size": "S",
-      "x": 11.6,
+      "id": "p1",
+      "size": "M",
+      "x": 12.4,
       "y": 0
     },
     {
-      "id": "pig2",
+      "id": "p2",
       "size": "M",
-      "x": 11.6,
-      "y": 2.4
+      "x": 9.4,
+      "y": 0
+    },
+    {
+      "id": "p3",
+      "size": "M",
+      "x": 15.4,
+      "y": 0
+    },
+    {
+      "id": "p4",
+      "size": "S",
+      "x": 12.4,
+      "y": 5.6
     }
-  ]
+  ],
+  "hint": "Heavy smashes stone. Tap to drop like a rock."
 }

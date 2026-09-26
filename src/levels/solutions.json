@@ -2,309 +2,441 @@
   "first-flight": {
     "shots": [
       {
-        "angleDeg": 34,
-        "speed": 18
+        "angleDeg": 60,
+        "speed": 19
       }
     ],
-    "score": 31350,
+    "score": 33150,
     "source": "solver"
   },
   "powder-row": {
     "shots": [
       {
-        "angleDeg": 43,
-        "speed": 20
-      }
-    ],
-    "score": 46050,
-    "source": "solver"
-  },
-  "glass-house": {
-    "shots": [
-      {
-        "angleDeg": 40,
-        "speed": 17
-      }
-    ],
-    "score": 41520,
-    "source": "solver"
-  },
-  "stone-keep": {
-    "shots": [
-      {
-        "angleDeg": 25,
-        "speed": 23
-      }
-    ],
-    "score": 39230,
-    "source": "solver"
-  },
-  "hilltop": {
-    "shots": [
-      {
-        "angleDeg": 31,
-        "speed": 23
-      },
-      {
-        "angleDeg": 16,
-        "speed": 22
-      }
-    ],
-    "score": 42650,
-    "source": "solver"
-  },
-  "lone-guard": {
-    "shots": [
-      {
-        "angleDeg": 16,
-        "speed": 22
-      }
-    ],
-    "score": 25670,
-    "source": "solver"
-  },
-  "twin-posts": {
-    "shots": [
-      {
-        "angleDeg": 22,
-        "speed": 21
-      }
-    ],
-    "score": 30770,
-    "source": "solver"
-  },
-  "glass-alley": {
-    "shots": [
-      {
-        "angleDeg": 16,
-        "speed": 23
-      }
-    ],
-    "score": 15730,
-    "source": "solver"
-  },
-  "tnt-porch": {
-    "shots": [
-      {
-        "angleDeg": 12,
-        "speed": 15
-      }
-    ],
-    "score": 16190,
-    "source": "solver"
-  },
-  "split-lesson": {
-    "shots": [
-      {
-        "angleDeg": 32,
+        "angleDeg": 42,
         "speed": 19
       }
     ],
-    "score": 30070,
-    "source": "solver"
+    "score": 39020,
+    "source": "solver-robust"
   },
-  "heavy-gate": {
-    "shots": [
-      {
-        "angleDeg": 44,
-        "speed": 18
-      }
-    ],
-    "score": 22340,
-    "source": "solver"
-  },
-  "wheel-yard": {
-    "shots": [
-      {
-        "angleDeg": 66,
-        "speed": 21
-      }
-    ],
-    "score": 15870,
-    "source": "solver"
-  },
-  "ramp-run": {
-    "shots": [
-      {
-        "angleDeg": 26,
-        "speed": 23
-      }
-    ],
-    "score": 15660,
-    "source": "solver"
-  },
-  "ledge-nest": {
-    "shots": [
-      {
-        "angleDeg": 62,
-        "speed": 22
-      }
-    ],
-    "score": 15090,
-    "source": "solver"
-  },
-  "powder-stack": {
-    "shots": [
-      {
-        "angleDeg": 14,
-        "speed": 23
-      }
-    ],
-    "score": 32510,
-    "source": "solver"
-  },
-  "glass-stack": {
-    "shots": [
-      {
-        "angleDeg": 20,
-        "speed": 22
-      }
-    ],
-    "score": 16080,
-    "source": "solver"
-  },
-  "hat-row": {
-    "shots": [
-      {
-        "angleDeg": 18,
-        "speed": 21
-      },
-      {
-        "angleDeg": 14,
-        "speed": 23
-      }
-    ],
-    "score": 25150,
-    "source": "solver"
-  },
-  "blast-shed": {
-    "shots": [
-      {
-        "angleDeg": 48,
-        "speed": 18
-      }
-    ],
-    "score": 22540,
-    "source": "solver"
-  },
-  "cross-beam": {
-    "shots": [
-      {
-        "angleDeg": 22,
-        "speed": 21
-      }
-    ],
-    "score": 36100,
-    "source": "solver"
-  },
-  "mixed-yard": {
-    "shots": [
-      {
-        "angleDeg": 22,
-        "speed": 21
-      }
-    ],
-    "score": 36250,
-    "source": "solver"
-  },
-  "king-court": {
-    "shots": [
-      {
-        "angleDeg": 8,
-        "speed": 23
-      }
-    ],
-    "score": 41990,
-    "source": "solver"
-  },
-  "triple-keep": {
-    "shots": [
-      {
-        "angleDeg": 52,
-        "speed": 18
-      }
-    ],
-    "score": 35230,
-    "source": "solver"
-  },
-  "high-perch": {
+  "glass-house": {
     "shots": [
       {
         "angleDeg": 30,
         "speed": 21
       }
     ],
-    "score": 32350,
-    "source": "solver"
+    "score": 40540,
+    "source": "solver-robust"
   },
-  "fuse-line": {
+  "stone-keep": {
     "shots": [
       {
-        "angleDeg": 60,
-        "speed": 18
-      }
-    ],
-    "score": 26600,
-    "source": "solver"
-  },
-  "split-keep": {
-    "shots": [
-      {
-        "angleDeg": 22,
-        "speed": 23
-      }
-    ],
-    "score": 31070,
-    "source": "solver"
-  },
-  "dash-bridge": {
-    "shots": [
-      {
-        "angleDeg": 18,
-        "speed": 21
-      }
-    ],
-    "score": 15140,
-    "source": "solver"
-  },
-  "blast-vault": {
-    "shots": [
-      {
-        "angleDeg": 14,
-        "speed": 23
-      }
-    ],
-    "score": 32810,
-    "source": "solver"
-  },
-  "helmet-keep": {
-    "shots": [
-      {
-        "angleDeg": 32,
+        "angleDeg": 36,
         "speed": 20
       }
     ],
-    "score": 29000,
-    "source": "solver"
+    "score": 37600,
+    "source": "solver-robust"
   },
-  "four-roles": {
+  "hilltop": {
     "shots": [
       {
-        "angleDeg": 24,
+        "angleDeg": 27,
+        "speed": 22
+      },
+      {
+        "angleDeg": 38,
+        "speed": 20
+      }
+    ],
+    "score": 38490,
+    "source": "solver-robust"
+  },
+  "lone-guard": {
+    "shots": [
+      {
+        "angleDeg": 15,
+        "speed": 23
+      },
+      {
+        "angleDeg": 22,
+        "speed": 22
+      }
+    ],
+    "score": 37630,
+    "source": "solver-robust"
+  },
+  "twin-posts": {
+    "shots": [
+      {
+        "angleDeg": 27,
         "speed": 21
       }
     ],
-    "score": 48350,
+    "score": 40980,
+    "source": "solver-robust"
+  },
+  "glass-alley": {
+    "shots": [
+      {
+        "angleDeg": 22,
+        "speed": 22
+      }
+    ],
+    "score": 46970,
     "source": "solver"
   },
-  "last-stand": {
+  "tnt-porch": {
+    "shots": [
+      {
+        "angleDeg": 18,
+        "speed": 22
+      }
+    ],
+    "score": 47540,
+    "source": "solver-robust"
+  },
+  "split-lesson": {
+    "shots": [
+      {
+        "angleDeg": 42,
+        "speed": 21
+      },
+      {
+        "angleDeg": 26,
+        "speed": 20
+      },
+      {
+        "angleDeg": 22,
+        "speed": 22
+      }
+    ],
+    "score": 31180,
+    "source": "solver-robust"
+  },
+  "heavy-gate": {
+    "shots": [
+      {
+        "angleDeg": 30,
+        "speed": 19
+      }
+    ],
+    "score": 46460,
+    "source": "solver-robust"
+  },
+  "wheel-yard": {
+    "shots": [
+      {
+        "angleDeg": 18,
+        "speed": 23
+      },
+      {
+        "angleDeg": 22,
+        "speed": 22
+      }
+    ],
+    "score": 52720,
+    "source": "solver-robust"
+  },
+  "ramp-run": {
+    "shots": [
+      {
+        "angleDeg": 33,
+        "speed": 22
+      },
+      {
+        "angleDeg": 38,
+        "speed": 18
+      }
+    ],
+    "score": 42200,
+    "source": "solver-robust"
+  },
+  "ledge-nest": {
+    "shots": [
+      {
+        "angleDeg": 18,
+        "speed": 20
+      },
+      {
+        "angleDeg": 34,
+        "speed": 22
+      }
+    ],
+    "score": 41850,
+    "source": "solver-robust"
+  },
+  "powder-stack": {
+    "shots": [
+      {
+        "angleDeg": 36,
+        "speed": 21
+      },
+      {
+        "angleDeg": 22,
+        "speed": 22
+      }
+    ],
+    "score": 50370,
+    "source": "solver-robust"
+  },
+  "glass-stack": {
+    "shots": [
+      {
+        "angleDeg": 36,
+        "speed": 22
+      },
+      {
+        "angleDeg": 22,
+        "speed": 20
+      },
+      {
+        "angleDeg": 26,
+        "speed": 20
+      }
+    ],
+    "score": 36200,
+    "source": "solver-robust"
+  },
+  "hat-row": {
+    "shots": [
+      {
+        "angleDeg": 27,
+        "speed": 23
+      },
+      {
+        "angleDeg": 38,
+        "speed": 18
+      },
+      {
+        "angleDeg": 58,
+        "speed": 22
+      },
+      {
+        "angleDeg": 50,
+        "speed": 22
+      }
+    ],
+    "score": 36560,
+    "source": "solver-robust"
+  },
+  "blast-shed": {
+    "shots": [
+      {
+        "angleDeg": 15,
+        "speed": 23
+      }
+    ],
+    "score": 58280,
+    "source": "solver-robust"
+  },
+  "cross-beam": {
+    "shots": [
+      {
+        "angleDeg": 36,
+        "speed": 22
+      },
+      {
+        "angleDeg": 22,
+        "speed": 20
+      }
+    ],
+    "score": 42430,
+    "source": "solver-robust"
+  },
+  "mixed-yard": {
+    "shots": [
+      {
+        "angleDeg": 24,
+        "speed": 22
+      },
+      {
+        "angleDeg": 38,
+        "speed": 22
+      },
+      {
+        "angleDeg": 30,
+        "speed": 22
+      },
+      {
+        "angleDeg": 42,
+        "speed": 22
+      }
+    ],
+    "score": 46660,
+    "source": "solver-robust"
+  },
+  "king-court": {
     "shots": [
       {
         "angleDeg": 24,
         "speed": 22
       }
     ],
-    "score": 51410,
+    "score": 67160,
+    "source": "solver-robust"
+  },
+  "triple-keep": {
+    "shots": [
+      {
+        "angleDeg": 27,
+        "speed": 23
+      },
+      {
+        "angleDeg": 22,
+        "speed": 22
+      }
+    ],
+    "score": 47160,
+    "source": "solver-robust"
+  },
+  "high-perch": {
+    "shots": [
+      {
+        "angleDeg": 33,
+        "speed": 23
+      }
+    ],
+    "score": 49490,
+    "source": "solver-robust"
+  },
+  "fuse-line": {
+    "shots": [
+      {
+        "angleDeg": 27,
+        "speed": 22
+      },
+      {
+        "angleDeg": 30,
+        "speed": 22
+      },
+      {
+        "angleDeg": 30,
+        "speed": 18
+      }
+    ],
+    "score": 47180,
+    "source": "solver-robust"
+  },
+  "dash-bridge": {
+    "shots": [
+      {
+        "angleDeg": 33,
+        "speed": 23
+      },
+      {
+        "angleDeg": 38,
+        "speed": 20
+      }
+    ],
+    "score": 35330,
+    "source": "solver-robust"
+  },
+  "blast-vault": {
+    "shots": [
+      {
+        "angleDeg": 26,
+        "speed": 23
+      },
+      {
+        "angleDeg": 62,
+        "speed": 21
+      }
+    ],
+    "score": 56870,
     "source": "solver"
+  },
+  "helmet-keep": {
+    "shots": [
+      {
+        "angleDeg": 42,
+        "speed": 21
+      },
+      {
+        "angleDeg": 46,
+        "speed": 22
+      },
+      {
+        "angleDeg": 58,
+        "speed": 22
+      }
+    ],
+    "score": 43980,
+    "source": "solver-robust"
+  },
+  "four-roles": {
+    "shots": [
+      {
+        "angleDeg": 57,
+        "speed": 20
+      },
+      {
+        "angleDeg": 14,
+        "speed": 22
+      },
+      {
+        "angleDeg": 54,
+        "speed": 22
+      },
+      {
+        "angleDeg": 26,
+        "speed": 22
+      },
+      {
+        "angleDeg": 50,
+        "speed": 20
+      },
+      {
+        "angleDeg": 18,
+        "speed": 22
+      }
+    ],
+    "score": 51850,
+    "source": "solver-robust"
+  },
+  "last-stand": {
+    "shots": [
+      {
+        "angleDeg": 54,
+        "speed": 22
+      },
+      {
+        "angleDeg": 26,
+        "speed": 22
+      },
+      {
+        "angleDeg": 34,
+        "speed": 22
+      },
+      {
+        "angleDeg": 38,
+        "speed": 20
+      },
+      {
+        "angleDeg": 38,
+        "speed": 20
+      }
+    ],
+    "score": 50370,
+    "source": "solver-robust"
+  },
+  "split-keep": {
+    "shots": [
+      {
+        "angleDeg": 39,
+        "speed": 21
+      },
+      {
+        "angleDeg": 42,
+        "speed": 20
+      },
+      {
+        "angleDeg": 50,
+        "speed": 22
+      }
+    ],
+    "score": 86080,
+    "source": "solver-robust"
   }
 }

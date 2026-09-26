@@ -1,23 +1,53 @@
-import type { BotKind } from './types';
+import type { BotKind } from '../levels/schema';
 
-/** First-time ability callouts (I05). */
-export const BOT_TUTORIAL_TIPS: Record<BotKind, string | null> = {
-  grok: 'Pull back opposite your aim, then release to launch Grok at pigs and supports.',
-  dash: 'Dash adds extra strike speed—drive through beams and glass for big hits.',
-  heavy: 'Heavy weighs more—use it to crack stone and topple tall forts.',
-  split: 'Split bursts into two on first impact—aim into clusters or weak glass.',
+export type BotTip = {
+  name: string;
+  desc: string;
+  /** in-flight tap hint */
+  hint: string;
 };
 
-export function tutorialTipFor(kind: BotKind): string | null {
-  return BOT_TUTORIAL_TIPS[kind];
+export const BOT_ORDER: BotKind[] = ['grok', 'dash', 'split', 'heavy', 'blast'];
+
+/** First-time bot intro cards. */
+export const BOT_TIPS: Record<BotKind, BotTip> = {
+  grok: {
+    name: 'Grok',
+    desc: 'The all-rounder. Pull back opposite your aim, then release.',
+    hint: 'Pull the sling back and let go!',
+  },
+  dash: {
+    name: 'Dash',
+    desc: 'Adds a burst of strike speed — drives through beams and glass.',
+    hint: 'Tap during flight to dash.',
+  },
+  split: {
+    name: 'Split',
+    desc: 'Bursts into two in mid-air — aim into clusters or weak glass.',
+    hint: 'Tap during flight to split.',
+  },
+  heavy: {
+    name: 'Heavy',
+    desc: 'Weighs a ton — cracks stone and topples tall forts.',
+    hint: 'Tap during flight to drop hard.',
+  },
+  blast: {
+    name: 'Blast',
+    desc: 'Packed with powder — detonates for splash damage.',
+    hint: 'Tap during flight to explode.',
+  },
+};
+
+export function botTipFor(kind: BotKind): BotTip {
+  return BOT_TIPS[kind];
 }
 
 export function firstUnseenBotInQueue(
-  queue: BotKind[],
+  queue: readonly BotKind[],
   seen: Partial<Record<BotKind, boolean>>
 ): BotKind | null {
-  for (const kind of queue) {
-    if (kind === 'grok') continue;
+  for (const kind of BOT_ORDER) {
+    if (!queue.includes(kind)) continue;
     if (!seen[kind]) return kind;
   }
   return null;

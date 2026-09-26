@@ -12,6 +12,7 @@ type ChapterLook = {
   sun: string;
   shaft: string;
   skyTint: string;
+  cloud: string;
 };
 
 const LOOK: Record<string, ChapterLook> = {
@@ -24,6 +25,7 @@ const LOOK: Record<string, ChapterLook> = {
     sun: '#fff4c2',
     shaft: '#ffe6a8',
     skyTint: '#4ea6e8',
+    cloud: '#ffffff',
   },
   workshop: {
     sky: '#e7a15a',
@@ -34,6 +36,7 @@ const LOOK: Record<string, ChapterLook> = {
     sun: '#ffb14a',
     shaft: '#ffc36a',
     skyTint: '#e7a15a',
+    cloud: '#ffe9cd',
   },
   citadel: {
     sky: '#1a2748',
@@ -44,11 +47,29 @@ const LOOK: Record<string, ChapterLook> = {
     sun: '#dce6ff',
     shaft: '#9bb0ff',
     skyTint: '#24365f',
+    cloud: '#4e5d8d',
   },
 };
 
+/** Fraction of camera motion each layer follows. 1 = fixed to screen, 0 = locked to world. */
+const PARALLAX = {
+  sky: 0.98,
+  sun: 0.9,
+  clouds: 0.8,
+  hillsFar: 0.7,
+  hillsMid: 0.5,
+  hillsNear: 0.3,
+  trees: 0.2,
+  world: 0,
+} as const;
+
+const CLOUD_DRIFT = 0.15;
+const CLOUD_WRAP = 36;
+const CLOUD_SPAN = 72;
+
 export class Scenery {
   readonly group = new THREE.Group();
+  private readonly layers = new Map<number, THREE.Group>();
   private readonly background: THREE.Color;
   private readonly skyMat: THREE.MeshBasicMaterial;
   private readonly hillMats: THREE.MeshBasicMaterial[] = [];
@@ -56,6 +77,8 @@ export class Scenery {
   private readonly trainingProps: THREE.Object3D[] = [];
   private readonly workshopProps: THREE.Object3D[] = [];
   private readonly citadelProps: THREE.Object3D[] = [];
+  private readonly clouds: THREE.Mesh[] = [];
+  private readonly cloudMats: THREE.MeshBasicMaterial[] = [];
   private readonly dirtMat: THREE.MeshBasicMaterial;
   private readonly grassMat: THREE.MeshBasicMaterial;
   private readonly fringeMat: THREE.MeshBasicMaterial;
@@ -66,7 +89,6 @@ export class Scenery {
   readonly sun: THREE.Mesh;
   private halo!: THREE.Mesh;
   private readonly haloMat: THREE.MeshBasicMaterial;
-  private readonly cloudMats: THREE.MeshBasicMaterial[] = [];
   private readonly shafts: THREE.Mesh[] = [];
   private readonly pupils: THREE.Object3D[] = [];
   private readonly lids: THREE.Object3D[] = [];
@@ -74,27 +96,29 @@ export class Scenery {
   private readonly gaze = new THREE.Vector2();
   private readonly gazeTarget = new THREE.Vector2();
   private blinkAt = 3;
+  private parallaxRef: { cx: number; cy: number; h: number } | null = null;
 
   constructor(scene: THREE.Scene) {
-    this.background = new THREE.Color(LOOK.training.sky);
+    const look = LOOK.training!;
+    this.background = new THREE.Color(look.sky);
     scene.background = this.background;
     scene.fog = null;
 
     this.skyMat = new THREE.MeshBasicMaterial({
       map: ILL.sky,
-      color: LOOK.training.skyTint,
+      color: look.skyTint,
       fog: false,
       depthWrite: false,
     });
     const sky = new THREE.Mesh(new THREE.PlaneGeometry(520, 360), this.skyMat);
     sky.position.set(0, 40, DEPTH.sky);
     sky.renderOrder = -100;
-    this.group.add(sky);
+    this.layer(PARALLAX.sky).add(sky);
 
     this.celestial.position.set(-6, 7.2, DEPTH.hillsFar - 4);
-    this.group.add(this.celestial);
+    this.layer(PARALLAX.sun).add(this.celestial);
 
-    this.sunMat = new THREE.MeshBasicMaterial({ color: LOOK.training.sun, fog: false });
+    this.sunMat = new THREE.MeshBasicMaterial({ color: look.sun, fog: false });
     this.sun = new THREE.Mesh(new THREE.CircleGeometry(2.1, 32), this.sunMat);
     this.celestial.add(this.sun);
     this.haloMat = new THREE.MeshBasicMaterial({
@@ -111,9 +135,9 @@ export class Scenery {
 
     this.shaftMat = new THREE.MeshBasicMaterial({
       map: ILL.shaft,
-      color: LOOK.training.shaft,
+      color: look.shaft,
       transparent: true,
-      opacity: 0.16,
+      opacity: 0.08,
       depthWrite: false,
       side: THREE.DoubleSide,
       fog: false,
@@ -137,29 +161,35 @@ export class Scenery {
     this.addTree(-8, 2.3, DEPTH.hillsFar + 14);
     this.addTree(7.5, 2.6, DEPTH.hillsFar + 15);
     this.addTree(19, 2.1, DEPTH.hillsFar + 14);
-    this.addProp(5.5, 0.85, 1.15, ILL.crate, this.workshopProps, DEPTH.hillsFar + 16);
-    this.addProp(17.2, 1.05, 1.35, ILL.crate, this.workshopProps, DEPTH.hillsFar + 16);
+    this.addProp(5.5, 0.6, 0.8, ILL.crate, this.workshopProps, DEPTH.hillsFar + 9, {
+      baseY: 1.55,
+      tint: '#efd9bd',
+      layer: PARALLAX.hillsMid,
+    });
+    this.addProp(17.2, 0.74, 0.95, ILL.crate, this.workshopProps, DEPTH.hillsFar + 9, {
+      baseY: 1.75,
+      tint: '#efd9bd',
+      layer: PARALLAX.hillsMid,
+    });
     this.addProp(-1.5, 2.6, 3.4, ILL.tower, this.citadelProps, DEPTH.hillsFar + 16);
     this.addProp(9, 3.1, 4.2, ILL.tower, this.citadelProps, DEPTH.hillsFar + 16);
     this.addProp(22, 2.2, 2.8, ILL.tower, this.citadelProps, DEPTH.hillsFar + 16);
 
     this.addClouds();
 
-    this.dirtMat = new THREE.MeshBasicMaterial({ map: TEX.dirt, color: LOOK.training.dirt });
+    this.dirtMat = new THREE.MeshBasicMaterial({ map: TEX.dirt, color: look.dirt });
     TEX.dirt.wrapS = TEX.dirt.wrapT = THREE.RepeatWrapping;
     TEX.dirt.repeat.set(10, 18);
     const dirt = new THREE.Mesh(new THREE.BoxGeometry(420, 360, 6), this.dirtMat);
     dirt.position.set(0, -180, DEPTH.ground);
-    dirt.receiveShadow = true;
-    this.group.add(dirt);
+    this.layer(PARALLAX.world).add(dirt);
 
-    this.grassMat = new THREE.MeshBasicMaterial({ map: TEX.grass, color: LOOK.training.grass });
+    this.grassMat = new THREE.MeshBasicMaterial({ map: TEX.grass, color: look.grass });
     TEX.grass.wrapS = TEX.grass.wrapT = THREE.RepeatWrapping;
     TEX.grass.repeat.set(24, 2);
     const grass = new THREE.Mesh(new THREE.BoxGeometry(420, 0.42, 6), this.grassMat);
     grass.position.set(0, -0.08, DEPTH.ground + 0.05);
-    grass.receiveShadow = true;
-    this.group.add(grass);
+    this.layer(PARALLAX.world).add(grass);
 
     this.fringeMat = new THREE.MeshBasicMaterial({
       map: ILL.fringe,
@@ -172,7 +202,7 @@ export class Scenery {
     const fringe = new THREE.Mesh(new THREE.PlaneGeometry(420, 1.15), this.fringeMat);
     fringe.position.set(0, 0.42, DEPTH.ground + 0.4);
     fringe.renderOrder = 2;
-    this.group.add(fringe);
+    this.layer(PARALLAX.world).add(fringe);
 
     this.addBush(-3.2, 0.42);
     this.addBush(3.4, 0.38);
@@ -180,6 +210,44 @@ export class Scenery {
     this.addBush(21.5, 0.36);
 
     scene.add(this.group);
+  }
+
+  private layer(factor: number): THREE.Group {
+    let g = this.layers.get(factor);
+    if (!g) {
+      g = new THREE.Group();
+      this.layers.set(factor, g);
+      this.group.add(g);
+    }
+    return g;
+  }
+
+  /** Next applyParallax captures a fresh reference (level start camera). */
+  resetParallax(): void {
+    this.parallaxRef = null;
+  }
+
+  /** Layers offset by (cam - ref) * factor and scaled by viewH relative to ref. */
+  applyParallax(camCx: number, camCy: number, viewH: number): void {
+    if (!this.parallaxRef) {
+      this.parallaxRef = { cx: camCx, cy: camCy, h: viewH };
+      return;
+    }
+    const ref = this.parallaxRef;
+    const zoom = ref.h > 0 ? viewH / ref.h : 1;
+    for (const [factor, g] of this.layers) {
+      g.position.x = (camCx - ref.cx) * factor;
+      g.position.y = (camCy - ref.cy) * factor;
+      g.scale.setScalar(1 + factor * (zoom - 1));
+    }
+  }
+
+  /** Slow cloud drift, wrapping across the sky. */
+  update(dt: number): void {
+    for (const c of this.clouds) {
+      c.position.x += CLOUD_DRIFT * dt;
+      if (c.position.x > CLOUD_WRAP) c.position.x -= CLOUD_SPAN;
+    }
   }
 
   setChapter(chapter: string): void {
@@ -191,9 +259,8 @@ export class Scenery {
     this.sunMat.color.set(look.sun);
     this.shaftMat.color.set(look.shaft);
     this.shaftMat.opacity = chapter === 'citadel' ? 0.12 : chapter === 'workshop' ? 0.3 : 0.26;
-    const cloudTint = chapter === 'citadel' ? '#7e8bb0' : chapter === 'workshop' ? '#ffe4c4' : '#ffffff';
-    for (const mat of this.cloudMats) mat.color.set(cloudTint);
     this.fringeMat.color.set(chapter === 'citadel' ? '#8fb89a' : '#ffffff');
+    for (const mat of this.cloudMats) mat.color.set(look.cloud);
     const training = chapter !== 'workshop' && chapter !== 'citadel';
     for (const obj of this.trainingProps) obj.visible = training;
     for (const obj of this.workshopProps) obj.visible = chapter === 'workshop';
@@ -206,7 +273,7 @@ export class Scenery {
     const treeTint = chapter === 'citadel' ? '#9aab9a' : chapter === 'workshop' ? '#e7d2a4' : '#ffffff';
     for (const mat of this.treeMats) mat.color.set(treeTint);
     const moon = chapter === 'citadel';
-    if (moon) this.celestial.position.set(17, 8.6, DEPTH.hillsFar - 4);
+    if (moon) this.celestial.position.set(-5, 8.6, DEPTH.hillsFar - 4);
     else this.celestial.position.set(-6, chapter === 'workshop' ? 6.4 : 7.2, DEPTH.hillsFar - 4);
     const size = moon ? 0.62 : 1;
     this.sun.scale.setScalar(size);
@@ -214,12 +281,14 @@ export class Scenery {
     this.haloMat.opacity = moon ? 0.12 : 0.16;
     this.halo.scale.setScalar(moon ? 0.8 : 1);
     this.face.scale.setScalar(size);
-    // Rays fan out from the disc toward the play field: the western sun leans them east, the moon west.
-    const lean = moon ? -0.35 : 0.3;
+    // Rays fan out from the disc toward the play field: sun and moon both hang on
+    // the western side of the frame, so their light leans east onto the structures.
+    const lean = moon ? 0.35 : 0.3;
     for (const shaft of this.shafts) {
       shaft.rotation.z = lean + (shaft.userData.spread as number) * 1.3;
       shaft.scale.set(1, moon ? 0.7 : 1, 1);
     }
+    this.resetParallax();
   }
 
   /** Point the sun/moon eyes at a world-space spot; called every frame with the action focus. */
@@ -274,7 +343,7 @@ export class Scenery {
     });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(h * 0.72, h), mat);
     mesh.position.set(x, 0.2 + h / 2, z);
-    this.group.add(mesh);
+    this.layer(PARALLAX.trees).add(mesh);
     this.treeMats.push(mat);
     this.trainingProps.push(mesh);
   }
@@ -285,13 +354,15 @@ export class Scenery {
     w: number,
     map: THREE.Texture,
     bucket: THREE.Object3D[],
-    z: number
+    z: number,
+    opts?: { baseY?: number; tint?: string; layer?: number }
   ): void {
     const mat = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false });
+    if (opts?.tint) mat.color.set(opts.tint);
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-    mesh.position.set(x, h / 2, z);
+    mesh.position.set(x, (opts?.baseY ?? 0) + h / 2, z);
     mesh.visible = false;
-    this.group.add(mesh);
+    this.layer(opts?.layer ?? PARALLAX.trees).add(mesh);
     bucket.push(mesh);
   }
 
@@ -313,7 +384,9 @@ export class Scenery {
     });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
     mesh.position.set(x, y, z);
-    this.group.add(mesh);
+    const factor =
+      layer === 0 ? PARALLAX.hillsFar : layer === 1 ? PARALLAX.hillsMid : PARALLAX.hillsNear;
+    this.layer(factor).add(mesh);
     this.hillMats.push(mat);
   }
 
@@ -333,7 +406,8 @@ export class Scenery {
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.48), mat);
       mesh.position.set(x, y, DEPTH.hillsFar + 8);
-      this.group.add(mesh);
+      this.layer(PARALLAX.clouds).add(mesh);
+      this.clouds.push(mesh);
       this.cloudMats.push(mat);
     }
   }
@@ -347,7 +421,7 @@ export class Scenery {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.15), mat);
     mesh.position.set(x, y + 0.35, DEPTH.ground + 0.35);
     mesh.renderOrder = 3;
-    this.group.add(mesh);
+    this.layer(PARALLAX.world).add(mesh);
     this.trainingProps.push(mesh);
   }
 }

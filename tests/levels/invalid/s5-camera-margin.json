@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "id": "bad-s5-margin",
+  "name": "Bad",
+  "chapter": "training",
+  "order": 99,
+  "bots": ["grok"],
+  "stars": [1000, 2000, 3000],
+  "camera": { "minX": -20, "maxX": 11, "minY": 0, "maxY": 20 },
+  "sling": { "x": -7.5 },
+  "terrain": [],
+  "blocks": [{ "id": "a", "material": "wood", "kit": "cube", "x": 10.2, "y": 0 }],
+  "pigs": []
+}

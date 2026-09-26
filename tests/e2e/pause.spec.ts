@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { launchSolution, snapshot, skipToPlay, holdMs } from './helpers';
+import { launchSolution, pickLevel, snapshot, skipToPlay, holdMs } from './helpers';
 
 test('pause freezes a moving body and resume continues it', async ({ page }) => {
   test.setTimeout(60_000);
@@ -27,7 +27,7 @@ test('pause then levels then start is not stuck paused', async ({ page }) => {
   await skipToPlay(page, 'first-flight');
   await page.getByRole('button', { name: 'Pause' }).click();
   await page.getByRole('button', { name: 'Levels' }).click();
-  await page.locator('button[data-level-id="first-flight"]').click();
+  await pickLevel(page, 'first-flight');
   await expect.poll(async () => (await snapshot(page)).state, { timeout: 15_000 }).toBe('aim');
   const s = await snapshot(page);
   expect(s.paused).toBe(false);

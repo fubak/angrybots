@@ -10,56 +10,119 @@
     "grok"
   ],
   "stars": [
-    12000,
-    20000,
-    30000
+    10000,
+    22500,
+    33000
   ],
   "camera": {
     "minX": -11,
-    "maxX": 16,
+    "maxX": 15,
     "minY": 0,
-    "maxY": 9
+    "maxY": 5
   },
-  "hint": "Pull back and release. Drag to the perch to cancel.",
   "sling": {
     "x": -7.5
   },
   "terrain": [],
   "blocks": [
     {
-      "id": "postL",
-      "material": "wood",
+      "id": "b1",
+      "material": "glass",
       "kit": "postL",
-      "x": 11.3,
+      "x": 10.5,
       "y": 0
     },
     {
-      "id": "postR",
-      "material": "wood",
+      "id": "b2",
+      "material": "glass",
       "kit": "postL",
-      "x": 12.9,
+      "x": 12.3,
       "y": 0
     },
     {
-      "id": "deck",
-      "material": "wood",
+      "id": "b3",
+      "material": "glass",
       "kit": "plankM",
-      "x": 12.1,
+      "x": 11.4,
+      "y": 2
+    },
+    {
+      "id": "b4",
+      "material": "glass",
+      "kit": "slab",
+      "x": 11.4,
+      "y": 2.4
+    },
+    {
+      "id": "b5",
+      "material": "glass",
+      "kit": "cube",
+      "x": 9.6,
+      "y": 0
+    },
+    {
+      "id": "b6",
+      "material": "glass",
+      "kit": "cube",
+      "x": 9.6,
+      "y": 0.8
+    },
+    {
+      "id": "b7",
+      "material": "glass",
+      "kit": "cube",
+      "x": 13.2,
+      "y": 0
+    },
+    {
+      "id": "b8",
+      "material": "glass",
+      "kit": "cube",
+      "x": 13.2,
+      "y": 0.8
+    },
+    {
+      "id": "b9",
+      "material": "wood",
+      "kit": "plankS",
+      "x": 9.6,
+      "y": 1.6
+    },
+    {
+      "id": "b10",
+      "material": "wood",
+      "kit": "plankS",
+      "x": 13.2,
+      "y": 1.6
+    },
+    {
+      "id": "b11",
+      "material": "glass",
+      "kit": "cubeS",
+      "x": 9.6,
+      "y": 2
+    },
+    {
+      "id": "b12",
+      "material": "glass",
+      "kit": "cubeS",
+      "x": 13.2,
       "y": 2
     }
   ],
   "pigs": [
     {
-      "id": "pig1",
+      "id": "p1",
       "size": "M",
-      "x": 9.5,
-      "y": 0
+      "x": 10.8,
+      "y": 3.2
     },
     {
-      "id": "pig2",
-      "size": "M",
-      "x": 12.1,
-      "y": 2.4
+      "id": "p2",
+      "size": "S",
+      "x": 12,
+      "y": 3.2
     }
-  ]
+  ],
+  "hint": "Pull back and release. Drag to the perch to cancel."
 }

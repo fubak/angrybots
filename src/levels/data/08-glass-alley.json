@@ -6,46 +6,155 @@
   "order": 8,
   "bots": [
     "grok",
+    "grok",
     "grok"
   ],
   "stars": [
-    8000,
-    16000,
-    24000
+    25000,
+    37500,
+    47500
   ],
   "camera": {
     "minX": -11,
-    "maxX": 18,
+    "maxX": 16,
     "minY": 0,
-    "maxY": 10
+    "maxY": 6
   },
-  "hint": "Glass walls shatter. The prompt sits in the aisle.",
   "sling": {
     "x": -7.5
   },
   "terrain": [],
   "blocks": [
     {
-      "id": "gL",
-      "material": "glass",
+      "id": "b1",
+      "material": "stone",
       "kit": "postL",
-      "x": 10,
+      "x": 9.7,
       "y": 0
     },
     {
-      "id": "gR",
-      "material": "glass",
+      "id": "b2",
+      "material": "stone",
       "kit": "postL",
-      "x": 12.4,
+      "x": 11.5,
       "y": 0
+    },
+    {
+      "id": "b3",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 10.6,
+      "y": 2
+    },
+    {
+      "id": "b4",
+      "material": "stone",
+      "kit": "postS",
+      "x": 9.7,
+      "y": 2.4
+    },
+    {
+      "id": "b5",
+      "material": "stone",
+      "kit": "postS",
+      "x": 11.5,
+      "y": 2.4
+    },
+    {
+      "id": "b6",
+      "material": "wood",
+      "kit": "plankM",
+      "x": 10.6,
+      "y": 3.2
+    },
+    {
+      "id": "b7",
+      "material": "wood",
+      "kit": "slab",
+      "x": 10.6,
+      "y": 3.5999999999999996
+    },
+    {
+      "id": "b8",
+      "material": "stone",
+      "kit": "postL",
+      "x": 12.9,
+      "y": 0
+    },
+    {
+      "id": "b9",
+      "material": "stone",
+      "kit": "postL",
+      "x": 14.700000000000001,
+      "y": 0
+    },
+    {
+      "id": "b10",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 13.8,
+      "y": 2
+    },
+    {
+      "id": "b11",
+      "material": "stone",
+      "kit": "postS",
+      "x": 12.9,
+      "y": 2.4
+    },
+    {
+      "id": "b12",
+      "material": "stone",
+      "kit": "postS",
+      "x": 14.700000000000001,
+      "y": 2.4
+    },
+    {
+      "id": "b13",
+      "material": "wood",
+      "kit": "plankM",
+      "x": 13.8,
+      "y": 3.2
+    },
+    {
+      "id": "b14",
+      "material": "wood",
+      "kit": "slab",
+      "x": 13.8,
+      "y": 3.5999999999999996
     }
   ],
   "pigs": [
     {
-      "id": "pig1",
+      "id": "p1",
       "size": "M",
-      "x": 11.2,
+      "x": 10.6,
       "y": 0
+    },
+    {
+      "id": "p2",
+      "size": "M",
+      "x": 13.8,
+      "y": 0
+    },
+    {
+      "id": "p3",
+      "size": "S",
+      "x": 10.6,
+      "y": 2.4
+    },
+    {
+      "id": "p4",
+      "size": "S",
+      "x": 13.8,
+      "y": 2.4
+    },
+    {
+      "id": "p5",
+      "size": "S",
+      "x": 10.6,
+      "y": 4.4
     }
-  ]
+  ],
+  "hint": "Everything here is glass and stone."
 }

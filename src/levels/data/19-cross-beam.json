@@ -6,87 +6,209 @@
   "order": 9,
   "bots": [
     "grok",
-    "split",
-    "dash"
+    "grok",
+    "grok"
   ],
   "stars": [
-    14000,
-    24000,
-    34000
+    30000,
+    36500,
+    42000
   ],
   "camera": {
     "minX": -11,
-    "maxX": 20,
+    "maxX": 24,
     "minY": 0,
-    "maxY": 11
+    "maxY": 5
   },
-  "hint": "Two huts and a yard prompt. Pick an order.",
   "sling": {
     "x": -7.5
   },
   "terrain": [],
   "blocks": [
     {
-      "id": "aL",
-      "material": "wood",
-      "kit": "postL",
-      "x": 9.6,
+      "id": "b1",
+      "material": "stone",
+      "kit": "cube",
+      "x": 9,
       "y": 0
     },
     {
-      "id": "aR",
-      "material": "wood",
-      "kit": "postL",
-      "x": 11.6,
+      "id": "b2",
+      "material": "stone",
+      "kit": "cube",
+      "x": 9,
+      "y": 0.8
+    },
+    {
+      "id": "b3",
+      "material": "stone",
+      "kit": "cube",
+      "x": 9,
+      "y": 1.6
+    },
+    {
+      "id": "b4",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13,
       "y": 0
     },
     {
-      "id": "aDeck",
-      "material": "wood",
-      "kit": "plankM",
-      "x": 10.6,
-      "y": 2
+      "id": "b5",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13,
+      "y": 0.8
     },
     {
-      "id": "bL",
-      "material": "wood",
-      "kit": "postL",
-      "x": 15.2,
+      "id": "b6",
+      "material": "stone",
+      "kit": "cube",
+      "x": 13,
+      "y": 1.6
+    },
+    {
+      "id": "b7",
+      "material": "stone",
+      "kit": "cube",
+      "x": 17,
       "y": 0
     },
     {
-      "id": "bR",
-      "material": "wood",
-      "kit": "postL",
-      "x": 17.2,
+      "id": "b8",
+      "material": "stone",
+      "kit": "cube",
+      "x": 17,
+      "y": 0.8
+    },
+    {
+      "id": "b9",
+      "material": "stone",
+      "kit": "cube",
+      "x": 17,
+      "y": 1.6
+    },
+    {
+      "id": "b10",
+      "material": "stone",
+      "kit": "cube",
+      "x": 21,
       "y": 0
     },
     {
-      "id": "bDeck",
+      "id": "b11",
+      "material": "stone",
+      "kit": "cube",
+      "x": 21,
+      "y": 0.8
+    },
+    {
+      "id": "b12",
+      "material": "stone",
+      "kit": "cube",
+      "x": 21,
+      "y": 1.6
+    },
+    {
+      "id": "b13",
       "material": "wood",
-      "kit": "plankM",
-      "x": 16.2,
-      "y": 2
+      "kit": "plankL",
+      "x": 11,
+      "y": 2.4
+    },
+    {
+      "id": "b14",
+      "material": "wood",
+      "kit": "plankL",
+      "x": 15,
+      "y": 2.4
+    },
+    {
+      "id": "b15",
+      "material": "wood",
+      "kit": "plankL",
+      "x": 19,
+      "y": 2.4
+    },
+    {
+      "id": "b16",
+      "material": "wood",
+      "kit": "cube",
+      "x": 7.5,
+      "y": 0
+    },
+    {
+      "id": "b17",
+      "material": "wood",
+      "kit": "cube",
+      "x": 7.5,
+      "y": 0.8
+    },
+    {
+      "id": "b18",
+      "material": "wood",
+      "kit": "cube",
+      "x": 7.5,
+      "y": 1.6
+    },
+    {
+      "id": "b19",
+      "material": "wood",
+      "kit": "cube",
+      "x": 22.5,
+      "y": 0
+    },
+    {
+      "id": "b20",
+      "material": "wood",
+      "kit": "cube",
+      "x": 22.5,
+      "y": 0.8
+    },
+    {
+      "id": "b21",
+      "material": "wood",
+      "kit": "cube",
+      "x": 22.5,
+      "y": 1.6
     }
   ],
   "pigs": [
     {
-      "id": "pig1",
+      "id": "p1",
       "size": "S",
-      "x": 10.6,
-      "y": 2.4
+      "x": 10.5,
+      "y": 2.8
     },
     {
-      "id": "pig2",
-      "size": "S",
-      "x": 13.4,
-      "y": 0
+      "id": "p2",
+      "size": "M",
+      "x": 12,
+      "y": 2.8
     },
     {
-      "id": "pig3",
+      "id": "p3",
       "size": "S",
-      "x": 16.2,
-      "y": 2.4
+      "x": 15,
+      "y": 2.8
+    },
+    {
+      "id": "p4",
+      "size": "S",
+      "x": 19,
+      "y": 2.8
+    },
+    {
+      "id": "p5",
+      "size": "S",
+      "x": 20.5,
+      "y": 2.8
+    },
+    {
+      "id": "p6",
+      "size": "S",
+      "x": 16.5,
+      "y": 2.8
     }
   ]
 }

@@ -6,122 +6,157 @@
   "order": 5,
   "bots": [
     "grok",
-    "split",
-    "dash",
-    "heavy"
+    "grok",
+    "grok"
   ],
   "stars": [
-    22000,
-    32000,
-    41000
+    15000,
+    27500,
+    38000
   ],
   "camera": {
     "minX": -11,
-    "maxX": 21,
+    "maxX": 17,
     "minY": 0,
-    "maxY": 11
+    "maxY": 7
   },
-  "hint": "Clear the low hut, then climb the plateau.",
   "sling": {
     "x": -7.5
   },
   "terrain": [
     {
       "kind": "plateau",
-      "x0": 12,
-      "x1": 18,
-      "top": 2
+      "x0": 10.5,
+      "x1": 16.2,
+      "top": 1.6
     }
   ],
   "blocks": [
     {
-      "id": "aL",
+      "id": "b1",
       "material": "wood",
       "kit": "postM",
-      "x": 8.8,
-      "y": 0
-    },
-    {
-      "id": "aR",
-      "material": "wood",
-      "kit": "postM",
-      "x": 10.2,
-      "y": 0
-    },
-    {
-      "id": "aDeck",
-      "material": "wood",
-      "kit": "plankM",
-      "x": 9.5,
-      "y": 1.2
-    },
-    {
-      "id": "aCap",
-      "material": "glass",
-      "kit": "cube",
-      "x": 9.5,
+      "x": 11,
       "y": 1.6
     },
     {
-      "id": "bL",
-      "material": "stone",
-      "kit": "postL",
-      "x": 13,
-      "y": 2
-    },
-    {
-      "id": "bR",
-      "material": "stone",
-      "kit": "postL",
-      "x": 16,
-      "y": 2
-    },
-    {
-      "id": "bDeck",
+      "id": "b2",
       "material": "wood",
-      "kit": "plankL",
-      "x": 14.5,
+      "kit": "postM",
+      "x": 12.8,
+      "y": 1.6
+    },
+    {
+      "id": "b3",
+      "material": "wood",
+      "kit": "plankM",
+      "x": 11.9,
+      "y": 2.8
+    },
+    {
+      "id": "b4",
+      "material": "glass",
+      "kit": "postM",
+      "x": 14.1,
+      "y": 1.6
+    },
+    {
+      "id": "b5",
+      "material": "glass",
+      "kit": "postM",
+      "x": 15.9,
+      "y": 1.6
+    },
+    {
+      "id": "b6",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 15,
+      "y": 2.8
+    },
+    {
+      "id": "b7",
+      "material": "wood",
+      "kit": "cube",
+      "x": 13.4,
+      "y": 1.6
+    },
+    {
+      "id": "b8",
+      "material": "wood",
+      "kit": "cube",
+      "x": 13.4,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b9",
+      "material": "wood",
+      "kit": "cube",
+      "x": 13.4,
+      "y": 3.2
+    },
+    {
+      "id": "b10",
+      "material": "wood",
+      "kit": "slab",
+      "x": 13.4,
       "y": 4
     },
     {
-      "id": "bCapL",
+      "id": "b11",
       "material": "wood",
       "kit": "cube",
-      "x": 13.2,
-      "y": 4.4
+      "x": 11.9,
+      "y": 3.1999999999999997
     },
     {
-      "id": "bCapR",
-      "material": "wood",
+      "id": "b12",
+      "material": "stone",
       "kit": "cube",
-      "x": 15.8,
-      "y": 4.4
+      "x": 15,
+      "y": 3.1999999999999997
+    },
+    {
+      "id": "b13",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 11.9,
+      "y": 4
+    },
+    {
+      "id": "b14",
+      "material": "stone",
+      "kit": "cubeS",
+      "x": 15,
+      "y": 4
+    },
+    {
+      "id": "b15",
+      "material": "wood",
+      "kit": "cubeS",
+      "x": 15,
+      "y": 4.3999999999999995
     }
   ],
   "pigs": [
     {
-      "id": "pig1",
-      "size": "S",
-      "x": 9.5,
-      "y": 0
-    },
-    {
-      "id": "pig2",
-      "size": "L",
-      "x": 14.5,
-      "y": 2
-    },
-    {
-      "id": "pig3",
+      "id": "p1",
       "size": "M",
-      "x": 14.5,
-      "y": 4.4
+      "x": 11.9,
+      "y": 1.6
     },
     {
-      "id": "pig4",
+      "id": "p2",
+      "size": "M",
+      "x": 15,
+      "y": 1.6
+    },
+    {
+      "id": "p3",
       "size": "S",
-      "x": 17.4,
-      "y": 2
+      "x": 13.4,
+      "y": 4.8
     }
-  ]
+  ],
+  "hint": "The fort sits up on the plateau."
 }

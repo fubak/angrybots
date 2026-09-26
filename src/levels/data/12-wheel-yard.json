@@ -5,54 +5,218 @@
   "chapter": "workshop",
   "order": 2,
   "bots": [
+    "heavy",
     "grok",
-    "dash"
+    "grok"
   ],
   "stars": [
-    9000,
-    17000,
-    25000
+    25000,
+    40000,
+    52500
   ],
   "camera": {
     "minX": -11,
-    "maxX": 20,
+    "maxX": 17,
     "minY": 0,
-    "maxY": 11
+    "maxY": 5
   },
-  "hint": "Wheels roll. Clip the deck, not just the prompt.",
   "sling": {
     "x": -7.5
   },
   "terrain": [],
   "blocks": [
     {
-      "id": "wL",
+      "id": "b1",
       "material": "wood",
-      "kit": "wheel",
-      "x": 10,
+      "kit": "postM",
+      "x": 9.5,
       "y": 0
     },
     {
-      "id": "wR",
+      "id": "b2",
       "material": "wood",
-      "kit": "wheel",
-      "x": 12.2,
+      "kit": "postM",
+      "x": 11.3,
       "y": 0
     },
     {
-      "id": "deck",
-      "material": "wood",
+      "id": "b3",
+      "material": "stone",
       "kit": "plankM",
-      "x": 11.1,
+      "x": 10.4,
+      "y": 1.2
+    },
+    {
+      "id": "b4",
+      "material": "wood",
+      "kit": "postM",
+      "x": 9.5,
+      "y": 1.6
+    },
+    {
+      "id": "b5",
+      "material": "wood",
+      "kit": "postM",
+      "x": 11.3,
+      "y": 1.6
+    },
+    {
+      "id": "b6",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 10.4,
+      "y": 2.8
+    },
+    {
+      "id": "b7",
+      "material": "wood",
+      "kit": "postM",
+      "x": 13.5,
+      "y": 0
+    },
+    {
+      "id": "b8",
+      "material": "wood",
+      "kit": "postM",
+      "x": 15.3,
+      "y": 0
+    },
+    {
+      "id": "b9",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 14.4,
+      "y": 1.2
+    },
+    {
+      "id": "b10",
+      "material": "wood",
+      "kit": "postM",
+      "x": 13.5,
+      "y": 1.6
+    },
+    {
+      "id": "b11",
+      "material": "wood",
+      "kit": "postM",
+      "x": 15.3,
+      "y": 1.6
+    },
+    {
+      "id": "b12",
+      "material": "stone",
+      "kit": "plankM",
+      "x": 14.4,
+      "y": 2.8
+    },
+    {
+      "id": "b13",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.4,
+      "y": 0
+    },
+    {
+      "id": "b14",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.4,
       "y": 0.8
+    },
+    {
+      "id": "b15",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.4,
+      "y": 1.6
+    },
+    {
+      "id": "b16",
+      "material": "stone",
+      "kit": "cube",
+      "x": 12.4,
+      "y": 2.4000000000000004
+    },
+    {
+      "id": "b17",
+      "material": "wood",
+      "kit": "plankL",
+      "x": 12.4,
+      "y": 3.2
+    },
+    {
+      "id": "b18",
+      "material": "wood",
+      "kit": "cube",
+      "x": 8.8,
+      "y": 0
+    },
+    {
+      "id": "b19",
+      "material": "wood",
+      "kit": "cube",
+      "x": 8.8,
+      "y": 0.8
+    },
+    {
+      "id": "b20",
+      "material": "wood",
+      "kit": "cube",
+      "x": 8.8,
+      "y": 1.6
+    },
+    {
+      "id": "b21",
+      "material": "wood",
+      "kit": "cube",
+      "x": 16,
+      "y": 0
+    },
+    {
+      "id": "b22",
+      "material": "wood",
+      "kit": "cube",
+      "x": 16,
+      "y": 0.8
+    },
+    {
+      "id": "b23",
+      "material": "wood",
+      "kit": "cube",
+      "x": 16,
+      "y": 1.6
     }
   ],
   "pigs": [
     {
-      "id": "pig1",
+      "id": "p1",
+      "size": "M",
+      "x": 10.4,
+      "y": 0
+    },
+    {
+      "id": "p2",
+      "size": "M",
+      "x": 14.4,
+      "y": 0
+    },
+    {
+      "id": "p3",
       "size": "S",
-      "x": 11.1,
-      "y": 1.2
+      "x": 9.9,
+      "y": 3.1999999999999997
+    },
+    {
+      "id": "p4",
+      "size": "S",
+      "x": 14.9,
+      "y": 3.1999999999999997
+    },
+    {
+      "id": "p5",
+      "size": "S",
+      "x": 12.4,
+      "y": 3.6
     }
   ]
 }

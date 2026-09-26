@@ -180,7 +180,7 @@ These 5 levels are in [reference/levels-json/](reference/levels-json/). Copy the
 - **Do:** S1–S7, including circle and triangle SAT. Port the box logic from the reference.
 - **Tests:**
   - all 5 slice levels pass
-  - fixtures in `tests/levels/invalid/` each fail with the expected rule id: overlapping planks (S1), pig in a block (S2), floating cube (S3), floating pig (S4), sling too close (S5), duplicate id (S6), wheel overlapping a post (S1 circle), triangle overlapping a cube (S1 SAT)
+  - fixtures in `tests/levels/invalid/` each fail with the expected rule id: overlapping planks (S1), pig in a block (S2), floating cube (S3), floating pig (S4), sling too close (S5), duplicate id (S6), wheel overlapping a post (S1 circle), triangle overlapping a cube (S1 SAT), block or pig inside the 0.5 camera margin (S5)
   - **all 30 legacy levels from commit `65baa72` fail** (a regression test that the validator catches what the old one missed); keep them as JSON fixtures in `tests/levels/legacy/`
 
 ### LVL-03 — Physics validator, tools, solutions (M)

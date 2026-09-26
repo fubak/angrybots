@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>bot composite check</title></head>
+  <body>
+    <script type="module">
+      import { STICKERS } from '/src/render/botArt.generated.ts';
+
+      const R = 252; // cell render width in viewBox scale
+      const DIFF_TOL = 48; // per-pixel channel-sum tolerance
+
+      async function rasterize(svgText, art) {
+        // Rasterize at the target size — an <svg> without width/height renders
+        // at intrinsic size and upscales, smearing edges vs. Path2D output.
+        const h = Math.round((R * art.vbH) / art.vbW);
+        const svg = svgText.replace('<svg ', `<svg width="${R}" height="${h}" `);
+        const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+        const img = new Image();
+        await new Promise((ok, bad) => {
+          img.onload = ok;
+          img.onerror = bad;
+          img.src = url;
+        });
+        const c = document.createElement('canvas');
+        c.width = R;
+        c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, R, h);
+        URL.revokeObjectURL(url);
+        return c;
+      }
+
+      async function rasterizeSvg(id, art) {
+        const res = await fetch(`/src/assets/bots/GrokBot_StickerSet_GrokBot-${id}.svg`);
+        return rasterize(await res.text(), art);
+      }
+
+      // Re-assemble an SVG from the extracted layers (backing + body + extras
+      // + eyes) and rasterize it through the same pipeline as the original —
+      // this verifies the layer data reconstructs the sticker exactly, without
+      // SVG-vs-Path2D edge-rasterizer noise.
+      function compositeSvg(art) {
+        const backing = art.backing.circle
+          ? `<circle cx="${art.backing.circle[0]}" cy="${art.backing.circle[1]}" r="${art.backing.circle[2]}" fill="#fff"/>`
+          : `<path d="${art.backing.d}" fill="#fff" fill-rule="evenodd"/>`;
+        const layer = (shapes) =>
+          shapes.map((s) => `<path d="${s.d}" fill="#fff"/>`).join('');
+        return (
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${art.vbW} ${art.vbH}">` +
+          backing +
+          `<path d="${art.body}" fill="${art.bodyColor}"/>` +
+          layer(art.extras) +
+          layer(art.eyes) +
+          `</svg>`
+        );
+      }
+
+      async function composite(art) {
+        return rasterize(compositeSvg(art), art);
+      }
+
+      // Shift-tolerant diff: SVG and Path2D rasterize edges with ~1px AA
+      // differences. A pixel counts as different only when its color does not
+      // appear in the 3x3 neighborhood of the OTHER image — so edge AA shifts
+      // are excused, but a missing/extra feature (a color absent from the
+      // neighborhood entirely) still counts.
+      function diff(a, b) {
+        const w = Math.min(a.width, b.width);
+        const h = Math.min(a.height, b.height);
+        const da = a.getContext('2d').getImageData(0, 0, w, h).data;
+        const db = b.getContext('2d').getImageData(0, 0, w, h).data;
+        const dSum = (dd, i, dd2, j) =>
+          Math.abs(dd[i] - dd2[j]) +
+          Math.abs(dd[i + 1] - dd2[j + 1]) +
+          Math.abs(dd[i + 2] - dd2[j + 2]) +
+          Math.abs(dd[i + 3] - dd2[j + 3]);
+        let bad = 0;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            if (dSum(da, i, db, i) <= DIFF_TOL) continue;
+            let foundA = false;
+            let foundB = false;
+            for (let ny = Math.max(0, y - 1); ny <= Math.min(h - 1, y + 1); ny++) {
+              for (let nx = Math.max(0, x - 1); nx <= Math.min(w - 1, x + 1); nx++) {
+                const j = (ny * w + nx) * 4;
+                if (dSum(da, i, db, j) <= DIFF_TOL) foundA = true;
+                if (dSum(db, i, da, j) <= DIFF_TOL) foundB = true;
+              }
+            }
+            if (!(foundA && foundB)) bad++;
+          }
+        }
+        return bad / (w * h || 1);
+      }
+
+      const rows = [];
+      const gap = 12;
+      const pad = 16;
+      const labelH = 26;
+      let maxH = 0;
+      for (const art of STICKERS) {
+        const a = await rasterizeSvg(art.id, art);
+        const b = await composite(art);
+        const d = diff(a, b);
+        rows.push({ id: art.id, a, b, d });
+        maxH = Math.max(maxH, a.height);
+      }
+      const cellW = R * 2 + gap;
+      const cols = 4;
+      const sheetH = Math.ceil(rows.length / cols) * (maxH + labelH + pad) + pad;
+      const sheetW = cols * (cellW + pad) + pad;
+      const sheet = document.createElement('canvas');
+      sheet.width = sheetW;
+      sheet.height = sheetH;
+      const sctx = sheet.getContext('2d');
+      sctx.fillStyle = '#22304a';
+      sctx.fillRect(0, 0, sheetW, sheetH);
+      sctx.font = 'bold 15px sans-serif';
+      rows.forEach((r, i) => {
+        const cx = pad + (i % cols) * (cellW + pad);
+        const cy = pad + Math.floor(i / cols) * (maxH + labelH + pad);
+        sctx.fillStyle = '#fff';
+        sctx.fillText(`${r.id}  diff ${(r.d * 100).toFixed(2)}%`, cx, cy + 16);
+        sctx.drawImage(r.a, cx, cy + labelH);
+        sctx.drawImage(r.b, cx + R + gap, cy + labelH);
+      });
+      document.body.appendChild(sheet);
+      window.__result = {
+        diffs: rows.map((r) => ({ id: r.id, diff: r.d })),
+        sheet: sheet.toDataURL('image/png'),
+      };
+    </script>
+  </body>
+</html>

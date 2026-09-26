@@ -12,10 +12,11 @@ type SolutionEntry = {
 const EPS = 0.002;
 const SUPPORT_Y = 0.003;
 const SUPPORT_X = 0.05;
+const CAMERA_MARGIN = 0.5;
 
 type Vec = { x: number; y: number };
 
-function blockAabb(b: ExpandedBlock): [number, number, number, number] {
+export function blockAabb(b: ExpandedBlock): [number, number, number, number] {
   if (b.shape === 'circle') {
     return [b.cx - b.r!, b.cy - b.r!, b.cx + b.r!, b.cy + b.r!];
   }
@@ -199,6 +200,28 @@ export function validateStatic(levelRaw: LevelV2): string[] {
   if (allX.some((x) => x < cam.minX || x > cam.maxX) || allY.some((y) => y < cam.minY || y > cam.maxY)) {
     errs.push('S5: out of camera bounds');
   }
+  for (const b of blocks) {
+    const [x0, y0, x1, y1] = blockAabb(b);
+    if (x0 < cam.minX || x1 > cam.maxX || y0 < cam.minY || y1 > cam.maxY) {
+      errs.push(`S5: block ${b.id} outside camera`);
+    }
+    if (x1 > cam.maxX - CAMERA_MARGIN || y1 > cam.maxY - CAMERA_MARGIN) {
+      errs.push(`S5: block ${b.id} camera margin`);
+    }
+  }
+  for (const p of L.pigs) {
+    if (
+      p.cx - p.r < cam.minX ||
+      p.cx + p.r > cam.maxX ||
+      p.cy - p.r < cam.minY ||
+      p.cy + p.r > cam.maxY
+    ) {
+      errs.push(`S5: pig ${p.id} outside camera`);
+    }
+    if (p.cx + p.r > cam.maxX - CAMERA_MARGIN || p.cy + p.r > cam.maxY - CAMERA_MARGIN) {
+      errs.push(`S5: pig ${p.id} camera margin`);
+    }
+  }
   let nearestBlockX = Infinity;
   for (const b of blocks) nearestBlockX = Math.min(nearestBlockX, b.cx);
   if (blocks.length && L.sling.x > nearestBlockX - 12) {
@@ -227,8 +250,18 @@ export function validatePhysics(level: LevelV2): string[] {
   const st = sim.settle();
   if (st.maxMove > 0.08) errs.push(`P1: settle move ${st.maxMove.toFixed(3)}`);
   if (st.maxRotDeg > 1) errs.push(`P2: settle rot ${st.maxRotDeg.toFixed(2)}`);
-  const deaths = sim.idle(3);
+  const rest = sim.registry
+    .all()
+    .filter((e) => e.alive && e.body)
+    .map((e) => ({ e, p: e.body!.getPosition().clone() }));
+  const deaths = sim.idle(5);
   if (deaths.length) errs.push(`P3: idle deaths ${deaths.join(',')}`);
+  let drift = 0;
+  for (const s of rest) {
+    if (!s.e.alive || !s.e.body) continue;
+    drift = Math.max(drift, Math.hypot(s.p.x - s.e.body.getPosition().x, s.p.y - s.e.body.getPosition().y));
+  }
+  if (drift > 0.02) errs.push(`P1: idle drift ${drift.toFixed(3)}`);
   const sol = (solutions as Record<string, SolutionEntry>)[level.id];
   if (!sol) {
     errs.push('P4: no committed solution');
@@ -239,7 +272,14 @@ export function validatePhysics(level: LevelV2): string[] {
   );
   const replay = replayLevel(level, shots.map((s) => [s[0], s[1], s[2]] as [number, number, typeof level.bots[0]]));
   if (replay.pigsAlive() > 0) errs.push(`P4: solution leaves ${replay.pigsAlive()} pigs`);
-  const unused = level.bots.length - sol.shots.length;
+  let used = sol.shots.length;
+  for (let k = 1; k <= shots.length; k++) {
+    if (replayLevel(level, shots.slice(0, k).map((s) => [s[0], s[1], s[2]] as [number, number, typeof level.bots[0]])).pigsAlive() === 0) {
+      used = k;
+      break;
+    }
+  }
+  const unused = level.bots.length - used;
   const total = replay.hooks.score + (replay.pigsAlive() === 0 ? unused * 10000 : 0);
   if (total < level.stars[0]) errs.push(`P5: score ${total} below star1 ${level.stars[0]}`);
   return errs;

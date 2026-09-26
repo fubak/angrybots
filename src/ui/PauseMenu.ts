@@ -1,11 +1,8 @@
-export type PauseSettings = {
-  music: number;
-  sfx: number;
-  reducedMotion: boolean;
-};
+import { iconButton } from './icons';
 
 export class PauseMenu {
   readonly el: HTMLElement;
+  private readonly panel: HTMLElement;
   private visible = false;
 
   constructor(
@@ -14,56 +11,60 @@ export class PauseMenu {
       resume: () => void;
       restart: () => void;
       levels: () => void;
+      settings: () => void;
       onSettings: (key: string, value: number | boolean | string) => void;
     }
   ) {
     this.el = document.createElement('div');
-    this.el.className = 'ui-panel pause-panel';
-    this.el.setAttribute('role', 'dialog');
-    this.el.setAttribute('aria-label', 'Paused');
-    this.el.innerHTML = `
-      <h2>Paused</h2>
-      <div class="pause-actions">
-        <button type="button" class="ui-btn ui-primary" data-a="resume">Resume</button>
-        <button type="button" class="ui-btn" data-a="restart">Restart</button>
-        <button type="button" class="ui-btn" data-a="levels">Levels</button>
-      </div>
-      <div class="pause-settings">
-        <label class="setting-row"><span>Music</span><input type="range" min="0" max="1" step="0.05" data-s="music" aria-label="Music volume" /></label>
-        <label class="setting-row"><span>Effects</span><input type="range" min="0" max="1" step="0.05" data-s="sfx" aria-label="Effects volume" /></label>
-        <label class="setting-row setting-check"><span>Reduced motion</span><input type="checkbox" data-c="reducedMotion" /></label>
-      </div>
-      <p class="pause-keys">Esc pause · R restart · M mute · Space ability</p>
+    this.el.className = 'modal-wrap';
+    this.panel = document.createElement('div');
+    this.panel.className = 'ui-panel modal modal-pop';
+    this.panel.setAttribute('role', 'dialog');
+    this.panel.setAttribute('aria-label', 'Paused');
+    this.panel.innerHTML = `
+      <h2 class="panel-title">Paused</h2>
+      <div class="btn-row"></div>
+      <label class="settings-row">Music <input type="range" min="0" max="1" step="0.05" data-s="music" aria-label="Music volume" /></label>
+      <label class="settings-row">Effects <input type="range" min="0" max="1" step="0.05" data-s="sfx" aria-label="Effects volume" /></label>
     `;
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    this.el.append(backdrop, this.panel);
     parent.appendChild(this.el);
-    this.el.querySelector('[data-a="resume"]')!.addEventListener('click', handlers.resume);
-    this.el.querySelector('[data-a="restart"]')!.addEventListener('click', handlers.restart);
-    this.el.querySelector('[data-a="levels"]')!.addEventListener('click', handlers.levels);
-    for (const input of this.el.querySelectorAll<HTMLInputElement>('input[data-s]')) {
+
+    const row = this.panel.querySelector('.btn-row')!;
+    const resume = iconButton('play', 'Resume', 'ui-primary');
+    resume.addEventListener('click', handlers.resume);
+    const restart = iconButton('restart', 'Restart');
+    restart.dataset.a = 'restart';
+    restart.addEventListener('click', handlers.restart);
+    const levels = iconButton('levels', 'Levels');
+    levels.dataset.a = 'levels';
+    levels.addEventListener('click', handlers.levels);
+    const settings = iconButton('settings', 'Settings');
+    settings.dataset.a = 'settings';
+    settings.addEventListener('click', handlers.settings);
+    row.append(resume, restart, levels, settings);
+
+    for (const input of this.panel.querySelectorAll<HTMLInputElement>('input[data-s]')) {
       input.addEventListener('input', () => {
         handlers.onSettings(input.dataset.s!, parseFloat(input.value));
       });
     }
-    for (const input of this.el.querySelectorAll<HTMLInputElement>('input[data-c]')) {
-      input.addEventListener('change', () => {
-        handlers.onSettings(input.dataset.c!, input.checked);
-      });
-    }
   }
 
-  setSettings(s: PauseSettings): void {
-    const music = this.el.querySelector<HTMLInputElement>('input[data-s="music"]')!;
-    const sfx = this.el.querySelector<HTMLInputElement>('input[data-s="sfx"]')!;
-    const rm = this.el.querySelector<HTMLInputElement>('input[data-c="reducedMotion"]')!;
-    music.value = String(s.music);
-    sfx.value = String(s.sfx);
-    rm.checked = s.reducedMotion;
+  setValues(v: { music: number; sfx: number }): void {
+    for (const input of this.panel.querySelectorAll<HTMLInputElement>('input[data-s]')) {
+      const k = input.dataset.s;
+      if (k === 'music') input.value = String(v.music);
+      if (k === 'sfx') input.value = String(v.sfx);
+    }
   }
 
   toggle(on: boolean): void {
     this.visible = on;
-    this.el.style.display = on ? 'flex' : 'none';
-    if (on) this.el.querySelector<HTMLButtonElement>('[data-a="resume"]')?.focus();
+    this.el.classList.toggle('open', on);
+    if (on) this.panel.querySelector<HTMLElement>('button')?.focus();
   }
 
   isVisible(): boolean {
