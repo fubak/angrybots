@@ -1,4 +1,5 @@
 import { ACHIEVEMENTS } from '../game/achievements';
+import { track } from '../analytics';
 import type { SaveStore } from '../game/SaveStore';
 import type { SoundBank } from '../audio/SoundBank';
 import { allLevels, nextLevel } from '../levels/registry';
@@ -265,6 +266,7 @@ export class AppScreens {
       return;
     }
     if (action === 'skip' && levelId) {
+      track('level_skip', { levelId });
       this.deps.save.skipLevel(levelId);
       const n = nextLevel(levelId);
       if (n && this.deps.isLevelUnlocked(n.id)) this.deps.startLevel(n.id);

@@ -24,6 +24,7 @@ import { type View } from '../camera/fitRect';
 import type { BotKind } from '../levels/schema';
 import { SimFeedback } from './simFeedback';
 import { AppScreens, botImage, pigImage, tipFor, type AppPhase } from './screens';
+import { track } from '../analytics';
 
 export class App {
   private readonly bus = new EventBus<GameEvents>();
@@ -59,6 +60,7 @@ export class App {
   } | null = null;
   private nextBotT: number | null = null;
   private bonusT: number | null = null;
+  private levelStartT = 0;
   private bonusFired = 0;
   private runUnlocks: string[] = [];
   private pendingBotCard: BotKind | null = null;
@@ -220,6 +222,7 @@ export class App {
     });
 
     this.loop.start();
+    track('app_open', {});
   }
 
   private levelRefs(): readonly { id: string; chapter: string }[] {
@@ -293,6 +296,8 @@ export class App {
       this.screens.hud.showTip(def.hint ?? tipFor(def));
     }
     this.pendingBotCard = firstUnseenBotInQueue(def.bots, this.save.tutorialsSeen);
+    this.levelStartT = performance.now();
+    track('level_start', { levelId: id });
   }
 
   private restartLevel(): void {
@@ -336,6 +341,17 @@ export class App {
       canSkip: rec.canSkip,
     };
     this.runUnlocks = rec.unlockIds;
+    if (this.levelId) {
+      track('level_end', {
+        levelId: this.levelId,
+        won: rec.won,
+        score: rec.score,
+        stars: rec.stars,
+        shotsUsed: this.fx.shotsFired,
+        durationMs: Math.round(performance.now() - this.levelStartT),
+      });
+    }
+    for (const id of rec.unlockIds) track('achievement_unlock', { id });
     this.resultDelay = 1.15;
     this.audio.playSting(rec.won ? 'victory' : 'defeat');
     if (rec.won && rec.bonus > 0) {
