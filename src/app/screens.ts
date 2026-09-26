@@ -76,7 +76,12 @@ export class AppScreens {
   constructor(uiRoot: HTMLElement, deps: ScreensDeps) {
     this.uiRoot = uiRoot;
     this.deps = deps;
-    this.hud = new Hud(uiRoot, () => deps.togglePause());
+    this.hud = new Hud(
+      uiRoot,
+      () => deps.togglePause(),
+      () => this.toggleMute()
+    );
+    this.hud.setMuted(deps.audio.muted);
     this.pauseMenu = new PauseMenu(uiRoot, {
       resume: () => deps.togglePause(false),
       restart: () => {
@@ -159,6 +164,14 @@ export class AppScreens {
     const top = wraps[wraps.length - 1];
     const primary = top?.querySelector<HTMLButtonElement>('.ui-primary');
     primary?.click();
+  }
+
+  toggleMute(): void {
+    const muted = !this.deps.audio.muted;
+    this.deps.audio.muted = muted;
+    this.deps.save.settings.muted = muted;
+    this.deps.save.persist();
+    this.hud.setMuted(muted);
   }
 
   applySetting(key: string, value: number | boolean | string | null): void {

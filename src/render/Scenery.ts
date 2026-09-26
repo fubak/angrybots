@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DEPTH } from '../config/render';
+import { DEPTH, PALETTE } from '../config/render';
 import { TEX } from './textures';
 import { ILL } from './illustrations';
 
@@ -84,8 +84,18 @@ export class Scenery {
   private readonly fringeMat: THREE.MeshBasicMaterial;
   private readonly sunMat: THREE.MeshBasicMaterial;
   private readonly shaftMat: THREE.MeshBasicMaterial;
+  /** Sun by day, moon over the citadel: disc, halo, eyes and light shafts all hang off this. */
+  readonly celestial = new THREE.Group();
   readonly sun: THREE.Mesh;
   private halo!: THREE.Mesh;
+  private readonly haloMat: THREE.MeshBasicMaterial;
+  private readonly shafts: THREE.Mesh[] = [];
+  private readonly pupils: THREE.Object3D[] = [];
+  private readonly lids: THREE.Object3D[] = [];
+  private readonly face = new THREE.Group();
+  private readonly gaze = new THREE.Vector2();
+  private readonly gazeTarget = new THREE.Vector2();
+  private blinkAt = 3;
   private parallaxRef: { cx: number; cy: number; h: number } | null = null;
 
   constructor(scene: THREE.Scene) {
@@ -105,25 +115,26 @@ export class Scenery {
     sky.renderOrder = -100;
     this.layer(PARALLAX.sky).add(sky);
 
+    this.celestial.position.set(-6, 7.2, DEPTH.hillsFar - 4);
+    this.layer(PARALLAX.sun).add(this.celestial);
+
     this.sunMat = new THREE.MeshBasicMaterial({ color: look.sun, fog: false });
     this.sun = new THREE.Mesh(new THREE.CircleGeometry(2.1, 32), this.sunMat);
-    this.sun.position.set(-6, 7.2, DEPTH.hillsFar - 4);
-    this.layer(PARALLAX.sun).add(this.sun);
-    this.halo = new THREE.Mesh(
-      new THREE.CircleGeometry(3.4, 32),
-      new THREE.MeshBasicMaterial({
-        color: '#ffe7a8',
-        transparent: true,
-        opacity: 0.16,
-        fog: false,
-        depthWrite: false,
-      })
-    );
-    this.halo.position.copy(this.sun.position);
-    this.halo.position.z += 0.2;
-    this.layer(PARALLAX.sun).add(this.halo);
+    this.celestial.add(this.sun);
+    this.haloMat = new THREE.MeshBasicMaterial({
+      color: '#ffe7a8',
+      transparent: true,
+      opacity: 0.16,
+      fog: false,
+      depthWrite: false,
+    });
+    this.halo = new THREE.Mesh(new THREE.CircleGeometry(3.4, 32), this.haloMat);
+    this.halo.position.z = -0.2;
+    this.celestial.add(this.halo);
+    this.addEyes();
 
     this.shaftMat = new THREE.MeshBasicMaterial({
+      map: ILL.shaft,
       color: look.shaft,
       transparent: true,
       opacity: 0.08,
@@ -131,11 +142,14 @@ export class Scenery {
       side: THREE.DoubleSide,
       fog: false,
     });
-    for (let i = 0; i < 4; i++) {
-      const shaft = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 26), this.shaftMat);
-      shaft.position.set(-12 + i * 4.2, 9, DEPTH.hillsFar + 1);
-      shaft.rotation.z = -0.45 + i * 0.08;
-      this.layer(PARALLAX.sun).add(shaft);
+    for (let i = 0; i < 5; i++) {
+      const geo = new THREE.PlaneGeometry(3.2, 30);
+      geo.translate(0, -15, 0);
+      const shaft = new THREE.Mesh(geo, this.shaftMat);
+      shaft.position.z = 5;
+      shaft.userData.spread = -0.5 + i * 0.25;
+      this.celestial.add(shaft);
+      this.shafts.push(shaft);
     }
 
     this.addHill(-16, 2.5, DEPTH.hillsFar, 78, 7.4, ILL.hillFar, 0);
@@ -244,7 +258,7 @@ export class Scenery {
     this.grassMat.color.set(look.grass);
     this.sunMat.color.set(look.sun);
     this.shaftMat.color.set(look.shaft);
-    this.shaftMat.opacity = chapter === 'citadel' ? 0.03 : 0.08;
+    this.shaftMat.opacity = chapter === 'citadel' ? 0.12 : chapter === 'workshop' ? 0.3 : 0.26;
     this.fringeMat.color.set(chapter === 'citadel' ? '#8fb89a' : '#ffffff');
     for (const mat of this.cloudMats) mat.color.set(look.cloud);
     const training = chapter !== 'workshop' && chapter !== 'citadel';
@@ -259,13 +273,65 @@ export class Scenery {
     const treeTint = chapter === 'citadel' ? '#9aab9a' : chapter === 'workshop' ? '#e7d2a4' : '#ffffff';
     for (const mat of this.treeMats) mat.color.set(treeTint);
     const moon = chapter === 'citadel';
-    if (moon) this.sun.position.set(14, 7.4, DEPTH.hillsFar - 4);
-    else this.sun.position.set(-6, chapter === 'workshop' ? 6.4 : 7.2, DEPTH.hillsFar - 4);
-    this.sun.scale.setScalar(moon ? 0.55 : 1);
-    this.halo.visible = !moon;
-    this.halo.scale.setScalar(1);
-    this.halo.position.set(this.sun.position.x, this.sun.position.y, this.sun.position.z + 0.2);
+    if (moon) this.celestial.position.set(-5, 8.6, DEPTH.hillsFar - 4);
+    else this.celestial.position.set(-6, chapter === 'workshop' ? 6.4 : 7.2, DEPTH.hillsFar - 4);
+    const size = moon ? 0.62 : 1;
+    this.sun.scale.setScalar(size);
+    this.haloMat.color.set(moon ? '#b9c8ff' : '#ffe7a8');
+    this.haloMat.opacity = moon ? 0.12 : 0.16;
+    this.halo.scale.setScalar(moon ? 0.8 : 1);
+    this.face.scale.setScalar(size);
+    // Rays fan out from the disc toward the play field: sun and moon both hang on
+    // the western side of the frame, so their light leans east onto the structures.
+    const lean = moon ? 0.35 : 0.3;
+    for (const shaft of this.shafts) {
+      shaft.rotation.z = lean + (shaft.userData.spread as number) * 1.3;
+      shaft.scale.set(1, moon ? 0.7 : 1, 1);
+    }
     this.resetParallax();
+  }
+
+  /** Point the sun/moon eyes at a world-space spot; called every frame with the action focus. */
+  lookAt(x: number, y: number, dt: number): void {
+    const dx = x - this.celestial.position.x;
+    const dy = y - this.celestial.position.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const reach = Math.min(1, dist / 14);
+    this.gazeTarget.set((dx / dist) * reach, (dy / dist) * reach);
+    const k = 1 - Math.exp(-dt * 6);
+    this.gaze.lerp(this.gazeTarget, k);
+    for (const p of this.pupils) {
+      p.position.x = (p.userData.homeX as number) + this.gaze.x * 0.26;
+      p.position.y = (p.userData.homeY as number) + this.gaze.y * 0.2;
+    }
+    this.blinkAt -= dt;
+    if (this.blinkAt < -0.14) this.blinkAt = 2.5 + Math.random() * 3;
+    const closed = this.blinkAt < 0 ? 1 - Math.abs(this.blinkAt + 0.07) / 0.07 : 0;
+    for (const lid of this.lids) lid.scale.y = Math.max(0.05, 1 - closed);
+  }
+
+  private addEyes(): void {
+    const face = this.face;
+    face.position.z = 0.15;
+    this.celestial.add(face);
+    const visor = new THREE.MeshBasicMaterial({ color: PALETTE.bot.visor, fog: false });
+    const glow = new THREE.MeshBasicMaterial({ color: PALETTE.bot.eye, fog: false });
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Group();
+      eye.position.set(side * 0.72, 0.18, 0);
+      const socket = new THREE.Mesh(new THREE.CircleGeometry(0.5, 24), visor);
+      socket.scale.set(1, 1.15, 1);
+      const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), glow);
+      pupil.position.z = 0.05;
+      pupil.userData.homeX = 0;
+      pupil.userData.homeY = 0;
+      const shine = new THREE.Mesh(new THREE.CircleGeometry(0.07, 8), glow);
+      shine.position.set(-0.14, 0.2, 0.06);
+      eye.add(socket, pupil, shine);
+      face.add(eye);
+      this.pupils.push(pupil);
+      this.lids.push(eye);
+    }
   }
 
   private addTree(x: number, h: number, z: number): void {

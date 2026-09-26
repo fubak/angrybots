@@ -57,6 +57,8 @@ export class Renderer {
   private readonly slingView: SlingView;
   readonly juice: Juice;
   private readonly scenery: Scenery;
+  /** World point the sun/moon eyes follow: flying bot or pulled pouch, else the targets. */
+  private readonly focus = new THREE.Vector2(12, 2);
   private readonly blobShadows: BlobShadows;
   private readonly terrain = new THREE.Group();
   private readonly casters: ShadowCaster[] = [];
@@ -194,9 +196,18 @@ export class Renderer {
     const live = new Set<string>();
     this.casters.length = 0;
     const watch = this.watchTarget(level);
+    if (watch) this.focus.set(watch.x, watch.y);
+    let pigX = 0;
+    let pigY = 0;
+    let pigs = 0;
     if (level) {
       for (const e of level.registry.all()) {
         if (!e.alive || e.kind === 'ground' || e.kind === 'terrain') continue;
+        if (e.kind === 'pig' && e.body) {
+          pigX += e.body.getPosition().x;
+          pigY += e.body.getPosition().y;
+          pigs += 1;
+        }
         live.add(e.id);
         let mesh = this.entityMeshes.get(e.id);
         if (!mesh) {
@@ -296,6 +307,7 @@ export class Renderer {
         }
       }
     }
+    if (!watch && pigs > 0) this.focus.set(pigX / pigs, pigY / pigs);
     for (const [id, mesh] of this.entityMeshes) {
       if (!live.has(id)) {
         if (mesh.userData.kind === 'pig') {
@@ -420,6 +432,7 @@ export class Renderer {
       }
     }
     this.juice.update(frameDt);
+    this.scenery.lookAt(this.focus.x, this.focus.y, frameDt);
     this.scenery.update(frameDt);
     this.renderer.info.reset();
     this.renderer.render(this.scene, this.camera);

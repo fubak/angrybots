@@ -170,6 +170,7 @@ export class App {
     window.addEventListener('keydown', (ev) => {
       if (ev.key === 'Escape') this.screens.onEscape();
       if (ev.key === 'r' || ev.key === 'R') this.restartLevel();
+      if (ev.key === 'm' || ev.key === 'M') this.screens.toggleMute();
       if (ev.key === ' ' && this.session.getState() === 'flight' && !this.inputBlocked()) {
         ev.preventDefault();
         this.session.activateAbility();
@@ -302,6 +303,8 @@ export class App {
     this.screens.hud.setStarThresholds(def.stars);
     this.screens.hud.setStars(0);
     this.screens.hud.setTargetsLeft(def.pigs.length);
+    const num = allLevels().findIndex((l) => l.id === id) + 1;
+    this.screens.hud.banner(this.daily ? 'Daily' : `Level ${num}`, def.name);
     if (!this.seenTips.has(def.id)) {
       this.seenTips.add(def.id);
       this.screens.hud.showTip(def.hint ?? tipFor(def));

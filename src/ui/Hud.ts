@@ -12,12 +12,18 @@ export class Hud {
   private raf = 0;
   private tipTimer = 0;
   private tipEl: HTMLElement | null = null;
+  private readonly muteBtn: HTMLButtonElement;
+  private readonly bannerEl: HTMLElement;
+  private bannerTimer = 0;
 
-  constructor(parent: HTMLElement, onPause: () => void) {
+  constructor(parent: HTMLElement, onPause: () => void, onMute: () => void = () => {}) {
     this.root = document.createElement('div');
     this.root.className = 'hud-top';
     const pause = iconButton('pause', 'Pause');
     pause.addEventListener('click', onPause);
+    this.muteBtn = iconButton('sound', 'Mute');
+    this.muteBtn.setAttribute('aria-pressed', 'false');
+    this.muteBtn.addEventListener('click', onMute);
     this.root.innerHTML = `
       <div class="hud-starbar"><div class="fill"></div></div>
       <div class="hud-cluster hud-right">
@@ -26,7 +32,12 @@ export class Hud {
         <div class="hud-targets">${iconSvg('target', 18)}<span>0</span></div>
       </div>`;
     this.root.prepend(pause);
+    this.root.prepend(this.muteBtn);
     parent.appendChild(this.root);
+    this.bannerEl = document.createElement('div');
+    this.bannerEl.className = 'hud-banner';
+    this.bannerEl.setAttribute('aria-live', 'polite');
+    parent.appendChild(this.bannerEl);
     this.scoreEl = this.root.querySelector('.hud-score')!;
     this.bestEl = this.root.querySelector('.hud-best')!;
     this.targetsEl = this.root.querySelector('.hud-targets span')!;
@@ -103,6 +114,30 @@ export class Hud {
     }, 4000);
   }
 
+  setMuted(muted: boolean): void {
+    this.muteBtn.setAttribute('aria-pressed', String(muted));
+    this.muteBtn.setAttribute('aria-label', muted ? 'Unmute' : 'Mute');
+    this.muteBtn.title = muted ? 'Unmute (M)' : 'Mute (M)';
+    this.muteBtn.innerHTML = iconSvg(muted ? 'mute' : 'sound');
+  }
+
+  /** Level title card that slides in on load and fades on its own. */
+  banner(kicker: string, title: string): void {
+    window.clearTimeout(this.bannerTimer);
+    this.bannerEl.replaceChildren();
+    const k = document.createElement('span');
+    k.className = 'hud-banner-kicker';
+    k.textContent = kicker;
+    const t = document.createElement('span');
+    t.className = 'hud-banner-title';
+    t.textContent = title;
+    this.bannerEl.append(k, t);
+    this.bannerEl.classList.remove('show');
+    void this.bannerEl.offsetWidth;
+    this.bannerEl.classList.add('show');
+    this.bannerTimer = window.setTimeout(() => this.bannerEl.classList.remove('show'), 2200);
+  }
+
   clearTip(): void {
     window.clearTimeout(this.tipTimer);
     this.tipEl?.remove();
@@ -111,6 +146,7 @@ export class Hud {
 
   hide(): void {
     this.root.style.display = 'none';
+    this.bannerEl.classList.remove('show');
     this.clearTip();
   }
 
