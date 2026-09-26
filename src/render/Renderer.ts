@@ -74,9 +74,12 @@ export class Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     this.domElement = canvas;
+    // Automation (Playwright/CI) renders on SwiftShader — cut MSAA and the
+    // pixel ratio there so frames stay interactive instead of ~1 fps.
+    const automated = typeof navigator !== 'undefined' && navigator.webdriver;
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: !automated,
       powerPreference: 'high-performance',
     });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -171,7 +174,8 @@ export class Renderer {
 
   setSize(w: number, h: number): void {
     this.renderer.setSize(w, h, false);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    const cap = typeof navigator !== 'undefined' && navigator.webdriver ? 0.6 : 1.5;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, cap));
     this.aspect = w / h;
   }
 
