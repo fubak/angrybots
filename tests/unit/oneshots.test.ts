@@ -72,6 +72,5 @@ describe('one-shot samples', () => {
       for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]!));
       expect(peak).toBeLessThan(0.98);
     }
-    expect(energy(renderOneShot('musicGreen', 8000))).toBeGreaterThan(0.002);
   });
 });

@@ -1,4 +1,12 @@
 import { oneShotIdForEvent, renderOneShot, type OneShotId } from './oneshots';
+import {
+  generateSting,
+  generateTrack,
+  renderMusicBuffer,
+  type MusicSequence,
+  type MusicTrackId,
+  type StingId,
+} from './music';
 
 function panFor(id: OneShotId): number {
   if (id === 'wood') return -0.22;
@@ -24,7 +32,11 @@ export class SoundBank {
   private creak: AudioBufferSourceNode | null = null;
   private creakGain: GainNode | null = null;
   private musicSrc: AudioBufferSourceNode | null = null;
-  private chapter = 'training';
+  private trackId: MusicTrackId = 'title';
+  private musicToken = 0;
+  private readonly trackSeqs = new Map<string, MusicSequence>();
+  private readonly trackBufs = new Map<string, AudioBuffer>();
+  private readonly trackPending = new Map<string, Promise<AudioBuffer | null>>();
   private lastImpactAt = new Map<string, number>();
   private readonly buffers = new Map<string, AudioBuffer>();
   muted = false;
@@ -42,8 +54,30 @@ export class SoundBank {
   }
 
   setChapter(chapter: string): void {
-    this.chapter = chapter;
+    this.setTrack(chapter === 'workshop' || chapter === 'citadel' ? chapter : 'training');
+  }
+
+  setTrack(id: MusicTrackId): void {
+    if (this.trackId === id && this.musicSrc) return;
+    this.trackId = id;
     if (this.unlocked) this.startMusic();
+  }
+
+  /** Results-screen sting (2–4 s, rendered lazily) with the music ducked under it. */
+  playSting(id: StingId): void {
+    this.lastPlayed.push(`sting:${id}`);
+    if (this.muted || !this.unlocked) return;
+    void this.trackBuffer(id).then((buf) => {
+      if (!buf || !this.ctx || !this.sfx) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      const g = this.ctx.createGain();
+      g.gain.value = 0.5;
+      src.connect(g);
+      g.connect(this.sfx);
+      src.start();
+    });
+    this.duckMusic(3.5);
   }
 
   play(id: string): void {
@@ -194,15 +228,18 @@ export class SoundBank {
     if (bus === 'sfx' && gain >= 0.55) this.duckMusic();
   }
 
-  private duckMusic(): void {
+  private duckMusic(holdSec = 0): void {
     const ctx = this.ctx;
     if (!ctx || !this.music) return;
     const now = ctx.currentTime;
     const base = this.musicGain * 0.18;
+    const dip = holdSec > 0 ? base * 0.08 : base * 0.35;
+    const back = holdSec > 0 ? now + holdSec : now + 0.55;
     this.music.gain.cancelScheduledValues(now);
     this.music.gain.setValueAtTime(Math.max(0.02, this.music.gain.value), now);
-    this.music.gain.linearRampToValueAtTime(base * 0.35, now + 0.04);
-    this.music.gain.linearRampToValueAtTime(base, now + 0.55);
+    this.music.gain.linearRampToValueAtTime(dip, now + 0.04);
+    this.music.gain.setValueAtTime(dip, Math.max(now + 0.04, back - 0.5));
+    this.music.gain.linearRampToValueAtTime(base, back);
   }
 
   private cached(id: OneShotId, variant: number): AudioBuffer | null {
@@ -249,9 +286,34 @@ export class SoundBank {
     this.creakGain = null;
   }
 
+  /** Lazy offline render of a track/sting, cached and deduped while in flight. */
+  private trackBuffer(id: MusicTrackId | StingId): Promise<AudioBuffer | null> {
+    const cached = this.trackBufs.get(id);
+    if (cached) return Promise.resolve(cached);
+    let p = this.trackPending.get(id);
+    if (!p) {
+      let seq = this.trackSeqs.get(id);
+      if (!seq) {
+        seq =
+          id === 'victory' || id === 'defeat'
+            ? generateSting(id)
+            : generateTrack(id as MusicTrackId);
+        this.trackSeqs.set(id, seq);
+      }
+      p = renderMusicBuffer(seq, 44100).then((buf) => {
+        this.trackPending.delete(id);
+        if (buf) this.trackBufs.set(id, buf);
+        return buf;
+      });
+      this.trackPending.set(id, p);
+    }
+    return p;
+  }
+
   private startMusic(): void {
     const ctx = this.ctx;
     if (!ctx || !this.music) return;
+    const token = ++this.musicToken;
     if (this.musicSrc) {
       try {
         this.musicSrc.stop();
@@ -261,14 +323,15 @@ export class SoundBank {
       this.musicSrc.disconnect();
       this.musicSrc = null;
     }
-    const id = this.chapter === 'workshop' ? 'musicDust' : this.chapter === 'citadel' ? 'musicNight' : 'musicGreen';
-    const buf = this.cached(id, 0);
-    if (!buf) return;
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-    src.connect(this.music);
-    src.start();
-    this.musicSrc = src;
+    const id = this.trackId;
+    void this.trackBuffer(id).then((buf) => {
+      if (!buf || token !== this.musicToken || !this.ctx || !this.music) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      src.connect(this.music);
+      src.start();
+      this.musicSrc = src;
+    });
   }
 }

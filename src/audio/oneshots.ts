@@ -11,10 +11,7 @@ export type OneShotId =
   | 'ability'
   | 'ui'
   | 'yell'
-  | 'creak'
-  | 'musicGreen'
-  | 'musicDust'
-  | 'musicNight';
+  | 'creak';
 
 function hash(i: number): number {
   const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
@@ -31,7 +28,6 @@ function duration(id: OneShotId): number {
   if (id === 'launch') return 0.26;
   if (id === 'pig' || id === 'yell') return 0.24;
   if (id === 'creak') return 0.5;
-  if (id.startsWith('music')) return 2.4;
   if (id === 'defeat') return 0.4;
   return 0.2;
 }
@@ -130,23 +126,6 @@ export function renderOneShot(id: OneShotId, sampleRate = 22050, variant = 0): F
       const loop = Math.abs(Math.sin(Math.PI * (t / dur) * 2));
       const rub = 95 + 55 * loop;
       s = air * 0.7 * loop + tone(t, rub) * 0.2 * loop;
-    } else {
-      const pad =
-        id === 'musicNight' ? [174, 220] : id === 'musicDust' ? [196, 247] : [220, 330];
-      const scale =
-        id === 'musicNight'
-          ? [220, 262, 196, 247, 174, 220]
-          : id === 'musicDust'
-            ? [247, 294, 220, 330, 196, 247]
-            : [330, 392, 262, 440, 294, 392];
-      const edge = Math.min(1, t / 0.05, (dur - t) / 0.05);
-      s = (tone(t, pad[0]!) * 0.045 + tone(t, pad[1]!) * 0.03) * edge;
-      const notes = scale.length;
-      for (let k = 0; k < notes; k++) {
-        const start = (k / notes) * dur;
-        if (t < start) continue;
-        s += pluck(t - start, scale[k]!, 0.12) * 0.16 * edge;
-      }
     }
     data[i] = soft(s);
   }

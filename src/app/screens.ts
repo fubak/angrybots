@@ -212,6 +212,7 @@ export class AppScreens {
   goTitle(): void {
     this.deps.leavePlay();
     this.deps.setPhase('title');
+    this.deps.audio.setTrack('title');
     this.levelSelect.hide();
     this.results.hide();
     this.hud.hide();
@@ -222,6 +223,7 @@ export class AppScreens {
   goLevelSelect(): void {
     this.deps.leavePlay();
     this.deps.setPhase('levelSelect');
+    this.deps.audio.setTrack('title');
     this.title.hide();
     this.results.hide();
     const refs = this.deps.levelRefs();

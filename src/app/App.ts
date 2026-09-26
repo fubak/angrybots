@@ -337,7 +337,7 @@ export class App {
     };
     this.runUnlocks = rec.unlockIds;
     this.resultDelay = 1.15;
-    this.audio.play(rec.won ? 'victory' : 'defeat');
+    this.audio.playSting(rec.won ? 'victory' : 'defeat');
     if (rec.won && rec.bonus > 0) {
       const at = this.fx.impactCenter ?? { x: 0, y: 2 };
       this.renderer.juice.textSprite(at.x, at.y + 1.2, `+${rec.bonus.toLocaleString()}`, PALETTE.score.bonus, 1.3);
