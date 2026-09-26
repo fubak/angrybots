@@ -3,6 +3,7 @@ import { TUNING } from '../config/tuning';
 import { Level } from './Level';
 import { starsForScore } from './Scoring';
 import type { GameStateId } from './states';
+import { SLING_HOP_SECONDS } from '../sling/launch';
 import { StateMachine } from '../core/StateMachine';
 import { SESSION_TRANSITIONS } from './sessionTransitions';
 import { activate, type AbilityContext } from '../bots/abilities';
@@ -10,6 +11,8 @@ import type { BotEntity } from '../entities/types';
 import { spawnBotAt } from '../entities/Bot';
 export type { GameStateId };
 
+/** Level-intro beat length — structure close-up hold + pan to the sling. */
+export const INTRO_SECONDS = 2.8;
 const INTRO_SKIP_MS = 0;
 const RESOLVE_MAX_S = 10;
 const SHOT_SLOW_HOLD = 0.5;
@@ -73,7 +76,7 @@ export class GameSession {
     this.flightTime = 0;
     this.shotSlowTime = 0;
     this.primaryShotBotId = null;
-    this.introTimer = skipIntro ? 0 : 2.2;
+    this.introTimer = skipIntro ? 0 : INTRO_SECONDS;
     this.fsm = makeSessionFsm(skipIntro ? 'aim' : 'intro');
   }
 
@@ -222,7 +225,7 @@ export class GameSession {
     }
     if (botsLeft > 0) {
       this.transition('nextBot');
-      this.hopTimer = 0.75;
+      this.hopTimer = SLING_HOP_SECONDS;
       return;
     }
     this.transition('lost');

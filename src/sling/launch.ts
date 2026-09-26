@@ -9,6 +9,13 @@ export const SLING = {
   maxLaunchDeg: 90,
 } as const;
 
+/**
+ * Duration of the queue→pouch hop (presentation + nextBot pacing only — no
+ * physics or recorded-solution behavior depends on it). Shared by GameSession's
+ * nextBot hopTimer and SlingView's hop animation so they stay in sync.
+ */
+export const SLING_HOP_SECONDS = 0.7;
+
 export type Pull = { x: number; y: number };
 
 const DEG = Math.PI / 180;
