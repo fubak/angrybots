@@ -11,12 +11,34 @@ import { ILL } from './illustrations';
 import { bandWobble, hopArc, slingHopPose, HOP_CROUCH } from './slingAnim';
 import type { ShadowCaster } from './BlobShadows';
 
-const FORK = 1.08;
-// Tips sit just above the loaded bot's center so it nests inside the Y
-// opening; the crotch stays below the biggest bot (heavy r=0.72) so wood
-// never crosses its face. A trunk runs from the joint down into the ground.
-const TIP_Y = SLING.anchor.y + 0.35;
-const FORK_JOINT_Y = SLING.anchor.y - TUNING.bots.heavy.r - 0.28;
+// Fork geometry is chosen so the loaded bot (centered on SLING.anchor) sits
+// fully inside the Y: the perpendicular distance from the anchor to each
+// arm's centerline must exceed r_max + arm half-width + a visual margin
+// (see tests/unit/sling-geometry.test.ts). Tips rise just above the bot's
+// center; the joint drops well below the biggest bot (heavy r=0.72) so wood
+// never crosses the bot, and a trunk runs from the joint into the ground.
+export const SLING_FORK = 1.8;
+export const SLING_TIP_Y = SLING.anchor.y + 0.35;
+export const SLING_JOINT_Y = SLING.anchor.y - 1.85;
+export const SLING_ARM_W = 0.46; // face width 0.36 + outline
+const TIP_EXTEND = 0.12; // wood continues a hair past the band anchor
+
+/** Perpendicular distance from the anchor to one arm's centerline segment. */
+export function slingArmClearance(side: -1 | 1 = 1): number {
+  const jx = SLING.anchor.x;
+  const jy = SLING_JOINT_Y;
+  const tx = SLING.anchor.x + side * SLING_FORK;
+  const ty = SLING_TIP_Y + TIP_EXTEND;
+  const dx = tx - jx;
+  const dy = ty - jy;
+  const len2 = dx * dx + dy * dy;
+  const t = Math.max(
+    0,
+    Math.min(1, ((SLING.anchor.x - jx) * dx + (SLING.anchor.y - jy) * dy) / len2)
+  );
+  return Math.hypot(jx + t * dx - SLING.anchor.x, jy + t * dy - SLING.anchor.y);
+}
+
 const REST_SAG = 0.3;
 const BONUS_POP_EVERY = 0.5;
 
@@ -204,16 +226,15 @@ export class SlingView {
 
   /** Y-shaped wooden fork: trunk + two angled arms to the band tips. */
   private buildFork(): void {
-    const trunkH = FORK_JOINT_Y + 0.4;
-    this.plankPiece(0.5, trunkH, SLING.anchor.x, FORK_JOINT_Y - trunkH / 2 + 0.02, -0.6, 0);
+    const trunkH = SLING_JOINT_Y + 0.4;
+    this.plankPiece(0.5, trunkH, SLING.anchor.x, SLING_JOINT_Y - trunkH / 2 + 0.02, -0.6, 0);
     for (const side of [-1, 1]) {
-      const tipX = SLING.anchor.x + side * FORK;
-      const dx = tipX - SLING.anchor.x;
-      const dy = TIP_Y + 0.12 - FORK_JOINT_Y;
+      const dx = side * SLING_FORK;
+      const dy = SLING_TIP_Y + TIP_EXTEND - SLING_JOINT_Y;
       const len = Math.hypot(dx, dy);
       const angle = Math.atan2(dy, dx) - Math.PI / 2;
       const z = side < 0 ? -0.58 : 0.52;
-      this.plankPiece(0.36, len, SLING.anchor.x + dx / 2, FORK_JOINT_Y + dy / 2, z, angle);
+      this.plankPiece(0.36, len, SLING.anchor.x + dx / 2, SLING_JOINT_Y + dy / 2, z, angle);
     }
   }
 
@@ -242,8 +263,8 @@ export class SlingView {
   }
 
   private setBandsTo(cupX: number, cupY: number, sag: number, z: { back: number; front: number }): void {
-    const tipL = { x: SLING.anchor.x - FORK, y: TIP_Y };
-    const tipR = { x: SLING.anchor.x + FORK, y: TIP_Y };
+    const tipL = { x: SLING.anchor.x - SLING_FORK, y: SLING_TIP_Y };
+    const tipR = { x: SLING.anchor.x + SLING_FORK, y: SLING_TIP_Y };
     const mid = (t: { x: number; y: number }) => ({
       x: (t.x + cupX) / 2,
       y: (t.y + cupY) / 2 - sag,
@@ -353,7 +374,7 @@ export class SlingView {
     // Slot x positions with the hopper still in line (old) and removed (new),
     // so each waiting bot can hop forward to its new spot instead of snapping.
     const spots = (list: readonly BotKind[]): number[] => {
-      let qx = SLING.anchor.x - FORK - 1.5;
+      let qx = SLING.anchor.x - SLING_FORK - 1.5;
       const out: number[] = [];
       for (const qk of list) {
         qx -= TUNING.bots[qk].r;

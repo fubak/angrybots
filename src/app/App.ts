@@ -229,6 +229,10 @@ export class App {
       }),
       loop: this.loop,
       fixtures,
+      enterLevel: (id) => {
+        this.startLevel(id);
+        this.session.skipIntro();
+      },
     });
     if (window.__debug.freezeTime) {
       const setFreeze = window.__debug.freezeTime;
@@ -305,9 +309,11 @@ export class App {
     this.session.loadLevel(def, rm);
     this.renderer.setChapter(def.chapter);
     this.renderer.setTerrain(def.terrain);
-    // Pin the parallax reference to the deterministic intro start view instead
-    // of the next rendered frame — that frame can race the camera snap.
-    this.renderer.anchorParallax(rm ? this.camera.slingView(def) : this.camera.structureView(def));
+    // Pin the parallax reference to the sling view — the framing the scenery
+    // was laid out for (moon/sun, hills, trees sit where designed). The intro
+    // pan then drifts layers naturally, and the deterministic value keeps the
+    // first rendered frame from racing the camera snap.
+    this.renderer.anchorParallax(this.camera.slingView(def));
     this.audio.setChapter(def.chapter);
     const sim = this.session.getSim();
     if (sim) sim.fragmentsEnabled = true;

@@ -49,6 +49,9 @@ export function createDebugApi(opts: {
   getSling: () => { phase: string; pullX: number; pullY: number };
   loop: FixedStepLoop;
   fixtures?: boolean;
+  /** Full App-level level entry (screens, chapter, parallax, sling reset) so
+   * fixture captures render the real in-game state, not a bare session. */
+  enterLevel: (id: string) => void;
 }): DebugApi {
   const snap = (): DebugSnapshot => {
     const sim = opts.session.getSim();
@@ -92,8 +95,7 @@ export function createDebugApi(opts: {
 
   if (opts.fixtures) {
     api.loadLevel = (id: string) => {
-      const def = levelById(id);
-      if (def) opts.session.loadLevel(def, true);
+      if (levelById(id)) opts.enterLevel(id);
     };
     api.launch = (angleDeg: number, speed: number) => opts.session.launch(angleDeg, speed);
     api.advance = (steps: number) => opts.loop.advance(steps);

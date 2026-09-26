@@ -363,21 +363,34 @@ export class Scenery {
     for (const lid of this.lids) lid.scale.y = Math.max(0.05, 1 - closed);
   }
 
+  /** One flat capsule shape per eye — a single mesh, so nothing can smear. */
+  private static eyeCapsule(w: number, h: number): THREE.ShapeGeometry {
+    const r = w / 2;
+    const half = h / 2 - r;
+    const shape = new THREE.Shape();
+    shape.absarc(0, half, r, 0, Math.PI, false); // top cap
+    shape.lineTo(-r, -half);
+    shape.absarc(0, -half, r, Math.PI, Math.PI * 2, false); // bottom cap
+    shape.closePath();
+    return new THREE.ShapeGeometry(shape, 16);
+  }
+
   private addEyes(): void {
     const face = this.face;
-    face.position.z = 0.15;
+    // Above the light shafts (they sit at z=5) so a translucent ray band can
+    // never wash across the eyes and read as a ghosted second pill.
+    face.position.z = 5.5;
     this.celestial.add(face);
     // Dark rounded pills on the pale disc — same style as the sticker bots
     // (e.g. the white cloud), with a slight inward tilt.
     const pill = new THREE.MeshBasicMaterial({ color: '#1d2433', fog: false });
-    const geo = new THREE.CapsuleGeometry(SUN_EYE_W / 2, SUN_EYE_H - SUN_EYE_W, 4, 12);
+    const geo = Scenery.eyeCapsule(SUN_EYE_W, SUN_EYE_H);
     for (const side of [-1, 1]) {
-      const eye = new THREE.Group();
+      const eye = new THREE.Mesh(geo, pill);
       eye.position.set(side * SUN_EYE_X, SUN_EYE_Y, 0);
       eye.rotation.z = side * SUN_EYE_TILT;
       eye.userData.homeX = side * SUN_EYE_X;
       eye.userData.homeY = SUN_EYE_Y;
-      eye.add(new THREE.Mesh(geo, pill));
       face.add(eye);
       this.pupils.push(eye);
       this.lids.push(eye);
