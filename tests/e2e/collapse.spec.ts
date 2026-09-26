@@ -80,12 +80,19 @@ test('collapse stays on the fort and the tip fits', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'LEVEL CLEARED!' })).toBeVisible();
   await page.screenshot({ path: 'docs/evidence/collapse-victory.png' });
 
-  const durations = await page.evaluate(
-    () => (window as unknown as { __shotDurations: number[] }).__shotDurations
-  );
-  expect(durations).toContain(0.26);
-  expect(durations).toContain(0.24);
-  expect(durations).toContain(0.62);
+  // The star chime (the 0.62s 'victory' one-shot) fires ~1s into the results
+  // animation; poll for the buffer list instead of racing that wall-clock timer.
+  await expect
+    .poll(
+      async () => {
+        const durations = await page.evaluate(
+          () => (window as unknown as { __shotDurations: number[] }).__shotDurations
+        );
+        return [0.26, 0.24, 0.62].every((v) => durations.includes(v));
+      },
+      { timeout: 10_000 }
+    )
+    .toBe(true);
 
   // The rebuilt campaign's TNT level has no single-shot pointer plateau, so the
   // TNT leg drives the deterministic debug launch with the recorded robust shot.
