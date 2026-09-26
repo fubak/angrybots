@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>bot motion sheet</title></head>
+  <body style="margin:0">
+    <script type="module">
+      import { STICKER_BY_ID } from '/src/render/botArt.generated.ts';
+      import {
+        paintBodyLayer,
+        yawEyeTransforms,
+      } from '/src/render/botArt.ts';
+
+      // ?id=11&yaws=-1,-0.6,-0.3,0,0.3,0.6,1&bg=%2322304a
+      const q = new URLSearchParams(location.search);
+      const id = q.get('id') ?? '11';
+      const yaws = (q.get('yaws') ?? '0').split(',').map(Number);
+      const bg = q.get('bg') ?? '#22304a';
+      const R = Number(q.get('size') ?? 200); // cell width px
+      const art = STICKER_BY_ID[id];
+
+      const h = Math.round((R * art.vbH) / art.vbW);
+      const sheet = document.createElement('canvas');
+      sheet.width = R * yaws.length;
+      sheet.height = h;
+      const ctx = sheet.getContext('2d');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, sheet.width, sheet.height);
+
+      const k = R / art.vbW;
+      yaws.forEach((yaw, i) => {
+        ctx.save();
+        ctx.translate(i * R, 0);
+        ctx.scale(k, k);
+        paintBodyLayer(ctx, art);
+        // Eyes: clip to the body silhouette so they slide off the edge.
+        ctx.save();
+        ctx.clip(new Path2D(art.body));
+        const poses = yawEyeTransforms(art, yaw);
+        ctx.fillStyle = '#ffffff';
+        art.eyes.forEach((e, ei) => {
+          const p = poses[ei];
+          if (!p || !p.visible) return;
+          const cx = e.box[0] + e.box[2] / 2;
+          const cy = e.box[1] + e.box[3] / 2;
+          ctx.save();
+          ctx.translate(cx + p.dx, cy);
+          ctx.scale(Math.max(0.02, p.sx), 1);
+          ctx.translate(-cx, -cy);
+          ctx.fill(new Path2D(e.d));
+          ctx.restore();
+        });
+        ctx.restore();
+        ctx.restore();
+      });
+      document.body.appendChild(sheet);
+      window.__result = { w: sheet.width, h: sheet.height };
+    </script>
+  </body>
+</html>
