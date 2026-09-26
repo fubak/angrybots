@@ -38,6 +38,10 @@
 | `f16b946` | 5 | `src/analytics/` typed events + pluggable sink (noop default, DEV console), wired at App/screens seams |
 | `d620420` | 5 | Daily challenge: FNV-1a date picker (`src/game/daily.ts`), save v4 + migration, streak/best (last 30 dates), title Daily button, results daily best+streak, no campaign side effects |
 | `1f9ef99` | 5 | Issues: I-05 invalid-fixture matrix (9 fixtures incl. camera-margin S5, iterated in validate-static.test), I-03 `verify:full` script, I-02 visual baselines (title + level 1 idle, desktop, 3× stable) |
+| `0cde173` | merge | `origin/main` merged into `feature/launch-readiness`; conflicts resolved to our side; main's rolling-target physics + lower-field camera anchoring dropped (camera/Level/types/bodies/SaveStore byte-identical to pre-merge; `src/levels/` 0-line diff incl. solutions/ratings books) |
+| `6624eb4` | merge | Additive visuals ported from main: sun/moon disc with action-tracking eyes + rays, light shafts, level-name banner, bot impact squash, HUD mute (uses existing `settings.muted`, save stays v4), `border-box` portrait panels. Skipped: queue idle (equivalent bounce exists), SaveV2, campaign re-solve |
+| `8719810` | merge | CI: e2e split into per-project matrix jobs (desktop / phone-landscape), `workers: CI?1:2`, `reducedMotion: 'reduce'`, retry 1 on CI, job timeouts; visual baselines skipped under CI (ISSUE-02 tag) — main CI had failed 37/38 on SwiftShader "element is not stable" timeouts |
+| `976eb52` | merge | Evidence screenshots for ported visuals in `docs/evidence/merge/` |
 
 ## Next steps (in order)
 
