@@ -38,3 +38,10 @@ jobs:
       - run: npm run test:e2e -- --project=${{ matrix.project }}
         env:
           CI: '1'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-${{ matrix.project }}-artifacts
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
