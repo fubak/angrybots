@@ -5,7 +5,7 @@ test.describe('visual baselines', () => {
   test.use({ reducedMotion: 'reduce' });
 
   test('title screen', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'desktop only'); // ISSUE-02
+    test.skip(testInfo.project.name !== 'desktop' || !!process.env.CI, 'desktop, local baselines only'); // ISSUE-02
     await page.goto('/');
     await assertAngryBots(page);
     await page.getByRole('button', { name: 'Play' }).waitFor();
@@ -16,7 +16,7 @@ test.describe('visual baselines', () => {
   });
 
   test('level 1 idle', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'desktop only'); // ISSUE-02
+    test.skip(testInfo.project.name !== 'desktop' || !!process.env.CI, 'desktop, local baselines only'); // ISSUE-02
     await page.goto('/?unlockAll=1');
     await assertAngryBots(page);
     await page.getByRole('button', { name: 'Play' }).click();
