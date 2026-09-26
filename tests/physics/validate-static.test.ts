@@ -67,12 +67,33 @@ describe('camera bounds rule', () => {
 });
 
 describe('validateStatic invalid fixtures', () => {
-  it('has invalid fixtures when directory exists', () => {
-    try {
-      const files = readdirSync(invalidDir);
-      expect(files.length).toBeGreaterThan(0);
-    } catch {
-      expect(true).toBe(true);
-    }
+  /** filename → expected rule id prefix per docs/specs/03-levels.md LVL-02 */
+  const EXPECTED: Record<string, string> = {
+    's1-overlap-planks.json': 'S1:',
+    's1-wheel-overlap-post.json': 'S1:',
+    's1-triangle-overlap-cube.json': 'S1:',
+    's2-pig-in-block.json': 'S2:',
+    's3-floating-cube.json': 'S3:',
+    's4-floating-pig.json': 'S4:',
+    's5-sling-too-close.json': 'S5:',
+    's5-camera-margin.json': 'S5:',
+    's6-duplicate-id.json': 'S6:',
+  };
+
+  it('covers every fixture on disk', () => {
+    const files = readdirSync(invalidDir).filter((f) => f.endsWith('.json')).sort();
+    expect(files).toEqual(Object.keys(EXPECTED).sort());
   });
+
+  for (const [file, rule] of Object.entries(EXPECTED)) {
+    it(`${file} fails with ${rule}`, () => {
+      const raw = JSON.parse(readFileSync(join(invalidDir, file), 'utf8'));
+      const errs = validateStatic(raw);
+      expect(errs.length).toBeGreaterThan(0);
+      expect(
+        errs.some((e) => e.startsWith(rule)),
+        `${file} expected a ${rule} error, got: ${errs.join(' | ')}`
+      ).toBe(true);
+    });
+  }
 });
