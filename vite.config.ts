@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import pkg from './package.json' with { type: 'json' };
@@ -85,18 +85,18 @@ function swPlugin(): Plugin {
       const files = [...Object.keys(bundle), 'index.html', ...publicFiles('public')].filter(
         (f) => !f.endsWith('.map')
       );
-      const version = createHash('sha256')
-        .update(
-          files
-            .sort()
-            .map((f) => {
-              const out = bundle[f];
-              return f + (out?.type === 'chunk' ? out.code : '');
-            })
-            .join()
-        )
-        .digest('hex')
-        .slice(0, 12);
+      const hash = createHash('sha256');
+      for (const f of files.sort()) {
+        hash.update(f);
+        const out = bundle[f];
+        if (out?.type === 'chunk') hash.update(out.code);
+        else if (out?.type === 'asset') hash.update(out.source);
+        else {
+          const pub = join('public', f);
+          if (existsSync(pub)) hash.update(readFileSync(pub));
+        }
+      }
+      const version = hash.digest('hex').slice(0, 12);
       this.emitFile({
         type: 'asset',
         fileName: 'sw.js',
