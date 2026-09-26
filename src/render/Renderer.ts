@@ -11,7 +11,7 @@ import { disposeObject } from './dispose';
 import { popScale } from './slingAnim';
 import { blockMaterial, decorateBlock, makeBotCharacter, makePigCharacter, tickFace } from './characters';
 import { ILL } from './illustrations';
-import { crackTexture } from './textures';
+import { TEX, damagedBlockTexture, type DamageableMaterial, type DamageStage } from './textures';
 import type { View } from '../camera/fitRect';
 import type { SlingModel } from '../sling/SlingModel';
 import type { ShotTrail } from '../sling/ShotTrail';
@@ -23,6 +23,30 @@ export type RendererInfo = {
   geometries: number;
   textures: number;
 };
+
+const DAMAGE_INTACT: Record<DamageableMaterial, THREE.Texture> = {
+  wood: ILL.plank,
+  stone: ILL.stone,
+  glass: ILL.glass,
+};
+
+let bodyMat: THREE.MeshBasicMaterial | null = null;
+let capMat: THREE.MeshBasicMaterial | null = null;
+function terrainBodyMat(): THREE.MeshBasicMaterial {
+  if (!bodyMat) bodyMat = new THREE.MeshBasicMaterial({ map: TEX.terrainBody });
+  return bodyMat;
+}
+function terrainCapMat(): THREE.MeshBasicMaterial {
+  if (!capMat) capMat = new THREE.MeshBasicMaterial({ map: TEX.terrainCap });
+  return capMat;
+}
+
+/** Scales a BoxGeometry's 0–1 UVs so the terrain texture tiles at world density. */
+function scaleUV(geo: THREE.BoxGeometry, su: number, sv: number): void {
+  const uv = geo.getAttribute('uv') as THREE.BufferAttribute;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv);
+  uv.needsUpdate = true;
+}
 
 export class Renderer {
   readonly domElement: HTMLCanvasElement;
@@ -87,8 +111,12 @@ export class Renderer {
         shape.closePath();
         const mesh = new THREE.Mesh(
           new THREE.ShapeGeometry(shape),
-          new THREE.MeshBasicMaterial({ color: '#8d5a32' })
+          terrainBodyMat()
         );
+        // ShapeGeometry UVs are world coordinates — scale to terrain texel density.
+        const uv = mesh.geometry.getAttribute('uv') as THREE.BufferAttribute;
+        for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 2.5, uv.getY(i) / 2.5);
+        uv.needsUpdate = true;
         mesh.position.z = DEPTH.ground + 0.02;
         this.terrain.add(mesh);
         continue;
@@ -97,15 +125,13 @@ export class Renderer {
       const thick = t.kind === 'ledge' ? t.thickness : top;
       const y0 = t.kind === 'ledge' ? top - t.thickness : 0;
       const w = t.x1 - t.x0;
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(w, thick, 6),
-        new THREE.MeshBasicMaterial({ color: '#8d5a32' })
-      );
+      const bodyGeo = new THREE.BoxGeometry(w, thick, 6);
+      scaleUV(bodyGeo, w / 2.5, thick / 2.5);
+      const body = new THREE.Mesh(bodyGeo, terrainBodyMat());
       body.position.set((t.x0 + t.x1) / 2, y0 + thick / 2, DEPTH.ground);
-      const cap = new THREE.Mesh(
-        new THREE.BoxGeometry(w, 0.16, 6),
-        new THREE.MeshBasicMaterial({ color: '#5aaa34' })
-      );
+      const capGeo = new THREE.BoxGeometry(w, 0.16, 6);
+      scaleUV(capGeo, w / 2, 0.16);
+      const cap = new THREE.Mesh(capGeo, terrainCapMat());
       cap.position.set((t.x0 + t.x1) / 2, top - 0.08, DEPTH.ground + 0.03);
       this.terrain.add(body, cap);
     }
@@ -261,7 +287,7 @@ export class Renderer {
             });
           }
         }
-        if (e.kind === 'block') this.tintDamage(mesh, e.hp / e.maxHp);
+        if (e.kind === 'block') this.tintDamage(mesh, e.hp / e.maxHp, e.material);
         if (e.kind === 'pig') this.tintPig(mesh, e.hp / e.maxHp);
         if (e.kind === 'pig') {
           tickFace(mesh, this.clock, { hurt: mesh.userData.hurt === true, smug: this.aiming });
@@ -302,6 +328,7 @@ export class Renderer {
         map.needsUpdate = true;
         (mesh.material as THREE.MeshBasicMaterial).map = map;
         mesh.userData.ownedMap = map;
+        mesh.userData.rotated = true;
       }
       mesh.renderOrder = 10;
       return mesh;
@@ -348,43 +375,33 @@ export class Renderer {
     obj.userData.hurt = ratio < 0.55;
   }
 
-  private tintDamage(obj: THREE.Object3D, ratio: number): void {
-    const cracked = ratio < 0.55;
+  /** Damage states: intact > 66% hp, cracked ≤ 66%, broken ≤ 33% — shared textures. */
+  private tintDamage(obj: THREE.Object3D, ratio: number, material: string): void {
+    const stage: DamageStage = ratio <= 0.33 ? 2 : ratio <= 0.66 ? 1 : 0;
+    if (obj.userData.dmgStage === stage) return;
+    obj.userData.dmgStage = stage;
+    const damageable =
+      material === 'wood' || material === 'stone' || material === 'glass'
+        ? (material as DamageableMaterial)
+        : null;
     obj.traverse((child) => {
       const mesh = child as THREE.Mesh;
       const mat = mesh.material;
-      if (mat instanceof THREE.MeshBasicMaterial && mesh.userData.role === 'block-face') {
-        mat.color.set(cracked ? '#d0d0d0' : '#ffffff');
+      if (!(mat instanceof THREE.MeshBasicMaterial) || mesh.userData.role !== 'block-face') return;
+      mat.color.set(stage === 2 ? '#d8d8d8' : '#ffffff');
+      if (!damageable) return;
+      const rotated = obj.userData.rotated === true;
+      let map: THREE.Texture | null;
+      if (stage === 0) {
+        map = rotated ? (obj.userData.ownedMap as THREE.Texture) : DAMAGE_INTACT[damageable];
+      } else {
+        map = damagedBlockTexture(damageable, stage, rotated);
+      }
+      if (mat.map !== map) {
+        mat.map = map;
+        mat.needsUpdate = true;
       }
     });
-    let crack = obj.getObjectByName('crack') as THREE.Mesh | undefined;
-    if (ratio < 0.72) {
-      if (!crack) {
-        crack = new THREE.Mesh(
-          new THREE.PlaneGeometry(1, 1),
-          new THREE.MeshBasicMaterial({
-            map: crackTexture(),
-            transparent: true,
-            depthWrite: false,
-            opacity: 0.85,
-          })
-        );
-        crack.name = 'crack';
-        crack.position.z = 0.55;
-        obj.add(crack);
-      }
-      crack.visible = true;
-      const block = obj as THREE.Mesh;
-      const geo = block.geometry;
-      if (geo instanceof THREE.BoxGeometry) {
-        const params = geo.parameters;
-        crack.scale.set(params.width * 0.92, params.height * 0.92, 1);
-        crack.position.z = params.depth / 2 + 0.02;
-      }
-      (crack.material as THREE.MeshBasicMaterial).opacity = ratio < 0.4 ? 1 : 0.65;
-    } else if (crack) {
-      crack.visible = false;
-    }
   }
 
   render(_alpha: number, frameDt: number): void {

@@ -36,6 +36,7 @@ export type DebugApi = {
   setSeed?: (n: number) => void;
   freezeTime?: (on: boolean) => void;
   popup?: (x: number, y: number, text: string, color?: string, scale?: number) => void;
+  damage?: (id: string, amount: number) => boolean;
 };
 
 export function createDebugApi(opts: {
@@ -100,6 +101,15 @@ export function createDebugApi(opts: {
     };
     api.popup = (x, y, text, color = '#ffe066', scale = 1) => {
       opts.renderer.juice.textSprite(x, y, text, color, scale);
+    };
+    api.damage = (id, amount) => {
+      const e = opts.session
+        .getSim()
+        ?.registry.all()
+        .find((x) => x.id === id && 'hp' in x);
+      if (!e || !('hp' in e)) return false;
+      e.hp = Math.max(0.01, e.hp - amount);
+      return true;
     };
   }
 
