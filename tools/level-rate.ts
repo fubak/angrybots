@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadLevelFromJson } from '../src/levels/load';
 import { replayLevel } from '../src/game/Level';
+import { SCORE } from '../src/game/Scoring';
 import solutions from '../src/levels/solutions.json';
 
 // Deterministic rating: sweeps a fixed shot grid (angle 4..70 step 3,
@@ -16,12 +17,6 @@ const book = solutions as Record<
   string,
   { shots: { angleDeg: number; speed: number }[]; score: number }
 >;
-
-function percentile(sorted: number[], p: number): number {
-  if (!sorted.length) return 0;
-  const i = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
-  return sorted[i]!;
-}
 
 const round500 = (n: number) => Math.round(n / 500) * 500;
 const floor500 = (n: number) => Math.floor(n / 500) * 500;
@@ -67,16 +62,20 @@ for (const file of files) {
   // the recorded multi-shot solution is also a winning sequence
   const solScore = book[level.id]?.score;
   if (solScore) winTotals.push(solScore);
-
-  winTotals.sort((a, b) => a - b);
-  let star1 = Math.max(500, floor500(winTotals.length ? winTotals[0]! : 0));
-  let star2 = round500(percentile(winTotals, 50));
-  let star3 = round500(percentile(winTotals, 85));
-  const recorded = solScore ?? 0;
-  if (recorded && star3 > recorded) star3 = floor500(recorded);
-  if (!winTotals.length) star3 = Math.max(star3, 1000);
-  if (star2 >= star3) star2 = Math.max(500, star3 - 500);
-  if (star1 >= star2) star1 = Math.max(500, star2 - 500);
+  // Star ladder: 1★ = minimum win (all target values), 3★ = best known play.
+  // The bots-spared axis separates them: best known usually leaves a bot unused.
+  const targetValue = level.pigs.reduce(
+    (s, p) => s + (p.king ? SCORE.kingPig : SCORE.pig),
+    0
+  );
+  const best = winTotals.length ? Math.max(...winTotals) : 0;
+  let star1 = floor500(targetValue);
+  let star3 = floor500(best);
+  let star2 = round500(star1 + 0.55 * (star3 - star1));
+  if (star3 - star1 < 1000) {
+    star3 = star1 + 1000;
+    star2 = star1 + 500;
+  }
   const fracOver3Star = winTotals.length
     ? winTotals.filter((w) => w >= star3).length / winTotals.length
     : 0;

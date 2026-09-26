@@ -4,55 +4,55 @@
     "first-flight": {
       "order": 1,
       "chapter": "training",
-      "oneShotClear": 37.55,
-      "anyKill": 46.64,
-      "avgKills": 0.84,
-      "wins": 96,
+      "oneShotClear": 39.13,
+      "anyKill": 49.41,
+      "avgKills": 0.89,
+      "wins": 100,
       "stars": [
-        30000,
-        31500,
-        32000
+        10000,
+        22500,
+        33000
       ],
-      "fracOver3Star": 0.281
+      "fracOver3Star": 0.01
     },
     "powder-row": {
       "order": 2,
       "chapter": "training",
       "oneShotClear": 5.53,
-      "anyKill": 72.33,
-      "avgKills": 0.98,
+      "anyKill": 73.91,
+      "avgKills": 1,
       "wins": 15,
       "stars": [
-        36500,
-        38500,
-        39000
+        15000,
+        28500,
+        39500
       ],
-      "fracOver3Star": 0.2
+      "fracOver3Star": 0.067
     },
     "glass-house": {
       "order": 3,
       "chapter": "training",
       "oneShotClear": 9.88,
-      "anyKill": 31.23,
-      "avgKills": 0.87,
+      "anyKill": 32.41,
+      "avgKills": 0.89,
       "wins": 26,
       "stars": [
-        42500,
-        44500,
-        45000
+        20000,
+        34500,
+        46500
       ],
-      "fracOver3Star": 0.692
+      "fracOver3Star": 0.038
     },
     "stone-keep": {
       "order": 4,
       "chapter": "training",
       "oneShotClear": 0,
-      "anyKill": 35.97,
-      "avgKills": 0.49,
+      "anyKill": 39.92,
+      "avgKills": 0.53,
       "wins": 1,
       "stars": [
-        30000,
-        30500,
+        20000,
+        26000,
         31000
       ],
       "fracOver3Star": 1
@@ -60,41 +60,41 @@
     "hilltop": {
       "order": 5,
       "chapter": "training",
-      "oneShotClear": 3.16,
-      "anyKill": 17.79,
-      "avgKills": 0.32,
-      "wins": 9,
+      "oneShotClear": 3.56,
+      "anyKill": 18.58,
+      "avgKills": 0.34,
+      "wins": 10,
       "stars": [
-        36000,
-        37500,
+        15000,
+        27500,
         38000
       ],
-      "fracOver3Star": 0.111
+      "fracOver3Star": 0.1
     },
     "lone-guard": {
       "order": 6,
       "chapter": "training",
       "oneShotClear": 1.19,
-      "anyKill": 38.34,
-      "avgKills": 0.71,
+      "anyKill": 38.74,
+      "avgKills": 0.72,
       "wins": 4,
       "stars": [
-        36500,
-        37000,
-        37500
+        20000,
+        34500,
+        46500
       ],
-      "fracOver3Star": 1
+      "fracOver3Star": 0.25
     },
     "twin-posts": {
       "order": 7,
       "chapter": "training",
       "oneShotClear": 0,
-      "anyKill": 20.95,
-      "avgKills": 0.34,
+      "anyKill": 23.72,
+      "avgKills": 0.38,
       "wins": 1,
       "stars": [
-        31000,
-        31500,
+        20000,
+        26500,
         32000
       ],
       "fracOver3Star": 1
@@ -103,26 +103,26 @@
       "order": 8,
       "chapter": "training",
       "oneShotClear": 4.35,
-      "anyKill": 27.67,
-      "avgKills": 0.65,
+      "anyKill": 28.85,
+      "avgKills": 0.66,
       "wins": 12,
       "stars": [
-        45500,
-        46000,
-        46500
+        25000,
+        37500,
+        47500
       ],
-      "fracOver3Star": 1
+      "fracOver3Star": 0.083
     },
     "tnt-porch": {
       "order": 9,
       "chapter": "training",
       "oneShotClear": 2.77,
-      "anyKill": 52.17,
-      "avgKills": 0.77,
+      "anyKill": 54.15,
+      "avgKills": 0.79,
       "wins": 8,
       "stars": [
-        45500,
-        47000,
+        20000,
+        35000,
         47500
       ],
       "fracOver3Star": 0.5
@@ -135,8 +135,8 @@
       "avgKills": 0.04,
       "wins": 1,
       "stars": [
-        18500,
-        19000,
+        15000,
+        17500,
         19500
       ],
       "fracOver3Star": 1
@@ -149,22 +149,22 @@
       "avgKills": 0.96,
       "wins": 19,
       "stars": [
-        44000,
-        45500,
-        46000
+        20000,
+        35000,
+        47500
       ],
-      "fracOver3Star": 0.632
+      "fracOver3Star": 0.105
     },
     "wheel-yard": {
       "order": 2,
       "chapter": "workshop",
       "oneShotClear": 0.4,
-      "anyKill": 47.04,
-      "avgKills": 1.09,
+      "anyKill": 47.83,
+      "avgKills": 1.11,
       "wins": 2,
       "stars": [
-        50500,
-        51000,
+        25000,
+        40000,
         52500
       ],
       "fracOver3Star": 0.5
@@ -173,12 +173,12 @@
       "order": 3,
       "chapter": "workshop",
       "oneShotClear": 0.4,
-      "anyKill": 20.16,
-      "avgKills": 0.42,
+      "anyKill": 20.95,
+      "avgKills": 0.44,
       "wins": 2,
       "stars": [
-        41000,
-        41500,
+        20000,
+        32000,
         42000
       ],
       "fracOver3Star": 0.5
@@ -187,12 +187,12 @@
       "order": 4,
       "chapter": "workshop",
       "oneShotClear": 0,
-      "anyKill": 52.57,
-      "avgKills": 0.81,
+      "anyKill": 53.36,
+      "avgKills": 0.82,
       "wins": 1,
       "stars": [
-        40500,
-        41000,
+        25000,
+        34000,
         41500
       ],
       "fracOver3Star": 1
@@ -200,13 +200,13 @@
     "powder-stack": {
       "order": 5,
       "chapter": "workshop",
-      "oneShotClear": 0.4,
-      "anyKill": 80.63,
-      "avgKills": 2.06,
-      "wins": 2,
+      "oneShotClear": 0,
+      "anyKill": 81.42,
+      "avgKills": 2.07,
+      "wins": 1,
       "stars": [
-        49000,
-        49500,
+        25000,
+        39000,
         50000
       ],
       "fracOver3Star": 1
@@ -215,12 +215,12 @@
       "order": 6,
       "chapter": "workshop",
       "oneShotClear": 0,
-      "anyKill": 22.13,
-      "avgKills": 0.27,
+      "anyKill": 22.92,
+      "avgKills": 0.28,
       "wins": 1,
       "stars": [
-        35000,
-        35500,
+        25000,
+        31000,
         36000
       ],
       "fracOver3Star": 1
@@ -229,12 +229,12 @@
       "order": 7,
       "chapter": "workshop",
       "oneShotClear": 0,
-      "anyKill": 39.53,
-      "avgKills": 0.64,
+      "anyKill": 40.32,
+      "avgKills": 0.65,
       "wins": 1,
       "stars": [
-        33500,
-        34000,
+        30000,
+        32500,
         34500
       ],
       "fracOver3Star": 1
@@ -243,15 +243,15 @@
       "order": 8,
       "chapter": "workshop",
       "oneShotClear": 1.58,
-      "anyKill": 37.15,
-      "avgKills": 0.77,
+      "anyKill": 36.76,
+      "avgKills": 0.76,
       "wins": 5,
       "stars": [
-        44500,
-        45000,
-        45500
+        25000,
+        42000,
+        55500
       ],
-      "fracOver3Star": 1
+      "fracOver3Star": 0.2
     },
     "cross-beam": {
       "order": 9,
@@ -261,8 +261,8 @@
       "avgKills": 0.67,
       "wins": 1,
       "stars": [
-        41000,
-        41500,
+        30000,
+        36500,
         42000
       ],
       "fracOver3Star": 1
@@ -275,8 +275,8 @@
       "avgKills": 1.08,
       "wins": 1,
       "stars": [
-        45500,
-        46000,
+        30000,
+        39000,
         46500
       ],
       "fracOver3Star": 1
@@ -289,8 +289,8 @@
       "avgKills": 0.52,
       "wins": 1,
       "stars": [
-        42000,
-        42500,
+        30000,
+        37000,
         43000
       ],
       "fracOver3Star": 1
@@ -299,12 +299,12 @@
       "order": 2,
       "chapter": "citadel",
       "oneShotClear": 0,
-      "anyKill": 41.11,
+      "anyKill": 41.5,
       "avgKills": 0.51,
       "wins": 1,
       "stars": [
+        25000,
         26500,
-        27000,
         27500
       ],
       "fracOver3Star": 1
@@ -317,8 +317,8 @@
       "avgKills": 0.6,
       "wins": 4,
       "stars": [
-        47500,
-        48500,
+        25000,
+        38000,
         49000
       ],
       "fracOver3Star": 0.75
@@ -327,12 +327,12 @@
       "order": 4,
       "chapter": "citadel",
       "oneShotClear": 0,
-      "anyKill": 84.58,
-      "avgKills": 1.62,
+      "anyKill": 85.38,
+      "avgKills": 1.63,
       "wins": 1,
       "stars": [
-        46000,
-        46500,
+        30000,
+        39500,
         47000
       ],
       "fracOver3Star": 1
@@ -341,12 +341,12 @@
       "order": 5,
       "chapter": "citadel",
       "oneShotClear": 0,
-      "anyKill": 51.78,
-      "avgKills": 0.95,
+      "anyKill": 52.57,
+      "avgKills": 0.97,
       "wins": 1,
       "stars": [
-        85000,
-        85500,
+        25000,
+        58500,
         86000
       ],
       "fracOver3Star": 1
@@ -359,8 +359,8 @@
       "avgKills": 0.39,
       "wins": 1,
       "stars": [
-        34000,
-        34500,
+        25000,
+        30500,
         35000
       ],
       "fracOver3Star": 1
@@ -373,8 +373,8 @@
       "avgKills": 0.72,
       "wins": 1,
       "stars": [
-        55500,
-        56000,
+        35000,
+        47000,
         56500
       ],
       "fracOver3Star": 1
@@ -387,11 +387,11 @@
       "avgKills": 0.89,
       "wins": 3,
       "stars": [
-        42500,
-        43000,
-        43500
+        30000,
+        47500,
+        62000
       ],
-      "fracOver3Star": 1
+      "fracOver3Star": 0.333
     },
     "four-roles": {
       "order": 9,
@@ -401,8 +401,8 @@
       "avgKills": 0.46,
       "wins": 1,
       "stars": [
-        50500,
-        51000,
+        30000,
+        42000,
         51500
       ],
       "fracOver3Star": 1
@@ -415,8 +415,8 @@
       "avgKills": 0.6,
       "wins": 1,
       "stars": [
-        49000,
-        49500,
+        35000,
+        43500,
         50000
       ],
       "fracOver3Star": 1
