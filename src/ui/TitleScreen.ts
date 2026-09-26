@@ -2,11 +2,13 @@ import { iconSvg, iconButton } from './icons';
 import {
   BOT_STICKER,
   MENU_STICKERS,
-  eyePadBox,
+  lookAroundYaw,
   stickerArt,
-  stickerEyesImage,
+  stickerEyeImage,
   stickerImage,
+  yawEyeTransforms,
 } from '../render/botArt';
+import type { StickerArt } from '../render/botArt.generated';
 
 export type TitleActions = {
   play: () => void;
@@ -16,34 +18,72 @@ export type TitleActions = {
   credits: () => void;
 };
 
-function lineupBot(id: string, front: boolean, i: number): HTMLElement {
+type LineupBot = {
+  el: HTMLElement;
+  body: HTMLImageElement;
+  eyes: HTMLImageElement[];
+  art: StickerArt;
+  i: number;
+};
+
+const EYE_PAD = 0.08; // matches stickerEyeImage's canvas padding
+
+function lineupBot(id: string, front: boolean, i: number): LineupBot {
   const art = stickerArt(id);
   const b = document.createElement('div');
   b.className = `lineup-bot${front ? ' front' : ''}`;
   b.style.setProperty('--i', String(i));
   const body = document.createElement('img');
+  body.className = 'body';
   body.src = stickerImage(id);
   body.alt = '';
-  const eyes = document.createElement('img');
-  eyes.className = 'eyes';
-  eyes.src = stickerEyesImage(id);
-  eyes.alt = '';
-  const pb = eyePadBox(art);
-  eyes.style.left = `${(pb[0] / art.vbW) * 100}%`;
-  eyes.style.top = `${(pb[1] / art.vbH) * 100}%`;
-  eyes.style.width = `${(pb[2] / art.vbW) * 100}%`;
-  b.append(body, eyes);
-  return b;
+  b.appendChild(body);
+  const eyes: HTMLImageElement[] = [];
+  art.eyes.forEach((e, ei) => {
+    const img = document.createElement('img');
+    img.className = 'eye';
+    img.src = stickerEyeImage(id, ei);
+    img.alt = '';
+    img.style.left = `${((e.box[0] + e.box[2] / 2) / art.vbW) * 100}%`;
+    img.style.top = `${((e.box[1] + e.box[3] / 2) / art.vbH) * 100}%`;
+    img.style.width = `${((e.box[2] * (1 + EYE_PAD * 2)) / art.vbW) * 100}%`;
+    b.appendChild(img);
+    eyes.push(img);
+  });
+  return { el: b, body, eyes, art, i };
+}
+
+function hash01(n: number): number {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/** Blink schedule shared shape with tickBot: ~3.4 s cycle, staggered per bot. */
+function lineupLid(t: number, i: number): number {
+  const c = (t / 3.4 + hash01(i * 3.1) * 0.8) % 1;
+  return c > 0.94 ? Math.max(0.12, Math.abs(Math.sin(((c - 0.94) / 0.06) * Math.PI * 0.5 + Math.PI / 2))) : 1;
+}
+
+/** Rare gag: a quick turn-away-and-back, ≤ once per ~22 s per bot. */
+function lineupGag(t: number, i: number): number | null {
+  const u = (t + i * 7.31 + hash01(i * 17.3) * 11) % 23;
+  if (u >= 1.2) return null;
+  const dir = i % 2 === 0 ? 1 : -1;
+  return dir * 1.08 * Math.sin((u / 1.2) * Math.PI);
 }
 
 export class TitleScreen {
   readonly el: HTMLElement;
   private readonly lineup: HTMLElement;
+  private readonly lineupBots: LineupBot[] = [];
   private readonly starsEl: HTMLElement;
   private readonly achvLabel: HTMLElement;
   private readonly dailyLabel: HTMLElement;
+  private readonly isReducedMotion: () => boolean;
+  private raf = 0;
 
-  constructor(parent: HTMLElement, actions: TitleActions) {
+  constructor(parent: HTMLElement, actions: TitleActions, isReducedMotion: () => boolean = () => false) {
+    this.isReducedMotion = isReducedMotion;
     this.el = document.createElement('div');
     this.el.className = 'ui-panel title-card';
     this.el.innerHTML = `
@@ -88,13 +128,46 @@ export class TitleScreen {
     this.lineup.setAttribute('aria-hidden', 'true');
     const back = document.createElement('div');
     back.className = 'lineup-row back';
-    MENU_STICKERS.forEach((id, i) => back.appendChild(lineupBot(id, false, i)));
+    MENU_STICKERS.forEach((id, i) => {
+      const b = lineupBot(id, false, i);
+      this.lineupBots.push(b);
+      back.appendChild(b.el);
+    });
     const front = document.createElement('div');
     front.className = 'lineup-row front';
-    Object.values(BOT_STICKER).forEach((id, i) => front.appendChild(lineupBot(id, true, i)));
+    Object.values(BOT_STICKER).forEach((id, i) => {
+      const b = lineupBot(id, true, i + MENU_STICKERS.length);
+      this.lineupBots.push(b);
+      front.appendChild(b.el);
+    });
     this.lineup.append(back, front);
     parent.appendChild(this.lineup);
   }
+
+  /** Deterministic per-bot yaw pose — look-around cycle + rare gag turn-away. */
+  private poseLineup(t: number, neutral = false): void {
+    for (const b of this.lineupBots) {
+      const gag = neutral ? null : lineupGag(t, b.i);
+      const yaw = neutral ? 0 : (gag ?? lookAroundYaw(t, hash01(b.i * 5.7) * 1.0));
+      const pitch = neutral ? 0 : Math.sin(t * 0.83 + b.i) * 0.25;
+      const lid = neutral ? 1 : lineupLid(t, b.i);
+      const poses = yawEyeTransforms(b.art, yaw);
+      // Subtle body lean + squash tied to the turn.
+      b.body.style.transform = `translateX(${yaw * 3}%) rotate(${-yaw * 4}deg)`;
+      b.eyes.forEach((img, ei) => {
+        const p = poses[ei]!;
+        const dxPct = (p.dx / (b.art.eyes[ei]!.box[2] * (1 + EYE_PAD * 2))) * 100;
+        const dyPct = (pitch * -b.art.eyeBox[3] * 0.15) / (b.art.eyes[ei]!.box[3] * (1 + EYE_PAD * 2)) * 100;
+        img.style.opacity = p.visible ? '1' : '0';
+        img.style.transform = `translate(-50%,-50%) translate(${dxPct}%, ${dyPct}%) scale(${Math.max(0.02, p.sx)}, ${lid})`;
+      });
+    }
+  }
+
+  private readonly poseFrame = (ms: number): void => {
+    this.poseLineup(ms / 1000);
+    this.raf = requestAnimationFrame(this.poseFrame);
+  };
 
   setDaily(levelName: string): void {
     this.dailyLabel.textContent = `Daily · ${levelName}`;
@@ -108,10 +181,19 @@ export class TitleScreen {
   hide(): void {
     this.el.style.display = 'none';
     this.lineup.style.display = 'none';
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
   }
 
   show(): void {
     this.el.style.display = 'flex';
     this.lineup.style.display = 'flex';
+    cancelAnimationFrame(this.raf);
+    if (this.isReducedMotion()) {
+      this.poseLineup(0, true); // static neutral pose
+      this.raf = 0;
+    } else {
+      this.raf = requestAnimationFrame(this.poseFrame);
+    }
   }
 }

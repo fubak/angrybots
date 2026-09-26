@@ -64,6 +64,7 @@ export class Renderer {
   private readonly casters: ShadowCaster[] = [];
   private readonly dying: { mesh: THREE.Object3D; t: number }[] = [];
   private aiming = false;
+  private lostActive = false;
   reducedMotion = false;
   private aspect = 16 / 9;
   private fpsSamples: number[] = [];
@@ -145,9 +146,10 @@ export class Renderer {
     queue: readonly BotKind[],
     aiming: boolean,
     trail: ShotTrail,
-    fx?: { hopT: number | null; bonusT: number | null }
+    fx?: { hopT: number | null; bonusT: number | null; lostT?: number | null }
   ): void {
     this.aiming = aiming;
+    this.lostActive = fx?.lostT != null;
     this.slingView.sync(model, queue, aiming, trail, fx);
   }
 
@@ -327,7 +329,12 @@ export class Renderer {
           tickBot(mesh, this.clock, {
             lead: mesh.userData.flying === true,
             hurtT: mesh.userData.hurtT as number | undefined,
-            dizzy: mesh.userData.landed === true && mesh.userData.flying !== true,
+            dizzy:
+              mesh.userData.landed === true &&
+              mesh.userData.flying !== true &&
+              !this.lostActive,
+            // Level lost: the survivors on the field turn away and hold.
+            turnAway: this.lostActive && mesh.userData.landed === true,
             popT: popAt === undefined ? null : this.clock - popAt,
             reducedMotion: this.reducedMotion,
           });

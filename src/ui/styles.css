@@ -474,16 +474,17 @@ body,
   animation: lineup-bob 2.6s ease-in-out calc(var(--i) * 0.17s) infinite;
 }
 
-.lineup-bot > img:first-child {
+.lineup-bot > img.body {
   height: 100%;
   display: block;
+  transform-origin: 50% 90%;
 }
 
-.lineup-bot > img.eyes {
+.lineup-bot > img.eye {
   position: absolute;
   height: auto;
+  transform: translate(-50%, -50%);
   transform-origin: 50% 50%;
-  animation: lineup-blink 3.4s linear calc(var(--i) * 0.61s) infinite;
 }
 
 .lineup-row.back .lineup-bot {
@@ -497,17 +498,6 @@ body,
   }
   50% {
     transform: translateY(-5px);
-  }
-}
-
-@keyframes lineup-blink {
-  0%,
-  93%,
-  100% {
-    transform: scaleY(1);
-  }
-  96% {
-    transform: scaleY(0.12);
   }
 }
 

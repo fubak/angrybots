@@ -7,6 +7,7 @@ import { CHAPTERS } from '../levels/chapters';
 import { currentLevelId, PROGRESSION } from '../game/progression';
 import { pigFaces } from '../render/illustrations';
 import { botStickerImage } from '../render/botArt';
+import { effectiveReducedMotion } from './motion';
 import { iconSvg } from '../ui/icons';
 import { Hud } from '../ui/Hud';
 import { PauseMenu } from '../ui/PauseMenu';
@@ -92,13 +93,17 @@ export class AppScreens {
       onSettings: (key, value) => this.applySetting(key, value),
     });
     this.results = new ResultsPanel(uiRoot, (a) => this.onResultsAction(a));
-    this.title = new TitleScreen(uiRoot, {
-      play: () => this.goLevelSelect(),
-      daily: () => deps.startDaily(),
-      settings: () => this.openSettings(),
-      achievements: () => this.openAchievements(),
-      credits: () => this.openCredits(),
-    });
+    this.title = new TitleScreen(
+      uiRoot,
+      {
+        play: () => this.goLevelSelect(),
+        daily: () => deps.startDaily(),
+        settings: () => this.openSettings(),
+        achievements: () => this.openAchievements(),
+        credits: () => this.openCredits(),
+      },
+      () => effectiveReducedMotion(deps.save.settings.reducedMotion)
+    );
     this.title.setDaily(deps.dailyLevelName());
     this.levelSelect = new LevelSelect(
       uiRoot,

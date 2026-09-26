@@ -64,6 +64,7 @@ export class App {
   } | null = null;
   private nextBotT: number | null = null;
   private bonusT: number | null = null;
+  private lostT: number | null = null;
   private levelStartT = 0;
   private bonusFired = 0;
   private runUnlocks: string[] = [];
@@ -415,6 +416,11 @@ export class App {
       this.bonusT = null;
       this.bonusFired = 0;
     }
+    if (state === 'lost') {
+      this.lostT = (prev === 'lost' ? (this.lostT ?? 0) : 0) + dt;
+    } else {
+      this.lostT = null;
+    }
 
     this.recordResultOnce();
     if (this.pendingResult) {
@@ -523,6 +529,7 @@ export class App {
       {
         hopT: state === 'nextBot' ? this.nextBotT : null,
         bonusT: state === 'bonus' ? this.bonusT : null,
+        lostT: state === 'lost' ? this.lostT : null,
       }
     );
     if (state === 'bonus' && this.bonusT !== null) {

@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 import type { BotKind } from '../levels/schema';
 import { ILL, pigFaces, pigPupilTexture, type FaceSet } from './illustrations';
-import { botStickerArt, eyePadBox, stickerBodyTexture, stickerEyesTexture } from './botArt';
+import {
+  botStickerArt,
+  lookAroundYaw,
+  stickerBodyTexture,
+  stickerEyeTexture,
+  yawEyeTransforms,
+} from './botArt';
 
 export type PigLook = {
   helmet: 'none' | 'hat' | 'helmet';
@@ -52,11 +58,12 @@ export function tickFace(root: THREE.Object3D, time: number, mood: FaceMood = {}
 const TALL_STICKERS = new Set(['08', '11']); // dash triangle, split drop
 
 /**
- * Official sticker art as two planes: the composite body (backing + colored
- * silhouette + baked shines) and a separate white-eyes layer so the eyes can
- * look, blink, squint and go dizzy. Outer group carries physics-driven
- * transforms (position, rotation, impact squash); 'bot-inner' carries
- * animation transforms (breathing, aim stretch, ability pop).
+ * Official sticker art as layered planes: the composite body (backing +
+ * colored silhouette + baked shines) plus one plane per eye so the eyes can
+ * look, blink, squint, go dizzy and slide/foreshorten with head yaw. Outer
+ * group carries physics-driven transforms (position, rotation, impact
+ * squash); 'bot-inner' carries animation transforms (breathing, aim stretch,
+ * ability pop, yaw lean).
  */
 export function makeBotCharacter(kind: BotKind, r: number): THREE.Group {
   const art = botStickerArt(kind);
@@ -83,25 +90,42 @@ export function makeBotCharacter(kind: BotKind, r: number): THREE.Group {
   body.renderOrder = 12;
   inner.add(body);
 
-  const pb = eyePadBox(art);
-  const eyes = new THREE.Mesh(
-    new THREE.PlaneGeometry(pb[2] * k, pb[3] * k),
-    new THREE.MeshBasicMaterial({
-      map: stickerEyesTexture(art.id),
-      transparent: true,
-      depthWrite: false,
-    })
-  );
-  eyes.name = 'eyes';
-  eyes.renderOrder = 13;
-  const ex = (pb[0] + pb[2] / 2 - art.vbW / 2) * k;
-  const ey = (art.vbH / 2 - (pb[1] + pb[3] / 2)) * k;
-  eyes.position.set(ex, ey, 0.03);
-  inner.add(eyes);
+  // One plane per eye so yaw can foreshorten/slide each eye independently.
+  const eyeGroup = new THREE.Group();
+  eyeGroup.name = 'eyes';
+  const ecx0 = art.eyeBox[0] + art.eyeBox[2] / 2;
+  const ecy0 = art.eyeBox[1] + art.eyeBox[3] / 2;
+  const eyeMeshes: THREE.Mesh[] = [];
+  art.eyes.forEach((e, i) => {
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(e.box[2] * 1.16 * k, e.box[3] * 1.16 * k),
+      new THREE.MeshBasicMaterial({
+        map: stickerEyeTexture(art.id, i),
+        transparent: true,
+        depthWrite: false,
+      })
+    );
+    m.name = `eye-${i}`;
+    m.renderOrder = 13;
+    m.position.set(
+      (e.box[0] + e.box[2] / 2 - art.vbW / 2) * k,
+      (art.vbH / 2 - (e.box[1] + e.box[3] / 2)) * k,
+      0.03
+    );
+    m.userData.bx = m.position.x;
+    m.userData.by = m.position.y;
+    eyeGroup.add(m);
+    eyeMeshes.push(m);
+  });
+  inner.add(eyeGroup);
 
-  g.userData.eyeCX = ex;
-  g.userData.eyeCY = ey;
+  g.userData.art = art;
+  g.userData.eyeMeshes = eyeMeshes;
+  g.userData.eyeK = k; // viewBox → world scale
+  g.userData.eyeCX = (ecx0 - art.vbW / 2) * k;
+  g.userData.eyeCY = (art.vbH / 2 - ecy0) * k;
   g.userData.lookRange = r * 0.12;
+  g.userData.leanRange = r * 0.08;
   return g;
 }
 
@@ -111,7 +135,7 @@ function hash01(n: number): number {
 }
 
 export type BotAnim = {
-  /** Queue/idle: breathing squash + occasional glance toward the structure. */
+  /** Queue/idle: breathing squash + look-around yaw cycle. */
   queue?: boolean;
   /** Normalized eye-look offset in the bot group's local space. */
   lookX?: number;
@@ -128,20 +152,48 @@ export type BotAnim = {
   happy?: boolean;
   /** Seconds since ability fired — pop pulse + wide eyes. */
   popT?: number | null;
+  /** Explicit head yaw −1..1 (±90°); overrides the idle look-around. */
+  yaw?: number;
+  /** Vertical glance −1..1, in lookRange units. */
+  pitch?: number;
+  /** Turned away (level lost): yaw eases to ±1.1 and holds — back of head. */
+  turnAway?: boolean;
   reducedMotion?: boolean;
 };
 
 const BLINK_SECONDS = 0.24;
 const HURT_SECONDS = 0.5;
 const POP_SECONDS = 0.18;
+const TURN_SECONDS = 0.7;
 
 /** Per-frame bot expression driver. All timing derives from `time` + node id. */
 export function tickBot(node: THREE.Object3D, time: number, a: BotAnim = {}): void {
   const inner = node.getObjectByName('bot-inner');
-  const eyes = node.getObjectByName('eyes') as THREE.Mesh | undefined;
+  const eyes = node.userData.eyeMeshes as THREE.Mesh[] | undefined;
   if (!inner) return;
   const ud = node.userData;
   const phase = hash01(node.id);
+  const hurt = a.hurtT != null && a.hurtT < HURT_SECONDS;
+
+  // Head yaw: explicit override > turn-away > idle look-around.
+  let yaw = a.yaw ?? 0;
+  if (a.turnAway) {
+    if (ud.turnStart === undefined) {
+      ud.turnStart = time;
+      ud.turnDir = hash01(node.id * 7.7) < 0.5 ? -1 : 1;
+    }
+    const k = Math.min(1, (time - (ud.turnStart as number)) / TURN_SECONDS);
+    yaw = (ud.turnDir as number) * 1.08 * (1 - Math.pow(1 - k, 3));
+  } else {
+    ud.turnStart = undefined;
+    if (a.queue && !hurt && !a.dizzy && !a.happy && !a.reducedMotion) {
+      yaw = lookAroundYaw(time, phase);
+    }
+  }
+  let pitch = a.pitch ?? 0;
+  if (a.queue && !a.reducedMotion) {
+    pitch += Math.sin(time * 0.83 + phase * 5) * 0.3;
+  }
 
   let sx = 1;
   let sy = 1;
@@ -155,6 +207,25 @@ export function tickBot(node: THREE.Object3D, time: number, a: BotAnim = {}): vo
     const p = 1 + 0.25 * (1 - a.popT / POP_SECONDS);
     sx *= p;
     sy *= p;
+  }
+  // Lean + squash tied to yaw velocity (the sticker tips toward the turn).
+  const prevYaw = ud.prevYaw as number | undefined;
+  const prevYawT = ud.prevYawT as number | undefined;
+  const yawVel =
+    prevYaw !== undefined && prevYawT !== undefined && time > prevYawT
+      ? (yaw - prevYaw) / (time - prevYawT)
+      : 0;
+  ud.prevYaw = yaw;
+  ud.prevYawT = time;
+  if (!a.reducedMotion) {
+    inner.rotation.z = -yaw * 0.07;
+    inner.position.x = yaw * ((ud.leanRange as number | undefined) ?? 0.04);
+    const sq = Math.min(0.03, Math.abs(yawVel) * 0.02);
+    sy *= 1 - sq;
+    sx *= 1 + sq * 0.6;
+  } else {
+    inner.rotation.z = 0;
+    inner.position.x = 0;
   }
   inner.scale.set(sx, sy, 1);
 
@@ -177,22 +248,13 @@ export function tickBot(node: THREE.Object3D, time: number, a: BotAnim = {}): vo
   }
 
   let ex = 0;
-  let ey = 0;
+  let ey = pitch * range * 0.4;
   let lidX = 1;
-  const hurt = a.hurtT != null && a.hurtT < HURT_SECONDS;
   if (a.dizzy && !hurt) {
     ex = Math.cos(time * 4 + node.id) * range * 0.55;
-    ey = Math.sin(time * 4 + node.id) * range * 0.55;
+    ey += Math.sin(time * 4 + node.id) * range * 0.55;
   }
   if (a.lead && !a.dizzy) ey += range * 0.75;
-  if (a.queue && !a.dizzy && !hurt) {
-    // occasional glance toward the structure (+x local = world for queued bots)
-    const cyc = (time * 0.28 + phase * 3.1) % 1;
-    if (cyc < 0.32) {
-      ex += range * 0.8;
-      ey += range * 0.15;
-    }
-  }
   ex += (a.lookX ?? 0) * range;
   ey += (a.lookY ?? 0) * range;
 
@@ -205,16 +267,24 @@ export function tickBot(node: THREE.Object3D, time: number, a: BotAnim = {}): vo
     lidX = 1 + 0.12 * k;
   } else if (a.happy) {
     lid = Math.min(lid, 0.55);
-  } else if (a.aimTension !== undefined) {
+  } else if (a.aimTension !== undefined && a.aimTension > 0) {
     lid *= 1 - 0.35 * Math.max(0, Math.min(1, (a.aimTension - 0.55) / 0.45));
   }
 
-  eyes.position.set(
-    (ud.eyeCX as number) + ex,
-    (ud.eyeCY as number) + ey,
-    0.03
-  );
-  eyes.scale.set(lidX, Math.max(0.08, lid), 1);
+  const poses = yaw === 0 ? null : yawEyeTransforms(ud.art, yaw);
+  const k2w = (ud.eyeK as number | undefined) ?? 1;
+  for (let i = 0; i < eyes.length; i++) {
+    const m = eyes[i]!;
+    const pose = poses?.[i];
+    const sxYaw = pose ? Math.max(0.02, pose.sx) : 1;
+    m.visible = !pose || pose.visible;
+    m.position.set(
+      (m.userData.bx as number) + ex + (pose ? pose.dx * k2w : 0),
+      (m.userData.by as number) + ey,
+      0.03
+    );
+    m.scale.set(Math.max(0.02, lidX * sxYaw), Math.max(0.08, lid), 1);
+  }
 }
 
 export function makePigCharacter(r: number, look: PigLook): THREE.Group {

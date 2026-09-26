@@ -23,6 +23,8 @@ export type SlingFx = {
   hopT: number | null;
   /** seconds since bonus began; queue bots hop in sequence */
   bonusT: number | null;
+  /** seconds since the level was lost; queue bots turn away and hold */
+  lostT?: number | null;
 };
 
 let puffTex: THREE.Texture | null = null;
@@ -71,8 +73,10 @@ export class SlingView {
   private aimTension = 0;
   private readonly aimLook = { x: 0, y: -1 };
   private wasDragging = false;
+  private dragging = false;
   private releaseAt: number | null = null;
   private bonusActive = false;
+  private lostActive = false;
   readonly shadowCasters: ShadowCaster[] = [];
 
   constructor(scene: THREE.Scene) {
@@ -237,8 +241,10 @@ export class SlingView {
     this.group.visible = true;
     this.shadowCasters.length = 0;
     this.bonusActive = fx.bonusT !== null;
+    this.lostActive = fx.lostT != null;
     if (this.wasDragging && model.phase !== 'dragging') this.releaseAt = this.now;
-    this.wasDragging = model.phase === 'dragging';
+    this.dragging = model.phase === 'dragging';
+    this.wasDragging = this.dragging;
     if (this.releaseAt !== null && this.now - this.releaseAt > 0.45) this.releaseAt = null;
     const wob = this.releaseAt === null ? 0 : bandWobble(this.now - this.releaseAt);
 
@@ -425,15 +431,24 @@ export class SlingView {
   animate(time: number, reducedMotion = false): void {
     this.now = time;
     if (this.loadedBot) {
+      // Not yet grabbed: the loaded bot does the idle look-around; while
+      // dragging, the aim look + tension take over (yaw returns to 0).
       tickBot(this.loadedBot, time, {
-        lookX: this.aimLook.x,
-        lookY: this.aimLook.y,
-        aimTension: this.aimTension,
+        queue: !this.dragging,
+        lookX: this.dragging ? this.aimLook.x : 0,
+        lookY: this.dragging ? this.aimLook.y : 0,
+        aimTension: this.dragging ? this.aimTension : 0,
+        turnAway: this.lostActive,
         reducedMotion,
       });
     }
     for (const q of this.queue) {
-      tickBot(q, time, { queue: true, happy: this.bonusActive, reducedMotion });
+      tickBot(q, time, {
+        queue: true,
+        happy: this.bonusActive,
+        turnAway: this.lostActive,
+        reducedMotion,
+      });
     }
   }
 
