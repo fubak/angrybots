@@ -30,6 +30,11 @@
         ctx.save();
         ctx.translate(i * R, 0);
         ctx.scale(k, k);
+        // Body lean, pivoting near the bottom like tickBot's inner.rotation.z.
+        const leanYaw = Math.max(-0.42, Math.min(0.42, yaw));
+        ctx.translate(art.vbW / 2, art.vbH * 0.9);
+        ctx.rotate(-leanYaw * 0.5);
+        ctx.translate(-art.vbW / 2, -art.vbH * 0.9);
         paintBodyLayer(ctx, art);
         // Eyes: clip to the body silhouette so they slide off the edge.
         ctx.save();
@@ -43,6 +48,7 @@
           const cy = e.box[1] + e.box[3] / 2;
           ctx.save();
           ctx.translate(cx + p.dx, cy);
+          ctx.rotate(-yaw * 0.22);
           ctx.scale(Math.max(0.02, p.sx), 1);
           ctx.translate(-cx, -cy);
           ctx.fill(new Path2D(e.d));

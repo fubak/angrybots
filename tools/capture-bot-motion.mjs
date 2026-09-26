@@ -39,7 +39,7 @@ async function sheet(id, yaws, bg, file) {
 const N = 121; // reference loop length
 // look-around: reference yaw ≈ sin(2πf/N) over the loop — sample the same poses
 const lookF = [0, 10, 22, 30, 40, 60, 82, 90, 100, 112];
-const lookYaw = lookF.map((f) => +(Math.sin(((f % N) / N) * Math.PI * 2) * 0.55).toFixed(2));
+const lookYaw = lookF.map((f) => +(Math.sin(((f % N) / N) * Math.PI * 2) * 0.35).toFixed(2));
 
 // turn-away: eyes slide off over ~18 frames (~0.7 s) then hold the back view
 const turnF = [0, 4, 8, 12, 16, 20];

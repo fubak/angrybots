@@ -152,14 +152,17 @@ export class TitleScreen {
       const pitch = neutral ? 0 : Math.sin(t * 0.83 + b.i) * 0.25;
       const lid = neutral ? 1 : lineupLid(t, b.i);
       const poses = yawEyeTransforms(b.art, yaw);
-      // Subtle body lean + squash tied to the turn.
-      b.body.style.transform = `translateX(${yaw * 3}%) rotate(${-yaw * 4}deg)`;
+      // Silhouette follows the look: ~10° lean (capped) + slight bob, like the
+      // reference strips — matches tickBot's in-game body motion.
+      const leanYaw = Math.max(-0.42, Math.min(0.42, yaw));
+      const bob = Math.sin(t * 1.31 + b.i * 1.7) * 1.2;
+      b.body.style.transform = `translateX(${yaw * 3}%) translateY(${bob}%) rotate(${-leanYaw * 28.6}deg)`;
       b.eyes.forEach((img, ei) => {
         const p = poses[ei]!;
         const dxPct = (p.dx / (b.art.eyes[ei]!.box[2] * (1 + EYE_PAD * 2))) * 100;
         const dyPct = (pitch * -b.art.eyeBox[3] * 0.15) / (b.art.eyes[ei]!.box[3] * (1 + EYE_PAD * 2)) * 100;
         img.style.opacity = p.visible ? '1' : '0';
-        img.style.transform = `translate(-50%,-50%) translate(${dxPct}%, ${dyPct}%) scale(${Math.max(0.02, p.sx)}, ${lid})`;
+        img.style.transform = `translate(-50%,-50%) translate(${dxPct}%, ${dyPct}%) scale(${Math.max(0.02, p.sx)}, ${lid}) rotate(${-yaw * 12.6}deg)`;
       });
     }
   }

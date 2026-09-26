@@ -218,14 +218,19 @@ export function tickBot(node: THREE.Object3D, time: number, a: BotAnim = {}): vo
   ud.prevYaw = yaw;
   ud.prevYawT = time;
   if (!a.reducedMotion) {
-    inner.rotation.z = -yaw * 0.07;
+    // Silhouette follows the look: ~10° lean at the look-around extreme,
+    // capped so turn-away stays at a ~12° tilt. Plus a gentle idle bob.
+    const leanYaw = Math.max(-0.42, Math.min(0.42, yaw));
+    inner.rotation.z = -leanYaw * 0.5;
     inner.position.x = yaw * ((ud.leanRange as number | undefined) ?? 0.04);
+    inner.position.y = Math.sin(time * 1.31 + phase * 7) * ((ud.leanRange as number | undefined) ?? 0.04) * 0.35;
     const sq = Math.min(0.03, Math.abs(yawVel) * 0.02);
     sy *= 1 - sq;
     sx *= 1 + sq * 0.6;
   } else {
     inner.rotation.z = 0;
     inner.position.x = 0;
+    inner.position.y = 0;
   }
   inner.scale.set(sx, sy, 1);
 
@@ -284,6 +289,8 @@ export function tickBot(node: THREE.Object3D, time: number, a: BotAnim = {}): vo
       0.03
     );
     m.scale.set(Math.max(0.02, lidX * sxYaw), Math.max(0.08, lid), 1);
+    // Slight eye tilt following the head turn (dropped under reduced motion).
+    m.rotation.z = a.reducedMotion ? 0 : -yaw * 0.22;
   }
 }
 

@@ -244,8 +244,9 @@ export function yawEyeTransforms(art: StickerArt, yaw: number): EyePose[] {
 }
 
 /** ~4.8 s eased look-around cycle — sin already dwells near the extremes.
- *  Amplitude ~0.55 keeps eyes visible the whole cycle, like the reference. */
-export function lookAroundYaw(t: number, phase: number, amplitude = 0.55): number {
+ *  Amplitude ~0.35 keeps both eyes fully visible the whole cycle, like the
+ *  reference (eyes slide ~15% of body width, far eye narrows only slightly). */
+export function lookAroundYaw(t: number, phase: number, amplitude = 0.35): number {
   return Math.sin(((t / 4.8 + phase) % 1) * Math.PI * 2) * amplitude;
 }
 
