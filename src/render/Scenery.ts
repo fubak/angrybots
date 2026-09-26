@@ -12,6 +12,7 @@ type ChapterLook = {
   sun: string;
   shaft: string;
   skyTint: string;
+  cloud: string;
 };
 
 const LOOK: Record<string, ChapterLook> = {
@@ -24,6 +25,7 @@ const LOOK: Record<string, ChapterLook> = {
     sun: '#fff4c2',
     shaft: '#ffe6a8',
     skyTint: '#4ea6e8',
+    cloud: '#ffffff',
   },
   workshop: {
     sky: '#e7a15a',
@@ -34,6 +36,7 @@ const LOOK: Record<string, ChapterLook> = {
     sun: '#ffb14a',
     shaft: '#ffc36a',
     skyTint: '#e7a15a',
+    cloud: '#ffe9cd',
   },
   citadel: {
     sky: '#1a2748',
@@ -44,6 +47,7 @@ const LOOK: Record<string, ChapterLook> = {
     sun: '#dce6ff',
     shaft: '#9bb0ff',
     skyTint: '#24365f',
+    cloud: '#4e5d8d',
   },
 };
 
@@ -74,6 +78,7 @@ export class Scenery {
   private readonly workshopProps: THREE.Object3D[] = [];
   private readonly citadelProps: THREE.Object3D[] = [];
   private readonly clouds: THREE.Mesh[] = [];
+  private readonly cloudMats: THREE.MeshBasicMaterial[] = [];
   private readonly dirtMat: THREE.MeshBasicMaterial;
   private readonly grassMat: THREE.MeshBasicMaterial;
   private readonly fringeMat: THREE.MeshBasicMaterial;
@@ -241,6 +246,7 @@ export class Scenery {
     this.shaftMat.color.set(look.shaft);
     this.shaftMat.opacity = chapter === 'citadel' ? 0.03 : 0.08;
     this.fringeMat.color.set(chapter === 'citadel' ? '#8fb89a' : '#ffffff');
+    for (const mat of this.cloudMats) mat.color.set(look.cloud);
     const training = chapter !== 'workshop' && chapter !== 'citadel';
     for (const obj of this.trainingProps) obj.visible = training;
     for (const obj of this.workshopProps) obj.visible = chapter === 'workshop';
@@ -336,6 +342,7 @@ export class Scenery {
       mesh.position.set(x, y, DEPTH.hillsFar + 8);
       this.layer(PARALLAX.clouds).add(mesh);
       this.clouds.push(mesh);
+      this.cloudMats.push(mat);
     }
   }
 

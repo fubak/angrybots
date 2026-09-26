@@ -75,7 +75,8 @@ function shadeAndOutline(
   cy: number,
   r: number,
   trace: () => void,
-  fill: string
+  fill: string,
+  rim?: string
 ): void {
   trace();
   ctx.fillStyle = fill;
@@ -101,8 +102,16 @@ function shadeAndOutline(
   ctx.fillStyle = sh;
   ctx.fillRect(0, 0, s, s);
   ctx.restore();
+  const w = Math.max(6, r * 0.075);
+  if (rim) {
+    trace();
+    ctx.lineWidth = w + Math.max(4, r * 0.05) * 2;
+    ctx.strokeStyle = rim;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
   trace();
-  outlineStroke(ctx, Math.max(6, r * 0.075));
+  outlineStroke(ctx, w);
 }
 
 type BotPose = 'look' | 'dash' | 'dots' | 'wide' | 'alert';
@@ -126,6 +135,9 @@ function grokEye(
 }
 
 type BotBody = 'disc' | 'blob' | 'bang';
+
+/** Pale rim keeps dark bots readable on the citadel night sky (harmless on day sky). */
+const BOT_RIM = 'rgba(214, 228, 255, 0.85)';
 
 /** Official SpaceXAI Grok Bot forms: disc, soft blob, and exclamation, with white marks. */
 function paintGrokBot(
@@ -156,7 +168,8 @@ function paintGrokBot(
           ctx.arc(cx, cy + r * 0.72, r * 0.2, 0, Math.PI * 2);
         }
       },
-      fill
+      fill,
+      BOT_RIM
     );
     if (hurt) {
       circle(ctx, cx - r * 0.06, cy - r * 0.42, r * 0.12);
@@ -187,7 +200,8 @@ function paintGrokBot(
         ctx.quadraticCurveTo(cx - r * 1.05, cy - r * 0.15, cx, cy - r * 0.95);
         ctx.closePath();
       },
-      fill
+      fill,
+      BOT_RIM
     );
     ctx.strokeStyle = '#3ddc97';
     ctx.lineWidth = r * 0.08;
@@ -204,7 +218,8 @@ function paintGrokBot(
       cy,
       r,
       () => circle(ctx, cx, cy, r),
-      fill
+      fill,
+      BOT_RIM
     );
   }
   if (pose === 'dots' || hurt) {
