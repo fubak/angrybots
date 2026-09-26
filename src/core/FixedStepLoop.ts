@@ -54,19 +54,25 @@ export class FixedStepLoop {
     const frameDt = Math.min((nowMs - this.lastNow) / 1000, 0.1);
     this.lastNow = nowMs;
 
-    if (!this.paused) {
-      this.accumulator += frameDt * this.timeScale;
-      let steps = 0;
-      while (this.accumulator >= this.step && steps < this.maxStepsPerFrame) {
-        this.update(this.step);
-        this.accumulator -= this.step;
-        steps++;
-      }
-    }
-
-    const alpha = this.step > 0 ? this.accumulator / this.step : 0;
-    this.render(Math.min(Math.max(alpha, 0), 1 - 1e-9), frameDt);
-
+    // A throw in update/render must not kill the loop — reschedule first so a
+    // single bad frame can't freeze the session permanently.
     this.schedule(this.onFrame.bind(this));
+
+    try {
+      if (!this.paused) {
+        this.accumulator += frameDt * this.timeScale;
+        let steps = 0;
+        while (this.accumulator >= this.step && steps < this.maxStepsPerFrame) {
+          this.update(this.step);
+          this.accumulator -= this.step;
+          steps++;
+        }
+      }
+
+      const alpha = this.step > 0 ? this.accumulator / this.step : 0;
+      this.render(Math.min(Math.max(alpha, 0), 1 - 1e-9), frameDt);
+    } catch (err) {
+      console.error('[loop] frame error', err);
+    }
   }
 }
