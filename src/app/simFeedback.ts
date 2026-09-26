@@ -236,7 +236,10 @@ export class SimFeedback {
       this.deps.camera.addTrauma(0.9);
       if (!this.deps.reducedMotion()) this.hitStopLeft = 0.06;
     });
-    sim.bus.on('bot:ability', () => audio.play('ability'));
+    sim.bus.on('bot:ability', (e) => {
+      audio.play('ability');
+      renderer.pulseBot(e.botId);
+    });
     sim.bus.on('bot:firstImpact', (e) => {
       audio.play('impact');
       renderer.juice.flash(e.x, e.y, '#fff2d8');

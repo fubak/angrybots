@@ -9,7 +9,7 @@ import { Juice } from './Juice';
 import { BlobShadows, type ShadowCaster } from './BlobShadows';
 import { disposeObject } from './dispose';
 import { popScale } from './slingAnim';
-import { blockMaterial, decorateBlock, makeBotCharacter, makePigCharacter, tickFace } from './characters';
+import { blockMaterial, decorateBlock, makeBotCharacter, makePigCharacter, tickBot, tickFace } from './characters';
 import { ILL } from './illustrations';
 import { TEX, damagedBlockTexture, type DamageableMaterial, type DamageStage } from './textures';
 import type { View } from '../camera/fitRect';
@@ -64,6 +64,7 @@ export class Renderer {
   private readonly casters: ShadowCaster[] = [];
   private readonly dying: { mesh: THREE.Object3D; t: number }[] = [];
   private aiming = false;
+  reducedMotion = false;
   private aspect = 16 / 9;
   private fpsSamples: number[] = [];
   private lastFpsSample = 0;
@@ -155,6 +156,12 @@ export class Renderer {
     return this.slingView.queuePositions();
   }
 
+  /** Pop pulse on a live shot bot — driven by the sim 'bot:ability' event. */
+  pulseBot(botId: string): void {
+    const mesh = this.entityMeshes.get(botId);
+    if (mesh) mesh.userData.popAt = this.clock;
+  }
+
   /** Trajectory preview density: 'short' truncates the arc, 'off' hides it. */
   setAimGuide(mode: 'off' | 'short' | 'full'): void {
     this.slingView.setGuide(mode);
@@ -234,28 +241,41 @@ export class Renderer {
           if (e.kind === 'bot') {
             const v = e.body.getLinearVelocity();
             const speed = v.length();
-            let squash = Math.min(0.34, speed / 55);
-            if (e.firstImpactAt !== null) {
-              if (mesh.userData.impacted !== true) {
-                mesh.userData.impacted = true;
-                mesh.userData.impactT = 0;
-              }
-              mesh.userData.hurt = true;
+            // Orientation: while airborne the sticker points its top along the
+            // velocity so the ≤15% stretch runs along the flight path; on the
+            // ground the collider's real roll angle shows (tumbling reads as
+            // part of the dizzy look).
+            const oriented = mesh.userData.oriented === true;
+            const flying = oriented ? speed > 1.5 : speed > 4;
+            if (e.firstImpactAt !== null && mesh.userData.impacted !== true) {
+              mesh.userData.impacted = true;
+              mesh.userData.impactT = 0;
+              mesh.userData.hurtT = 0;
             }
             const it = mesh.userData.impactT as number | undefined;
+            let sx = 1;
+            let sy = 1;
             if (it !== undefined && it < 0.2) {
               const k = 1 - it / 0.2;
               mesh.userData.impactT = it + frameDt;
-              squash = Math.max(squash, 0.35 * k);
-              mesh.scale.set(1 + squash, Math.max(0.66, 1 - squash * 0.86), 1);
+              sx = 1 + 0.35 * k;
+              sy = Math.max(0.66, 1 - 0.3 * k);
+            } else if (flying) {
+              mesh.userData.oriented = true;
+              const s = Math.min(0.15, speed * 0.0042);
+              sy = 1 + s;
+              sx = 1 - s * 0.6;
+              mesh.rotation.z = Math.atan2(v.y, v.x) - Math.PI / 2;
             } else {
-              mesh.scale.set(1 + squash * 1.35, Math.max(0.66, 1 - squash), 1);
+              mesh.userData.oriented = false;
             }
-            mesh.userData.flying = speed > 2;
-            const face = mesh.getObjectByName('face');
-            if (face) {
-              face.position.x = Math.max(-0.1, Math.min(0.14, v.x * 0.012));
-              face.position.y = Math.max(-0.08, Math.min(0.12, v.y * 0.01));
+            mesh.scale.set(sx, sy, 1);
+            mesh.userData.flying = flying;
+            if (mesh.userData.hurtT !== undefined) {
+              mesh.userData.hurtT = (mesh.userData.hurtT as number) + frameDt;
+            }
+            if (!flying && (mesh.userData.impacted === true || speed > 0.4)) {
+              mesh.userData.landed = true;
             }
           } else if (e.kind === 'pig') {
             const breathe = 1 + Math.sin(this.clock * 3.2 + mesh.id) * 0.035;
@@ -303,7 +323,14 @@ export class Renderer {
         if (e.kind === 'pig') {
           tickFace(mesh, this.clock, { hurt: mesh.userData.hurt === true, smug: this.aiming });
         } else if (e.kind === 'bot') {
-          tickFace(mesh, this.clock, { hurt: mesh.userData.hurt === true });
+          const popAt = mesh.userData.popAt as number | undefined;
+          tickBot(mesh, this.clock, {
+            lead: mesh.userData.flying === true,
+            hurtT: mesh.userData.hurtT as number | undefined,
+            dizzy: mesh.userData.landed === true && mesh.userData.flying !== true,
+            popT: popAt === undefined ? null : this.clock - popAt,
+            reducedMotion: this.reducedMotion,
+          });
         }
       }
     }
@@ -418,7 +445,7 @@ export class Renderer {
 
   render(_alpha: number, frameDt: number): void {
     this.clock += frameDt;
-    this.slingView.animate(this.clock);
+    this.slingView.animate(this.clock, this.reducedMotion);
     for (let i = this.dying.length - 1; i >= 0; i--) {
       const d = this.dying[i]!;
       d.t += frameDt;

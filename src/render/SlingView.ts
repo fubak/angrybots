@@ -5,7 +5,7 @@ import type { BotKind } from '../levels/schema';
 import { SLING, launchVelocity, previewArc } from '../sling/launch';
 import type { SlingModel } from '../sling/SlingModel';
 import type { ShotTrail } from '../sling/ShotTrail';
-import { makeBotCharacter, tickFace } from './characters';
+import { makeBotCharacter, tickBot } from './characters';
 import { disposeObject } from './dispose';
 import { ILL } from './illustrations';
 import { bandWobble, hopArc } from './slingAnim';
@@ -67,6 +67,8 @@ export class SlingView {
   private queueKinds: string = '';
   private guide: 'off' | 'short' | 'full' = 'full';
   private now = 0;
+  private aimTension = 0;
+  private readonly aimLook = { x: 0, y: -1 };
   private wasDragging = false;
   private releaseAt: number | null = null;
   readonly shadowCasters: ShadowCaster[] = [];
@@ -251,13 +253,19 @@ export class SlingView {
       this.loaded.visible = true;
       this.loaded.position.set(p.x, p.y, DEPTH.entities + 0.25);
       const tension = model.tension();
-      this.loaded.scale.set(1 + tension * 0.16, Math.max(0.74, 1 - tension * 0.22), 1);
-      this.loaded.rotation.z = model.pull.y * 0.12 - tension * 0.18;
-      const face = this.loaded.getObjectByName('face');
-      if (face) {
-        face.position.x = tension * 0.1;
-        face.position.y = model.pull.y * 0.08;
-      }
+      // Stretch along the pull axis, capped at 12%: the sticker leans its top
+      // toward the pull's lateral component (a straight-down pull stays
+      // upright), then squashes along that lean.
+      const pullAng = Math.atan2(model.pull.y, model.pull.x);
+      const lean = -Math.atan2(model.pull.x, -model.pull.y) * 0.55;
+      this.loaded.rotation.z = lean;
+      this.loaded.scale.set(1 - tension * 0.05, 1 + tension * 0.12, 1);
+      // Eyes track the launch direction (opposite the pull), in loaded-local
+      // space after the lean.
+      const aimLocal = pullAng + Math.PI - lean;
+      this.aimLook.x = Math.cos(aimLocal);
+      this.aimLook.y = Math.sin(aimLocal);
+      this.aimTension = tension;
       this.pouch.visible = true;
       this.pouch.position.set(p.x, p.y - 0.46, -0.05);
       const cupY = p.y - 0.5;
@@ -273,6 +281,7 @@ export class SlingView {
       this.loaded.visible = false;
       this.loaded.scale.set(1, 1, 1);
       this.loaded.rotation.z = 0;
+      this.aimTension = 0;
       for (const d of this.previewDots) d.visible = false;
       if (wob > 0) {
         // Snap past rest toward the launch direction, springing back.
@@ -409,10 +418,15 @@ export class SlingView {
     }
   }
 
-  animate(time: number): void {
+  animate(time: number, reducedMotion = false): void {
     this.now = time;
-    tickFace(this.loaded, time);
-    for (const q of this.queue) tickFace(q, time);
+    tickBot(this.loaded, time, {
+      lookX: this.aimLook.x,
+      lookY: this.aimLook.y,
+      aimTension: this.aimTension,
+      reducedMotion,
+    });
+    for (const q of this.queue) tickBot(q, time, { queue: true, reducedMotion });
   }
 
   /** World position of the loaded pouch bot, if shown. */
