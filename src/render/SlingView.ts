@@ -170,6 +170,7 @@ export class SlingView {
       node.visible = true;
       queueX -= rad;
       node.position.set(queueX, rad, DEPTH.entities);
+      node.userData.restY = rad;
       queueX -= rad + 0.28;
     }
 
@@ -210,7 +211,16 @@ export class SlingView {
 
   animate(time: number): void {
     tickFace(this.loaded, time, false);
-    for (const q of this.queue) tickFace(q, time, false);
+    this.queue.forEach((q, i) => {
+      tickFace(q, time, false);
+      if (!q.visible) return;
+      // Restless idle: a little hop-and-squash so the waiting line feels alive.
+      const phase = time * 2.6 + i * 1.7;
+      const hop = Math.max(0, Math.sin(phase));
+      const sq = 1 + Math.sin(phase * 2) * 0.03;
+      q.scale.set(sq, 2 - sq, 1);
+      q.position.y = ((q.userData.restY as number | undefined) ?? q.position.y) + hop * hop * 0.14;
+    });
   }
 
   private makeBand(mat: THREE.Material, order: number): THREE.Mesh {

@@ -52,18 +52,18 @@ export class CameraDirector {
       x1 = Math.max(x1, level.camera.maxX);
       y1 = Math.max(y1, level.camera.maxY);
     }
-    return { x0: sx - 3.5, x1, y0: 0, y1 };
+    return { x0: sx - 4.6, x1, y0: 0, y1 };
   }
 
   slingView(level: LevelV2 | null, tension = 0): View {
-    return fitRect(this.slingRect(level, tension), 16 / 9, 0.5);
+    return fitRect(this.slingRect(level, tension), 16 / 9, 0.5, 0, 1, true);
   }
 
   overviewView(level: LevelV2 | null): View {
     if (!level) return { cx: 8, cy: 5, h: 12 };
     const c = level.camera;
     const r: Rect = { x0: c.minX, x1: c.maxX, y0: c.minY, y1: c.maxY };
-    return fitRect(r, 16 / 9, 0.5);
+    return fitRect(r, 16 / 9, 0.5, 0, 1, true);
   }
 
   update(input: CameraDirectorInput, dt: number): View {
@@ -154,7 +154,8 @@ export class CameraDirector {
       input.aspect,
       0.5,
       input.topHudPx,
-      input.canvasPxH
+      input.canvasPxH,
+      true
     );
   }
 

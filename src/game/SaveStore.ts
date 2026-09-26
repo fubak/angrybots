@@ -9,6 +9,7 @@ export type SaveV2 = {
     voice: number;
     aimGuide: 'off' | 'short';
     reducedMotion: boolean | null;
+    muted?: boolean;
   };
   tutorialsSeen: Partial<Record<BotKind, true>>;
   lastLevelId: string | null;
@@ -31,8 +32,12 @@ const DEFAULTS: SaveV2 = {
   lastLevelId: null,
 };
 
+function fresh(): SaveV2 {
+  return { ...DEFAULTS, settings: { ...DEFAULTS.settings }, levels: {}, tutorialsSeen: {} };
+}
+
 function migrateV1(raw: Record<string, unknown>): SaveV2 {
-  const s = { ...DEFAULTS };
+  const s = fresh();
   if (typeof raw.masterVolume === 'number') {
     s.settings.music = raw.masterVolume as number;
     s.settings.sfx = raw.masterVolume as number;
@@ -50,7 +55,7 @@ function migrateV1(raw: Record<string, unknown>): SaveV2 {
 }
 
 export class SaveStore {
-  private data: SaveV2 = { ...DEFAULTS, levels: {}, tutorialsSeen: {} };
+  private data: SaveV2 = fresh();
 
   load(): SaveV2 {
     try {
@@ -62,18 +67,23 @@ export class SaveStore {
           this.persist();
           return this.data;
         }
-        this.data = { ...DEFAULTS, levels: {}, tutorialsSeen: {} };
+        this.data = fresh();
         return this.data;
       }
       const parsed = JSON.parse(raw) as SaveV2;
       if (parsed.version !== 2) {
-        this.data = { ...DEFAULTS, levels: {}, tutorialsSeen: {} };
+        this.data = fresh();
         return this.data;
       }
-      this.data = parsed;
+      this.data = {
+        ...parsed,
+        settings: { ...DEFAULTS.settings, ...parsed.settings },
+        levels: parsed.levels ?? {},
+        tutorialsSeen: parsed.tutorialsSeen ?? {},
+      };
       return this.data;
     } catch {
-      this.data = { ...DEFAULTS, levels: {}, tutorialsSeen: {} };
+      this.data = fresh();
       return this.data;
     }
   }

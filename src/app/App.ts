@@ -48,7 +48,12 @@ export class App {
   private backgrounded = false;
   private resultRecorded = false;
   private resultDelay = 0;
-  private pendingResult: { won: boolean; score: number; stars: number } | null = null;
+  private pendingResult: {
+    won: boolean;
+    score: number;
+    stars: number;
+    prevBest: number;
+  } | null = null;
 
   private hud: Hud;
   private pauseMenu: PauseMenu;
@@ -77,7 +82,12 @@ export class App {
     this.sling = new SlingInput(this.canvas, this.session, this.bus);
     this.sling.setBlocked(() => this.inputBlocked());
 
-    this.hud = new Hud(this.uiRoot, () => this.togglePause(), () => this.restartLevel());
+    this.hud = new Hud(
+      this.uiRoot,
+      () => this.togglePause(),
+      () => this.restartLevel(),
+      () => this.toggleMute()
+    );
     this.pauseMenu = new PauseMenu(this.uiRoot, {
       resume: () => this.togglePause(false),
       restart: () => {
@@ -86,6 +96,11 @@ export class App {
       },
       levels: () => this.goLevelSelect(),
       onSettings: (key, value) => {
+        if (key === 'reducedMotion') {
+          this.save.settings.reducedMotion = value as boolean;
+          this.save.persist();
+          return;
+        }
         if (key === 'music') this.audio.setMusicVolume(value as number);
         if (key === 'sfx') this.audio.setSfxVolume(value as number);
         this.save.settings[key as 'music' | 'sfx'] = value as number;
@@ -94,7 +109,12 @@ export class App {
     });
     this.results = new ResultsPanel(this.uiRoot, (a) => this.onResultsAction(a));
     this.title = new TitleScreen(this.uiRoot, () => this.goLevelSelect());
-    this.levelSelect = new LevelSelect(this.uiRoot, (id) => this.startLevel(id));
+    this.levelSelect = new LevelSelect(
+      this.uiRoot,
+      (id) => this.startLevel(id),
+      () => this.goTitle()
+    );
+    this.applySavedSettings();
 
     this.loop = new FixedStepLoop({
       step: TUNING.dt,
@@ -127,6 +147,7 @@ export class App {
     window.addEventListener('keydown', (ev) => {
       if (ev.key === 'Escape') this.togglePause();
       if (ev.key === 'r' || ev.key === 'R') this.restartLevel();
+      if (ev.key === 'm' || ev.key === 'M') this.toggleMute();
       if (ev.key === ' ' && this.session.getState() === 'flight' && !this.inputBlocked()) {
         ev.preventDefault();
         this.session.activateAbility();
@@ -200,6 +221,37 @@ export class App {
     this.syncSimulationPause();
   }
 
+  private applySavedSettings(): void {
+    const s = this.save.settings;
+    this.audio.setMusicVolume(s.music);
+    this.audio.setSfxVolume(s.sfx);
+    this.audio.muted = s.muted === true;
+    this.hud.setMuted(this.audio.muted);
+    this.pauseMenu.setSettings({
+      music: s.music,
+      sfx: s.sfx,
+      reducedMotion: s.reducedMotion === true,
+    });
+  }
+
+  private toggleMute(): void {
+    this.audio.muted = !this.audio.muted;
+    this.audio.setMusicVolume(this.save.settings.music);
+    this.audio.setSfxVolume(this.save.settings.sfx);
+    this.hud.setMuted(this.audio.muted);
+    this.save.settings.muted = this.audio.muted;
+    this.save.persist();
+  }
+
+  private goTitle(): void {
+    this.leavePlay();
+    this.phase = 'title';
+    this.levelSelect.hide();
+    this.results.hide();
+    this.hud.hide();
+    this.title.show();
+  }
+
   private goLevelSelect(): void {
     this.leavePlay();
     this.phase = 'levelSelect';
@@ -208,7 +260,7 @@ export class App {
     this.levelSelect.populate(
       allLevels(),
       (id) => this.isLevelUnlocked(id),
-      (id) => this.save.load().levels[id]?.stars ?? 0
+      (id) => this.save.levelProgress(id)?.stars ?? 0
     );
     this.levelSelect.show();
     this.hud.hide();
@@ -240,6 +292,8 @@ export class App {
     this.hud.show();
     this.hud.setTip(def.hint ?? this.tipFor(def));
     this.hud.setShots(this.session.getBotQueue().length);
+    const index = allLevels().findIndex((l) => l.id === id);
+    this.hud.banner(`Level ${index + 1}`, def.name);
   }
 
   private restartLevel(): void {
@@ -293,10 +347,11 @@ export class App {
     const won = state === 'won';
     const stars = this.session.getStars();
     const score = this.session.getScore();
+    const prevBest = this.levelId ? (this.save.levelProgress(this.levelId)?.bestScore ?? 0) : 0;
     if (this.levelId) {
       this.save.recordLevel(this.levelId, score, stars, won);
     }
-    this.pendingResult = { won, score, stars };
+    this.pendingResult = { won, score, stars, prevBest };
     this.resultDelay = 1.15;
     this.audio.play(won ? 'victory' : 'defeat');
     if (won) {
@@ -383,7 +438,8 @@ export class App {
       if (this.resultDelay <= 0) {
         const pending = this.pendingResult;
         this.pendingResult = null;
-        this.results.show(pending.won, pending.score, pending.stars);
+        const name = this.levelId ? (levelById(this.levelId)?.name ?? '') : '';
+        this.results.show(pending.won, pending.score, pending.stars, pending.prevBest, name);
         this.hud.hide();
       }
     }
@@ -424,7 +480,7 @@ export class App {
       dt
     );
 
-    const best = this.levelId ? (this.save.load().levels[this.levelId]?.bestScore ?? 0) : 0;
+    const best = this.levelId ? (this.save.levelProgress(this.levelId)?.bestScore ?? 0) : 0;
     this.hud.setScore(this.session.getScore(), best);
     this.hud.setShots(this.session.getBotQueue().length);
     const showTip = state === 'aim' || state === 'intro';
