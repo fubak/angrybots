@@ -2,20 +2,44 @@ import * as THREE from 'three';
 import { PALETTE, DEPTH } from '../config/render';
 import { TUNING } from '../config/tuning';
 import type { BotKind } from '../levels/schema';
-import { SLING, launchVelocity, previewArc } from '../sling/launch';
+import { SLING, SLING_HOP_SECONDS, launchVelocity, previewArc } from '../sling/launch';
 import type { SlingModel } from '../sling/SlingModel';
 import type { ShotTrail } from '../sling/ShotTrail';
 import { makeBotCharacter, tickBot } from './characters';
 import { disposeObject } from './dispose';
 import { ILL } from './illustrations';
-import { bandWobble, hopArc } from './slingAnim';
+import { bandWobble, hopArc, slingHopPose, HOP_CROUCH } from './slingAnim';
 import type { ShadowCaster } from './BlobShadows';
 
-const FORK = 1.08;
-const TIP_Y = 3.15;
-const FORK_JOINT_Y = 1.95;
+// Fork geometry is chosen so the loaded bot (centered on SLING.anchor) sits
+// fully inside the Y: the perpendicular distance from the anchor to each
+// arm's centerline must exceed r_max + arm half-width + a visual margin
+// (see tests/unit/sling-geometry.test.ts). Tips rise just above the bot's
+// center; the joint drops well below the biggest bot (heavy r=0.72) so wood
+// never crosses the bot, and a trunk runs from the joint into the ground.
+export const SLING_FORK = 1.8;
+export const SLING_TIP_Y = SLING.anchor.y + 0.35;
+export const SLING_JOINT_Y = SLING.anchor.y - 1.85;
+export const SLING_ARM_W = 0.46; // face width 0.36 + outline
+const TIP_EXTEND = 0.12; // wood continues a hair past the band anchor
+
+/** Perpendicular distance from the anchor to one arm's centerline segment. */
+export function slingArmClearance(side: -1 | 1 = 1): number {
+  const jx = SLING.anchor.x;
+  const jy = SLING_JOINT_Y;
+  const tx = SLING.anchor.x + side * SLING_FORK;
+  const ty = SLING_TIP_Y + TIP_EXTEND;
+  const dx = tx - jx;
+  const dy = ty - jy;
+  const len2 = dx * dx + dy * dy;
+  const t = Math.max(
+    0,
+    Math.min(1, ((SLING.anchor.x - jx) * dx + (SLING.anchor.y - jy) * dy) / len2)
+  );
+  return Math.hypot(jx + t * dx - SLING.anchor.x, jy + t * dy - SLING.anchor.y);
+}
+
 const REST_SAG = 0.3;
-const HOP_SECONDS = 0.5;
 const BONUS_POP_EVERY = 0.5;
 
 export type SlingFx = {
@@ -70,6 +94,12 @@ export class SlingView {
   private queueKinds: string = '';
   private guide: 'off' | 'short' | 'full' = 'full';
   private now = 0;
+  private reducedMotion = false;
+  /** 0..1 eyes-up glance for the hopping bot, fed to tickBot next animate(). */
+  private hopEyesUp = 0;
+  private hoppingNow = false;
+  private hopTNow = 0;
+  private readonly dust: THREE.Mesh[] = [];
   private aimTension = 0;
   private readonly aimLook = { x: 0, y: -1 };
   private wasDragging = false;
@@ -149,6 +179,24 @@ export class SlingView {
     this.impactPuff.renderOrder = 16;
     this.group.add(this.impactPuff);
 
+    for (let i = 0; i < 3; i++) {
+      const d = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.34, 0.34),
+        new THREE.MeshBasicMaterial({
+          map: puffTexture(),
+          color: '#dccaa6',
+          transparent: true,
+          opacity: 0.8,
+          depthWrite: false,
+        })
+      );
+      d.visible = false;
+      d.renderOrder = 11;
+      d.userData.dir = i - 1; // -1, 0, 1
+      this.dust.push(d);
+      this.group.add(d);
+    }
+
     scene.add(this.group);
   }
 
@@ -179,16 +227,15 @@ export class SlingView {
 
   /** Y-shaped wooden fork: trunk + two angled arms to the band tips. */
   private buildFork(): void {
-    const trunkH = FORK_JOINT_Y + 0.4;
-    this.plankPiece(0.5, trunkH, SLING.anchor.x, FORK_JOINT_Y - trunkH / 2 + 0.02, -0.6, 0);
+    const trunkH = SLING_JOINT_Y + 0.4;
+    this.plankPiece(0.5, trunkH, SLING.anchor.x, SLING_JOINT_Y - trunkH / 2 + 0.02, -0.6, 0);
     for (const side of [-1, 1]) {
-      const tipX = SLING.anchor.x + side * FORK;
-      const dx = tipX - SLING.anchor.x;
-      const dy = TIP_Y + 0.12 - FORK_JOINT_Y;
+      const dx = side * SLING_FORK;
+      const dy = SLING_TIP_Y + TIP_EXTEND - SLING_JOINT_Y;
       const len = Math.hypot(dx, dy);
       const angle = Math.atan2(dy, dx) - Math.PI / 2;
       const z = side < 0 ? -0.58 : 0.52;
-      this.plankPiece(0.36, len, SLING.anchor.x + dx / 2, FORK_JOINT_Y + dy / 2, z, angle);
+      this.plankPiece(0.36, len, SLING.anchor.x + dx / 2, SLING_JOINT_Y + dy / 2, z, angle);
     }
   }
 
@@ -217,8 +264,8 @@ export class SlingView {
   }
 
   private setBandsTo(cupX: number, cupY: number, sag: number, z: { back: number; front: number }): void {
-    const tipL = { x: SLING.anchor.x - FORK, y: TIP_Y };
-    const tipR = { x: SLING.anchor.x + FORK, y: TIP_Y };
+    const tipL = { x: SLING.anchor.x - SLING_FORK, y: SLING_TIP_Y };
+    const tipR = { x: SLING.anchor.x + SLING_FORK, y: SLING_TIP_Y };
     const mid = (t: { x: number; y: number }) => ({
       x: (t.x + cupX) / 2,
       y: (t.y + cupY) / 2 - sag,
@@ -308,7 +355,8 @@ export class SlingView {
       }
     }
 
-    // Queue: idle bounce (staggered), first in line hops to the pouch on nextBot.
+    // Queue: idle bounce (staggered), first in line hops to the pouch on
+    // nextBot while the rest hop forward one slot.
     const waiting = aiming ? queue.slice(1) : queue;
     const key = waiting.join(',');
     if (key !== this.queueKinds) {
@@ -324,7 +372,23 @@ export class SlingView {
         this.group.add(next);
       }
     }
-    let queueX = SLING.anchor.x - FORK - 1.5;
+    // Slot x positions with the hopper still in line (old) and removed (new),
+    // so each waiting bot can hop forward to its new spot instead of snapping.
+    const spots = (list: readonly BotKind[]): number[] => {
+      let qx = SLING.anchor.x - SLING_FORK - 1.5;
+      const out: number[] = [];
+      for (const qk of list) {
+        qx -= TUNING.bots[qk].r;
+        out.push(qx);
+        qx -= TUNING.bots[qk].r + 0.28;
+      }
+      return out;
+    };
+    const oldX = spots(waiting);
+    const newX = spots(waiting.slice(1));
+    this.hoppingNow = hopping;
+    this.hopTNow = fx.hopT ?? 0;
+    this.hopEyesUp = 0;
     this.queuePos.length = 0;
     for (let i = 0; i < this.queue.length; i++) {
       const node = this.queue[i]!;
@@ -334,37 +398,76 @@ export class SlingView {
         continue;
       }
       const rad = TUNING.bots[qk].r;
-      queueX -= rad;
       const isHopper = hopping && i === 0;
-      let x = queueX;
-      let y = rad + Math.sin(this.now * 2.3 + i * 1.9) * 0.05;
+      let x = oldX[i] ?? 0;
+      let y = rad + (this.reducedMotion ? 0 : Math.sin(this.now * 2.3 + i * 1.9) * 0.05);
       if (fx.bonusT !== null) {
         const bt = fx.bonusT - i * BONUS_POP_EVERY;
         if (bt > 0 && bt < 0.4) y += Math.sin((bt / 0.4) * Math.PI) * 0.55;
-        this.queuePos.push({ x, y });
       }
       if (isHopper) {
-        const hp = hopArc(
-          fx.hopT! / HOP_SECONDS,
-          x,
-          y,
-          SLING.anchor.x,
-          SLING.anchor.y - 0.3,
-          1.6
+        const t = Math.min(1, fx.hopT! / SLING_HOP_SECONDS);
+        if (this.reducedMotion) {
+          const hp = hopArc(t, x, y, SLING.anchor.x, SLING.anchor.y, 1.6);
+          x = hp.x;
+          y = hp.y;
+        } else {
+          const pose = slingHopPose(t);
+          const hp = hopArc(pose.arc, x, y, SLING.anchor.x, SLING.anchor.y, 1.6);
+          x = hp.x;
+          y = hp.y;
+          node.rotation.z = pose.rot;
+          node.scale.set(pose.sx, pose.sy, 1);
+          this.hopEyesUp = pose.eyesUp;
+          // Pouch + bands dip under the landing, then spring back.
+          const dip = Math.max(0, pose.dip) * 0.22;
+          this.setBandsTo(SLING.anchor.x, SLING.anchor.y - 0.5 - dip, REST_SAG, {
+            back: -0.22,
+            front: 0.48,
+          });
+          this.pouch.visible = true;
+          this.pouch.position.set(SLING.anchor.x, SLING.anchor.y - 0.46 - dip, -0.05);
+          // Dust puffs burst at takeoff.
+          const dk = (t - HOP_CROUCH) / 0.25;
+          for (const d of this.dust) {
+            if (dk <= 0 || dk >= 1) {
+              d.visible = false;
+              continue;
+            }
+            const dir = d.userData.dir as number;
+            d.visible = true;
+            d.position.set(
+              (oldX[0] ?? x) + dir * (0.2 + dk * 0.5),
+              Math.max(0.12, y - rad) + 0.06 + dk * 0.15,
+              DEPTH.particles
+            );
+            d.scale.setScalar(0.5 + dk * 1.1);
+            (d.material as THREE.MeshBasicMaterial).opacity = 0.7 * (1 - dk);
+          }
+        }
+      } else if (hopping && i > 0) {
+        // Advance one slot, staggered, with a small hop (flat slide under
+        // reduced motion).
+        const adv = Math.min(
+          1,
+          Math.max(0, (fx.hopT! - 0.18 - (i - 1) * 0.06) / 0.3)
         );
-        x = hp.x;
-        y = hp.y;
-        node.rotation.z = -Math.sin(Math.min(1, fx.hopT! / HOP_SECONDS) * Math.PI) * 0.5;
-        this.pouch.visible = true;
-        this.pouch.position.set(SLING.anchor.x, SLING.anchor.y - 0.46, -0.05);
+        const e = adv * adv * (3 - 2 * adv);
+        const target = newX[i - 1] ?? x;
+        x = x + (target - x) * e;
+        if (!this.reducedMotion) y += Math.sin(e * Math.PI) * 0.3;
+        node.rotation.z = 0;
+        node.scale.set(1, 1, 1);
       } else {
         node.rotation.z = 0;
+        node.scale.set(1, 1, 1);
       }
       node.visible = true;
       node.position.set(x, y, DEPTH.entities + (isHopper ? 0.3 : 0));
+      this.queuePos.push({ x, y });
       this.shadowCasters.push({ x, y: Math.max(0, y - rad), w: rad * 2 });
-      queueX -= rad + 0.28;
     }
+    if (!hopping) for (const d of this.dust) d.visible = false;
 
     const pts = aiming ? [] : trail.current;
     const n = Math.max(1, pts.length);
@@ -392,6 +495,21 @@ export class SlingView {
   /** World positions of the queued bots, in order — used for bonus popups. */
   queuePositions(): readonly { x: number; y: number }[] {
     return this.queuePos;
+  }
+
+  /** Hopper transform while the queue→pouch hop plays (debug snapshot). */
+  hopperPose(): { x: number; y: number; sx: number; sy: number; rot: number; t: number } | null {
+    if (!this.hoppingNow) return null;
+    const n = this.queue[0];
+    if (!n) return null;
+    return {
+      x: n.position.x,
+      y: n.position.y,
+      sx: n.scale.x,
+      sy: n.scale.y,
+      rot: n.rotation.z,
+      t: this.hopTNow,
+    };
   }
 
   /** Aim guide: 'short' truncates the preview arc to its first 40%, 'off' hides it. */
@@ -430,6 +548,7 @@ export class SlingView {
 
   animate(time: number, reducedMotion = false): void {
     this.now = time;
+    this.reducedMotion = reducedMotion;
     if (this.loadedBot) {
       // Not yet grabbed: the loaded bot does the idle look-around; while
       // dragging, the aim look + tension take over (yaw returns to 0).
@@ -442,9 +561,14 @@ export class SlingView {
         reducedMotion,
       });
     }
-    for (const q of this.queue) {
+    for (let i = 0; i < this.queue.length; i++) {
+      const q = this.queue[i]!;
+      const isHopper = this.hoppingNow && i === 0;
       tickBot(q, time, {
-        queue: true,
+        // The hopper's squash/tumble is on the node; skip idle look-around,
+        // eyes glance up at the pouch while rising.
+        queue: !isHopper,
+        lookY: isHopper ? this.hopEyesUp * 0.8 : undefined,
         happy: this.bonusActive,
         turnAway: this.lostActive,
         reducedMotion,

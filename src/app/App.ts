@@ -4,13 +4,14 @@ import { FixedStepLoop } from '../core/FixedStepLoop';
 import { PALETTE } from '../config/render';
 import { TUNING } from '../config/tuning';
 import type { GameEvents } from '../game/events';
-import { GameSession } from '../game/GameSession';
+import { GameSession, INTRO_SECONDS } from '../game/GameSession';
 import { SaveStore } from '../game/SaveStore';
 import { allLevels, levelById, nextLevel } from '../levels/registry';
 import { CameraDirector } from '../camera/CameraDirector';
 import { CameraGestures, gestureLimitsFor } from '../camera/CameraGestures';
 import { Renderer } from '../render/Renderer';
 import { SlingInput, clientToWorld } from '../sling/SlingInput';
+import { SLING_HOP_SECONDS } from '../sling/launch';
 import { ShotTrail } from '../sling/ShotTrail';
 import { SoundBank } from '../audio/SoundBank';
 import { createDebugApi } from '../debug/DebugApi';
@@ -53,6 +54,7 @@ export class App {
   private currentView: View = { cx: 0, cy: 5, h: 12 };
   private paused = false;
   private backgrounded = false;
+  private debugFrozen = false;
   private resultDelay = 0;
   private pendingResult: {
     won: boolean;
@@ -227,7 +229,18 @@ export class App {
       }),
       loop: this.loop,
       fixtures,
+      enterLevel: (id) => {
+        this.startLevel(id);
+        this.session.skipIntro();
+      },
     });
+    if (window.__debug.freezeTime) {
+      const setFreeze = window.__debug.freezeTime;
+      window.__debug.freezeTime = (on) => {
+        this.debugFrozen = on;
+        setFreeze(on);
+      };
+    }
 
     this.loop.start();
     track('app_open', {});
@@ -292,9 +305,15 @@ export class App {
     this.fx.resetLevel();
     this.gestures.reset();
     this.renderer.clearLevel();
-    this.session.loadLevel(def, effectiveReducedMotion(this.save.settings.reducedMotion));
+    const rm = effectiveReducedMotion(this.save.settings.reducedMotion);
+    this.session.loadLevel(def, rm);
     this.renderer.setChapter(def.chapter);
     this.renderer.setTerrain(def.terrain);
+    // Pin the parallax reference to the sling view — the framing the scenery
+    // was laid out for (moon/sun, hills, trees sit where designed). The intro
+    // pan then drifts layers naturally, and the deterministic value keeps the
+    // first rendered frame from racing the camera snap.
+    this.renderer.anchorParallax(this.camera.slingView(def));
     this.audio.setChapter(def.chapter);
     const sim = this.session.getSim();
     if (sim) sim.fragmentsEnabled = true;
@@ -344,7 +363,11 @@ export class App {
   private syncSimulationPause(): void {
     const rotate = this.rotate.update();
     this.loop.paused =
-      this.paused || this.backgrounded || rotate || this.screens.botIntro.isVisible();
+      this.paused ||
+      this.backgrounded ||
+      this.debugFrozen ||
+      rotate ||
+      this.screens.botIntro.isVisible();
   }
 
   private recordResultOnce(): void {
@@ -527,7 +550,14 @@ export class App {
       aiming,
       this.trail,
       {
-        hopT: state === 'nextBot' ? this.nextBotT : null,
+        // nextBot drives the queue→pouch hop; during the intro the lead bot
+        // hops in over the last beat of the camera pan (lands as aim starts).
+        hopT:
+          state === 'nextBot'
+            ? this.nextBotT
+            : state === 'intro' && this.introElapsed > INTRO_SECONDS - SLING_HOP_SECONDS
+              ? this.introElapsed - (INTRO_SECONDS - SLING_HOP_SECONDS)
+              : null,
         bonusT: state === 'bonus' ? this.bonusT : null,
         lostT: state === 'lost' ? this.lostT : null,
       }

@@ -1,6 +1,7 @@
 import type { LevelV2 } from '../levels/schema';
 import type { GameStateId } from '../game/states';
 import { TUNING } from '../config/tuning';
+import { expandLevel, type ExpandedBlock } from '../levels/expand';
 import { fitRect, unionRect, type Rect, type View } from './fitRect';
 
 export type CameraDirectorInput = {
@@ -26,9 +27,14 @@ const LAMBDA = {
   return: 2.4,
 };
 
+/** Level-open beat: snap onto the structure, hold/push in, then pan to the sling. */
+const INTRO_HOLD = 1.2;
+const INTRO_PAN = 1.4;
+
 export class CameraDirector {
   private view: View = { cx: 0, cy: 5, h: 12 };
   private mode: 'intro' | 'aim' | 'follow' | 'impact' | 'return' | 'overview' = 'intro';
+  private introSnapped = false;
   private trauma = 0;
   private shakeX = 0;
   private shakeY = 0;
@@ -66,6 +72,28 @@ export class CameraDirector {
     return fitRect(r, 16 / 9, 0.5);
   }
 
+  /** Close-up on the level's structure (blocks + targets) for the intro beat. */
+  structureView(level: LevelV2 | null): View {
+    if (!level) return this.slingView(level);
+    const ex = expandLevel(level);
+    const aabb = (b: ExpandedBlock): Rect =>
+      b.shape === 'circle'
+        ? { x0: b.cx - b.r!, y0: b.cy - b.r!, x1: b.cx + b.r!, y1: b.cy + b.r! }
+        : { x0: b.cx - b.w / 2, y0: b.cy - b.h / 2, x1: b.cx + b.w / 2, y1: b.cy + b.h / 2 };
+    let r: Rect | null = null;
+    for (const b of ex.blocks) r = r ? unionRect(r, aabb(b)) : aabb(b);
+    for (const p of ex.pigs) {
+      r = unionRect(r ?? { x0: p.cx, y0: p.cy, x1: p.cx, y1: p.cy }, {
+        x0: p.cx - p.r,
+        y0: p.cy - p.r,
+        x1: p.cx + p.r,
+        y1: p.cy + p.r,
+      });
+    }
+    if (!r) return this.slingView(level);
+    return fitRect({ x0: r.x0 - 1.5, x1: r.x1 + 1.5, y0: 0, y1: r.y1 + 1.5 }, 16 / 9, 0.5);
+  }
+
   update(input: CameraDirectorInput, dt: number): View {
     let target = this.view;
     const sling = this.slingView(input.level);
@@ -74,20 +102,39 @@ export class CameraDirector {
     if (input.state === 'intro') {
       this.mode = 'intro';
       if (input.reducedMotion) {
+        // Reduced motion skips the cinematic entirely — land on the sling
+        // view instantly (this also keeps the parallax anchor deterministic).
+        if (!this.introSnapped) {
+          this.view = sling;
+          this.introSnapped = true;
+        }
         target = sling;
-      } else if (input.introElapsed < 1.0) {
-        target = overview;
       } else {
-        const t = Math.min(1, (input.introElapsed - 1) / 1.2);
-        const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        target = {
-          cx: overview.cx + (sling.cx - overview.cx) * e,
-          cy: overview.cy + (sling.cy - overview.cy) * e,
-          h: overview.h + (sling.h - sling.h) * e,
-        };
-        target.h = overview.h + (sling.h - overview.h) * e;
+        const structure = this.structureView(input.level);
+        // Snap straight onto the structure on the first intro frame — no glide
+        // in from whatever the previous screen framed.
+        if (!this.introSnapped) {
+          this.view = structure;
+          this.introSnapped = true;
+        }
+        if (input.introElapsed < INTRO_HOLD) {
+          // Slow push-in on the castle while we hold on it.
+          const p = Math.min(1, input.introElapsed / INTRO_HOLD) * 0.05;
+          target = { cx: structure.cx, cy: structure.cy, h: structure.h * (1 - p) };
+        } else {
+          const t = Math.min(1, (input.introElapsed - INTRO_HOLD) / INTRO_PAN);
+          const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          const from = { ...structure, h: structure.h * 0.95 };
+          target = {
+            cx: from.cx + (sling.cx - from.cx) * e,
+            cy: from.cy + (sling.cy - from.cy) * e,
+            h: from.h + (sling.h - from.h) * e,
+          };
+        }
       }
-    } else if (input.state === 'aim') {
+    }
+    if (input.state !== 'intro') this.introSnapped = false;
+    if (input.state === 'aim') {
       this.mode = 'aim';
       target = this.wideView(input, input.tension);
       if (input.manualOffset) target = input.manualOffset;

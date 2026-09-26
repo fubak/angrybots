@@ -18,10 +18,11 @@ mkdirSync('docs/evidence/bots', { recursive: true });
 writeFileSync(OUT, Buffer.from(result.sheet.split(',')[1], 'base64'));
 
 let ok = true;
-for (const { id, diff } of result.diffs) {
+for (const { id, diff, runtimeDiff } of result.diffs) {
   const pct = (diff * 100).toFixed(2);
-  console.log(`sticker ${id}: ${pct}%`);
-  if (diff > 0.01) {
+  const pct2 = ((runtimeDiff ?? 1) * 100).toFixed(2);
+  console.log(`sticker ${id}: extract ${pct}%  runtime ${pct2}%`);
+  if (diff > 0.01 || (runtimeDiff ?? 1) > 0.01) {
     console.error(`  FAIL — exceeds 1%`);
     ok = false;
   }

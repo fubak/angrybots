@@ -23,7 +23,14 @@ export type DebugSnapshot = {
     vy: number;
     speed: number;
   } | null;
+  /** Sling fixture state: pouch bot, queue positions, hopper pose. */
+  sling: {
+    loaded: { x: number; y: number } | null;
+    queue: { x: number; y: number }[];
+    hopper: { x: number; y: number; sx: number; sy: number; rot: number; t: number } | null;
+  };
   camera: { cx: number; cy: number; height: number };
+  frame: number;
   fps: { p50: number; p5Low: number };
   renderer: { calls: number; triangles: number; geometries: number; textures: number };
 };
@@ -37,6 +44,8 @@ export type DebugApi = {
   freezeTime?: (on: boolean) => void;
   popup?: (x: number, y: number, text: string, color?: string, scale?: number) => void;
   damage?: (id: string, amount: number) => boolean;
+  /** Read back rendered pixels: canvas-relative CSS px rect → raw RGBA bytes. */
+  sample?: (x: number, y: number, w: number, h: number) => number[];
 };
 
 export function createDebugApi(opts: {
@@ -48,6 +57,9 @@ export function createDebugApi(opts: {
   getSling: () => { phase: string; pullX: number; pullY: number };
   loop: FixedStepLoop;
   fixtures?: boolean;
+  /** Full App-level level entry (screens, chapter, parallax, sling reset) so
+   * fixture captures render the real in-game state, not a bare session. */
+  enterLevel: (id: string) => void;
 }): DebugApi {
   const snap = (): DebugSnapshot => {
     const sim = opts.session.getSim();
@@ -80,7 +92,13 @@ export function createDebugApi(opts: {
               speed: v?.length() ?? 0,
             }
           : null,
+      sling: {
+        loaded: opts.renderer.loadedPos(),
+        queue: [...opts.renderer.queuePositions()],
+        hopper: opts.renderer.hopperPose(),
+      },
       camera: { cx: view.cx, cy: view.cy, height: view.h },
+      frame: opts.renderer.frameCount,
       fps,
       renderer: info,
     };
@@ -90,8 +108,7 @@ export function createDebugApi(opts: {
 
   if (opts.fixtures) {
     api.loadLevel = (id: string) => {
-      const def = levelById(id);
-      if (def) opts.session.loadLevel(def, true);
+      if (levelById(id)) opts.enterLevel(id);
     };
     api.launch = (angleDeg: number, speed: number) => opts.session.launch(angleDeg, speed);
     api.advance = (steps: number) => opts.loop.advance(steps);
@@ -111,6 +128,7 @@ export function createDebugApi(opts: {
       e.hp = Math.max(0.01, e.hp - amount);
       return true;
     };
+    api.sample = (x, y, w, h) => Array.from(opts.renderer.samplePixels(x, y, w, h));
   }
 
   return api;

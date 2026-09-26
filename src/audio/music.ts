@@ -11,6 +11,8 @@ export type NoteEvent = {
   gain: number;
   osc: OscillatorType;
   voice: MusicVoice;
+  /** percussion flavor: kick is a sine pitch-drop, shake is bandpassed noise */
+  drum?: 'kick' | 'shake';
 };
 
 export type MusicSequence = {
@@ -36,9 +38,10 @@ type TrackSpec = {
   bassOsc: OscillatorType;
   leadOct: number;
   melodyDensity: number;
-  bassEighths: boolean;
+  /** 'hold' = sustained root per bar, 'oompah' = staccato root–5th–octave–5th beats */
+  bass: 'hold' | 'oompah';
   arp: boolean;
-  perc: 'none' | 'beats' | 'eighths';
+  perc: 'none' | 'sparse' | 'beats' | 'eighths';
   gains: { lead: number; pad: number; bass: number; arp: number; perc: number };
 };
 
@@ -46,74 +49,77 @@ const MAJOR = [0, 2, 4, 5, 7, 9, 11];
 const MINOR = [0, 2, 3, 5, 7, 8, 10];
 const DORIAN = [0, 2, 3, 5, 7, 9, 10];
 
+/** Swung off-beat eighths sit ~59% into the beat pair (classic triplet swing). */
+const SWING = 0.59;
+
 const TRACKS: Record<MusicTrackId, TrackSpec> = {
   title: {
     seed: 0x71b1e,
     bpm: 88,
     bars: 24,
-    root: 261.63, // C4
+    root: 130.81, // C3
     scale: MAJOR,
     chords: [0, 5, 3, 4], // I vi IV V
-    leadOsc: 'triangle',
+    leadOsc: 'sine',
     padOsc: 'sine',
-    bassOsc: 'triangle',
-    leadOct: 1,
-    melodyDensity: 0.58,
-    bassEighths: false,
+    bassOsc: 'sine',
+    leadOct: 0,
+    melodyDensity: 0.4,
+    bass: 'hold',
     arp: false,
     perc: 'none',
-    gains: { lead: 0.3, pad: 0.1, bass: 0.22, arp: 0, perc: 0 },
+    gains: { lead: 0.17, pad: 0.11, bass: 0.24, arp: 0, perc: 0 },
   },
   training: {
     seed: 0x7a1d1e6,
     bpm: 126,
     bars: 32,
-    root: 196.0, // G3
+    root: 98.0, // G2
     scale: MAJOR,
     chords: [0, 3, 4, 3], // I IV V IV
-    leadOsc: 'square',
-    padOsc: 'triangle',
-    bassOsc: 'triangle',
-    leadOct: 1,
-    melodyDensity: 0.7,
-    bassEighths: true,
+    leadOsc: 'triangle',
+    padOsc: 'sine',
+    bassOsc: 'sine',
+    leadOct: 0,
+    melodyDensity: 0.45,
+    bass: 'oompah',
     arp: false,
     perc: 'beats',
-    gains: { lead: 0.2, pad: 0.08, bass: 0.2, arp: 0, perc: 0.12 },
+    gains: { lead: 0.12, pad: 0.09, bass: 0.22, arp: 0, perc: 0.1 },
   },
   workshop: {
     seed: 0xcc0ffee,
     bpm: 104,
     bars: 32,
-    root: 293.66, // D4
+    root: 146.83, // D3
     scale: DORIAN,
     chords: [0, 0, 3, 5], // i i IV VI
-    leadOsc: 'sawtooth',
-    padOsc: 'triangle',
-    bassOsc: 'square',
+    leadOsc: 'triangle',
+    padOsc: 'sine',
+    bassOsc: 'triangle',
     leadOct: 0,
-    melodyDensity: 0.5,
-    bassEighths: true,
+    melodyDensity: 0.38,
+    bass: 'oompah',
     arp: false,
     perc: 'eighths',
-    gains: { lead: 0.16, pad: 0.07, bass: 0.16, arp: 0, perc: 0.14 },
+    gains: { lead: 0.1, pad: 0.08, bass: 0.2, arp: 0, perc: 0.1 },
   },
   citadel: {
     seed: 0xdeadf00d,
     bpm: 76,
     bars: 24,
-    root: 220.0, // A3
+    root: 110.0, // A2
     scale: MINOR,
     chords: [0, 5, 3, 4], // i VI III VII
     leadOsc: 'sine',
-    padOsc: 'triangle',
+    padOsc: 'sine',
     bassOsc: 'sine',
-    leadOct: 1,
-    melodyDensity: 0.36,
-    bassEighths: false,
+    leadOct: 0,
+    melodyDensity: 0.35,
+    bass: 'hold',
     arp: true,
-    perc: 'beats',
-    gains: { lead: 0.2, pad: 0.09, bass: 0.18, arp: 0.11, perc: 0.06 },
+    perc: 'sparse',
+    gains: { lead: 0.12, pad: 0.1, bass: 0.2, arp: 0.09, perc: 0.06 },
   },
 };
 
@@ -124,11 +130,47 @@ function freqOf(root: number, scale: readonly number[], deg: number, oct = 0): n
   return root * Math.pow(2, semi / 12);
 }
 
-/** Deterministic generative track: pads + bass per bar, seeded melody walk, cadence on the final bar. */
+/** Seeded 2-bar melodic cell: eighth slots, each a note or a rest. */
+type MotifNote = { slot: number; len: number; deg: number; vel: number };
+
+function buildMotif(r: () => number, spec: TrackSpec, startDeg: number): MotifNote[] {
+  const l = spec.scale.length;
+  const lo = Math.floor(l / 2);
+  const hi = l + 4;
+  const notes: MotifNote[] = [];
+  let deg = startDeg;
+  let i = 0;
+  while (i < 16) {
+    if (r() < spec.melodyDensity) {
+      // a 2-slot note must stay inside its own bar — slot 7/15 can't lengthen
+      const len = i % 8 <= 6 && r() < 0.22 ? 2 : 1;
+      notes.push({ slot: i, len, deg, vel: 0.75 + r() * 0.35 });
+      i += len;
+      const step =
+        r() < 0.72 ? (r() < 0.5 ? -1 : 1) * (r() < 0.25 ? 2 : 1) : Math.floor(r() * 5) - 2;
+      deg = Math.max(lo, Math.min(hi, deg + step));
+    } else {
+      i += 1;
+    }
+  }
+  return notes;
+}
+
+/** Eighth-slot time within a bar; odd slots swing late. */
+function slotT(barStart: number, barDur: number, i: number): number {
+  const beat = barDur / 4;
+  return barStart + Math.floor(i / 2) * beat + (i % 2) * SWING * beat;
+}
+
+/**
+ * Deterministic generative track: pads + bass per bar, a seeded 2-bar melody
+ * motif repeated AABA over each 8-bar phrase, cadence on the final bar. The
+ * last phrase of each track drops the lead (pads + bass only).
+ */
 export function generateTrack(id: MusicTrackId): MusicSequence {
   const spec = TRACKS[id];
   const barDur = 240 / spec.bpm;
-  const eighth = barDur / 8;
+  const beat = barDur / 4;
   const duration = spec.bars * barDur;
   const events: NoteEvent[] = [];
   const g = spec.gains;
@@ -149,16 +191,19 @@ export function generateTrack(id: MusicTrackId): MusicSequence {
     }
     // Bass.
     const bassFreq = freqOf(spec.root, spec.scale, deg, -1);
-    if (spec.bassEighths) {
-      for (const [beat, d2] of [
+    if (spec.bass === 'oompah') {
+      // Staccato root–fifth–octave–fifth bounce, one note per beat.
+      for (const [b, d2] of [
         [0, 0],
-        [2, 4],
+        [1, 4],
+        [2, 7],
+        [3, 4],
       ] as const) {
         events.push({
-          t: t0 + (beat * barDur) / 4,
-          dur: (barDur / 4) * 0.9,
+          t: t0 + b * beat,
+          dur: beat * 0.5,
           freq: freqOf(spec.root, spec.scale, deg + d2, -1),
-          gain: g.bass,
+          gain: g.bass * (b === 0 ? 1 : 0.8),
           osc: spec.bassOsc,
           voice: 'bass',
         });
@@ -173,13 +218,14 @@ export function generateTrack(id: MusicTrackId): MusicSequence {
         voice: 'bass',
       });
     }
-    // Arpeggio on eighths, up-down over the bar.
+    // Arpeggio on swung eighths, up-down over the bar. Odd slots get the short
+    // (1-SWING) half of the beat so nothing overhangs the bar line.
     if (spec.arp) {
       const pat = [0, 2, 4, 7, 4, 2, 4, 7];
       for (let i = 0; i < 8; i++) {
         events.push({
-          t: t0 + i * eighth,
-          dur: eighth * 0.9,
+          t: slotT(t0, barDur, i),
+          dur: (i % 2 === 0 ? SWING : 1 - SWING) * beat * 0.9,
           freq: freqOf(spec.root, spec.scale, deg + pat[i]!),
           gain: g.arp * (i % 2 === 0 ? 1 : 0.7),
           osc: 'triangle',
@@ -187,63 +233,78 @@ export function generateTrack(id: MusicTrackId): MusicSequence {
         });
       }
     }
-    // Percussion ticks: band-passed noise at render time; freq is the band center.
+    // Percussion: soft sine kick pitch-drop on downbeats, quiet dark shaker
+    // (bandpassed noise ~2.8 kHz) on the swung off-beats.
     if (spec.perc !== 'none') {
-      const slots = spec.perc === 'eighths' ? 8 : 4;
-      for (let i = 0; i < slots; i++) {
-        const down = spec.perc === 'eighths' ? i === 0 || i === 4 : i === 0;
+      const kicks =
+        spec.perc === 'sparse' ? [0] : [0, 2]; // beat indices
+      for (const b of kicks) {
         events.push({
-          t: t0 + i * (barDur / slots),
-          dur: 0.05,
-          freq: i % 2 === 0 ? 5200 : 7200,
-          gain: g.perc * (down ? 1 : 0.55),
+          t: t0 + b * beat,
+          dur: 0.14,
+          freq: 140,
+          gain: g.perc,
           osc: 'sine',
           voice: 'perc',
+          drum: 'kick',
         });
+      }
+      if (spec.perc === 'eighths') {
+        for (const b of [0, 1, 2, 3]) {
+          events.push({
+            t: t0 + b * beat + SWING * beat,
+            dur: 0.05,
+            freq: 2800,
+            gain: g.perc * 0.4,
+            osc: 'sine',
+            voice: 'perc',
+            drum: 'shake',
+          });
+        }
       }
     }
   }
 
-  // Seeded melody walk on eighth slots, resolving to the root on the last bar.
+  // Melody: a seeded 2-bar motif played AABA per 8-bar phrase. The last phrase
+  // drops the lead entirely; the final bar cadences on the root.
   const r = rng(spec.seed);
   const l = spec.scale.length;
-  let deg = l + spec.chords[0]!;
-  const lo = Math.floor(l / 2);
-  const hi = l + 4;
-  const lastBarStart = (spec.bars - 1) * barDur;
+  const motifA = buildMotif(r, spec, l + spec.chords[0]!);
+  const motifB = buildMotif(r, spec, Math.floor(l / 2) + spec.chords[0]! + 4);
+  const phrases = spec.bars / 8;
   for (let bar = 0; bar < spec.bars; bar++) {
-    if (bar === spec.bars - 1) {
+    if (bar === spec.bars - 1) break;
+    const phrase = Math.floor(bar / 8);
+    if (phrase === phrases - 1) continue; // lead dropout: pads + bass only
+    const block = Math.floor((bar % 8) / 2);
+    const motif = block === 2 ? motifB : motifA; // A A B A
+    const blockStart = bar * barDur;
+    // The motif is 16 slots over 2 bars — slots 0..7 play on the even bar of
+    // each block, 8..15 on the odd bar.
+    for (const n of motif) {
+      const inBar = n.slot >= 8 ? 1 : 0;
+      if (inBar !== bar % 2) continue;
+      const s = n.slot - inBar * 8;
       events.push({
-        t: lastBarStart,
-        dur: barDur * 0.9,
-        freq: spec.root * 2,
-        gain: g.lead,
+        t: slotT(blockStart, barDur, s),
+        // len 2 spans a whole beat from an even slot; single odd slots get the
+        // short swing half so nothing overhangs the bar line
+        dur: (n.len === 2 ? beat : (s % 2 === 0 ? SWING : 1 - SWING) * beat) * 0.9,
+        freq: freqOf(spec.root, spec.scale, n.deg, spec.leadOct),
+        gain: g.lead * n.vel,
         osc: spec.leadOsc,
         voice: 'lead',
       });
-      break;
-    }
-    let i = 0;
-    while (i < 8) {
-      if (r() < spec.melodyDensity) {
-        const len = i <= 6 && r() < 0.22 ? 2 : 1;
-        events.push({
-          t: bar * barDur + i * eighth,
-          dur: len * eighth * 0.92,
-          freq: freqOf(spec.root, spec.scale, deg, spec.leadOct),
-          gain: g.lead * (0.75 + r() * 0.35),
-          osc: spec.leadOsc,
-          voice: 'lead',
-        });
-        i += len;
-        const step =
-          r() < 0.72 ? (r() < 0.5 ? -1 : 1) * (r() < 0.25 ? 2 : 1) : Math.floor(r() * 5) - 2;
-        deg = Math.max(lo, Math.min(hi, deg + step));
-      } else {
-        i += 1;
-      }
     }
   }
+  events.push({
+    t: (spec.bars - 1) * barDur,
+    dur: barDur * 0.9,
+    freq: spec.root * 2,
+    gain: g.lead,
+    osc: spec.leadOsc,
+    voice: 'lead',
+  });
 
   return { id, duration, loop: true, events };
 }
@@ -254,21 +315,29 @@ export function generateSting(id: StingId): MusicSequence {
   const push = (t: number, dur: number, freq: number, gain: number, osc: OscillatorType, voice: MusicVoice) =>
     events.push({ t, dur, freq, gain, osc, voice });
   if (id === 'victory') {
-    const run = [329.63, 392.0, 523.25, 659.25];
-    run.forEach((f, i) => push(i * 0.16, 0.42, f, 0.24, 'triangle', 'lead'));
+    const run = [164.81, 196.0, 261.63, 329.63]; // E3 G3 C4 E4
+    run.forEach((f, i) => push(i * 0.16, 0.42, f, 0.22, 'sine', 'lead'));
     const t0 = run.length * 0.16;
-    for (const f of [523.25, 659.25, 784.0]) {
-      push(t0, 1.9 - t0 * 0.4, f, 0.1, 'triangle', 'pad');
+    for (const f of [261.63, 329.63, 392.0]) {
+      push(t0, 1.9 - t0 * 0.4, f, 0.1, 'sine', 'pad');
     }
-    push(t0 + 0.02, 0.09, 7200, 0.08, 'sine', 'perc');
+    events.push({
+      t: t0 + 0.02,
+      dur: 0.09,
+      freq: 2800,
+      gain: 0.06,
+      osc: 'sine',
+      voice: 'perc',
+      drum: 'shake',
+    });
     return { id, duration: 2.6, loop: false, events };
   }
-  const run = [220.0, 174.61, 146.83];
-  run.forEach((f, i) => push(i * 0.5, 0.7, f, 0.28, 'triangle', 'lead'));
+  const run = [110.0, 87.31, 73.42]; // A2 F2 D2
+  run.forEach((f, i) => push(i * 0.5, 0.7, f, 0.26, 'sine', 'lead'));
   const t0 = run.length * 0.5;
-  push(t0, 1.6, 110.0, 0.3, 'sine', 'bass');
-  push(t0, 1.6, 220.0, 0.12, 'triangle', 'pad');
-  push(t0, 1.6, 261.63, 0.08, 'triangle', 'pad');
+  push(t0, 1.6, 55.0, 0.3, 'sine', 'bass');
+  push(t0, 1.6, 110.0, 0.12, 'sine', 'pad');
+  push(t0, 1.6, 130.81, 0.08, 'sine', 'pad');
   return { id, duration: 3.2, loop: false, events };
 }
 
@@ -335,6 +404,17 @@ export function scheduleEvents(
     envelope(g, t, e.dur, e.gain, e.voice);
     g.connect(dest);
     if (e.voice === 'perc') {
+      if (e.drum === 'kick') {
+        // Soft low kick: sine pitch-drop 140 → 50 Hz.
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(e.freq, t);
+        osc.frequency.exponentialRampToValueAtTime(50, t + 0.11);
+        osc.connect(g);
+        osc.start(t);
+        osc.stop(t + Math.max(e.dur, 0.14));
+        continue;
+      }
       const src = ctx.createBufferSource();
       src.buffer = noiseBuffer(ctx);
       const bp = ctx.createBiquadFilter();
@@ -356,9 +436,21 @@ export function scheduleEvents(
   }
 }
 
+/** Warm lowpass on the music bus — same corner in live and offline paths. */
+export const MUSIC_LP_HZ = 2000;
+
+export function musicLowpass(ctx: BaseAudioContext): BiquadFilterNode {
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = MUSIC_LP_HZ;
+  lp.Q.value = 0.6;
+  return lp;
+}
+
 /**
  * Renders a sequence offline into an AudioBuffer, master gain normalized so the
- * gain-sum bound stays ≤0.85 (headroom below the 0.9 clip ceiling).
+ * gain-sum bound stays ≤0.85 (headroom below the 0.9 clip ceiling), through the
+ * same music-bus lowpass as the live path.
  */
 export async function renderMusicBuffer(
   seq: MusicSequence,
@@ -369,7 +461,9 @@ export async function renderMusicBuffer(
   const ctx = new OfflineAudioContext(1, frames, sampleRate);
   const master = ctx.createGain();
   master.gain.value = Math.min(1, 0.85 / Math.max(0.01, sequencePeakBound(seq)));
-  master.connect(ctx.destination);
+  const lp = musicLowpass(ctx);
+  master.connect(lp);
+  lp.connect(ctx.destination);
   scheduleEvents(ctx, seq, master);
   try {
     return await ctx.startRendering();

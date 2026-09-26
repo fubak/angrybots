@@ -70,6 +70,7 @@ export class Renderer {
   private fpsSamples: number[] = [];
   private lastFpsSample = 0;
   private lastFrameAt = 0;
+  frameCount = 0;
   private clock = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -99,6 +100,11 @@ export class Renderer {
 
   setChapter(chapter: string): void {
     this.scenery.setChapter(chapter);
+  }
+
+  /** Deterministic parallax reference — pass the view the camera will start at. */
+  anchorParallax(view: View): void {
+    this.scenery.setParallaxAnchor(view);
   }
 
   setTerrain(pieces: LevelV2['terrain']): void {
@@ -159,6 +165,35 @@ export class Renderer {
   /** World positions of queued bots (for bonus popups). */
   queuePositions(): readonly { x: number; y: number }[] {
     return this.slingView.queuePositions();
+  }
+
+  /** Loaded pouch bot's world position, if shown. */
+  loadedPos(): { x: number; y: number } | null {
+    return this.slingView.loadedPos();
+  }
+
+  /** Hopper transform while the queue→pouch hop plays (debug snapshot). */
+  hopperPose(): { x: number; y: number; sx: number; sy: number; rot: number; t: number } | null {
+    return this.slingView.hopperPose();
+  }
+
+  /**
+   * Fixture hook: render once into the drawing buffer and read back a rect of
+   * it (canvas CSS-pixel coordinates, top-left origin). Tests use this to
+   * assert rendered bot colors without trusting a stale presented frame.
+   */
+  samplePixels(x: number, y: number, w: number, h: number): Uint8ClampedArray {
+    this.renderer.render(this.scene, this.camera);
+    const src = this.domElement;
+    const box = src.getBoundingClientRect();
+    const kx = src.width / Math.max(1, box.width);
+    const ky = src.height / Math.max(1, box.height);
+    const off = document.createElement('canvas');
+    off.width = Math.max(1, Math.round(w * kx));
+    off.height = Math.max(1, Math.round(h * ky));
+    const ctx = off.getContext('2d')!;
+    ctx.drawImage(src, x * kx, y * ky, w * kx, h * ky, 0, 0, off.width, off.height);
+    return ctx.getImageData(0, 0, off.width, off.height).data;
   }
 
   /** Pop pulse on a live shot bot — driven by the sim 'bot:ability' event. */
@@ -470,10 +505,15 @@ export class Renderer {
       }
     }
     this.juice.update(frameDt);
-    this.scenery.lookAt(this.focus.x, this.focus.y, frameDt);
-    this.scenery.update(frameDt);
+    // Reduced motion stills ambient scenery (cloud drift, gaze, blink) so
+    // screenshots and motion-sensitive users get a static frame.
+    if (!this.reducedMotion) {
+      this.scenery.lookAt(this.focus.x, this.focus.y, frameDt);
+      this.scenery.update(frameDt);
+    }
     this.renderer.info.reset();
     this.renderer.render(this.scene, this.camera);
+    this.frameCount += 1;
     const now = performance.now();
     if (this.lastFrameAt > 0) {
       const wall = (now - this.lastFrameAt) / 1000;

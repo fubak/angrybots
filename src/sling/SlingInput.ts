@@ -79,6 +79,10 @@ export class SlingInput {
 
   private onDown = (e: PointerEvent) => {
     if (this.blocked()) return;
+    if (this.session.getState() === 'intro') {
+      this.session.skipIntro();
+      return;
+    }
     if (this.session.getState() === 'flight') {
       if (this.suppressed()) return;
       this.session.activateAbility();

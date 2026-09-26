@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { BotKind } from '../levels/schema';
+import { PALETTE } from '../config/render';
 import { STICKER_BY_ID, type StickerArt } from './botArt.generated';
 
 // Official GrokBot sticker set (user-supplied). Gameplay kinds map to these
@@ -28,24 +29,43 @@ export function botStickerArt(kind: BotKind): StickerArt {
 // ---------------------------------------------------------------------------
 // Pure canvas painting (also used by tools/bot-composite.html in the browser)
 
-export function paintBacking(ctx: CanvasRenderingContext2D, art: StickerArt): void {
-  ctx.fillStyle = '#ffffff';
+function silhouettePath(art: StickerArt): Path2D {
   if (art.backing.circle) {
     const [cx, cy, r] = art.backing.circle;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    ctx.fill(new Path2D(art.backing.d!));
+    const p = new Path2D();
+    p.arc(cx, cy, r, 0, Math.PI * 2);
+    return p;
   }
+  return new Path2D(art.backing.d!);
 }
 
+export function paintBacking(ctx: CanvasRenderingContext2D, art: StickerArt): void {
+  ctx.fillStyle = '#ffffff';
+  ctx.fill(silhouettePath(art));
+}
+
+/**
+ * Scale of the white rim + body inside the dark outline — the difference is
+ * the outline ring. The body's bodyColor (e.g. heavy's #98693d) can sit within
+ * a few RGB points of the dirt/sling wood behind the pouch; without a dark
+ * edge the sticker reads as transparent — white rim + eyes floating on soil.
+ */
+export const STICKER_INSET = 0.9;
+
 export function paintBodyLayer(ctx: CanvasRenderingContext2D, art: StickerArt): void {
-  paintBacking(ctx, art);
+  ctx.fillStyle = PALETTE.outline;
+  ctx.fill(silhouettePath(art));
+  ctx.save();
+  ctx.translate(art.vbW / 2, art.vbH / 2);
+  ctx.scale(STICKER_INSET, STICKER_INSET);
+  ctx.translate(-art.vbW / 2, -art.vbH / 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill(silhouettePath(art));
   ctx.fillStyle = art.bodyColor;
   ctx.fill(new Path2D(art.body));
   ctx.fillStyle = '#ffffff';
   for (const ex of art.extras) ctx.fill(new Path2D(ex.d));
+  ctx.restore();
 }
 
 /** White eye shapes only. eyeSY < 1 squeezes lids (blink/hurt/happy). */
