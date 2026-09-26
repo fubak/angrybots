@@ -1,4 +1,12 @@
 import { iconSvg, iconButton } from './icons';
+import {
+  BOT_STICKER,
+  MENU_STICKERS,
+  eyePadBox,
+  stickerArt,
+  stickerEyesImage,
+  stickerImage,
+} from '../render/botArt';
 
 export type TitleActions = {
   play: () => void;
@@ -8,8 +16,29 @@ export type TitleActions = {
   credits: () => void;
 };
 
+function lineupBot(id: string, front: boolean, i: number): HTMLElement {
+  const art = stickerArt(id);
+  const b = document.createElement('div');
+  b.className = `lineup-bot${front ? ' front' : ''}`;
+  b.style.setProperty('--i', String(i));
+  const body = document.createElement('img');
+  body.src = stickerImage(id);
+  body.alt = '';
+  const eyes = document.createElement('img');
+  eyes.className = 'eyes';
+  eyes.src = stickerEyesImage(id);
+  eyes.alt = '';
+  const pb = eyePadBox(art);
+  eyes.style.left = `${(pb[0] / art.vbW) * 100}%`;
+  eyes.style.top = `${(pb[1] / art.vbH) * 100}%`;
+  eyes.style.width = `${(pb[2] / art.vbW) * 100}%`;
+  b.append(body, eyes);
+  return b;
+}
+
 export class TitleScreen {
   readonly el: HTMLElement;
+  private readonly lineup: HTMLElement;
   private readonly starsEl: HTMLElement;
   private readonly achvLabel: HTMLElement;
   private readonly dailyLabel: HTMLElement;
@@ -52,6 +81,19 @@ export class TitleScreen {
     this.starsEl = this.el.querySelector('.title-stars')!;
     this.el.append(play, daily, secondary);
     parent.appendChild(this.el);
+
+    // Animated lineup: all 12 official stickers, the 5 playable bots in front.
+    this.lineup = document.createElement('div');
+    this.lineup.className = 'title-lineup';
+    this.lineup.setAttribute('aria-hidden', 'true');
+    const back = document.createElement('div');
+    back.className = 'lineup-row back';
+    MENU_STICKERS.forEach((id, i) => back.appendChild(lineupBot(id, false, i)));
+    const front = document.createElement('div');
+    front.className = 'lineup-row front';
+    Object.values(BOT_STICKER).forEach((id, i) => front.appendChild(lineupBot(id, true, i)));
+    this.lineup.append(back, front);
+    parent.appendChild(this.lineup);
   }
 
   setDaily(levelName: string): void {
@@ -65,9 +107,11 @@ export class TitleScreen {
 
   hide(): void {
     this.el.style.display = 'none';
+    this.lineup.style.display = 'none';
   }
 
   show(): void {
     this.el.style.display = 'flex';
+    this.lineup.style.display = 'flex';
   }
 }

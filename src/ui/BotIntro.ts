@@ -43,8 +43,11 @@ export class BotIntro {
     lines[1]!.textContent = tip.hint;
     const ctx = this.canvas.getContext('2d');
     if (ctx) {
+      const w = (faceImage as HTMLCanvasElement).width || 512;
+      const h = (faceImage as HTMLCanvasElement).height || 512;
+      const s = Math.min(512 / w, 512 / h);
       ctx.clearRect(0, 0, 512, 512);
-      ctx.drawImage(faceImage, 0, 0, 512, 512);
+      ctx.drawImage(faceImage, (512 - w * s) / 2, (512 - h * s) / 2, w * s, h * s);
     }
     this.onDone = onDone;
     this.visible = true;

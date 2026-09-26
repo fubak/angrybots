@@ -1,6 +1,31 @@
 import { ACHIEVEMENTS, type AchievementSave } from '../game/achievements';
 import type { LevelRef } from '../game/progression';
-import { iconButton, iconSvg } from './icons';
+import { iconButton } from './icons';
+import { stickerImage } from '../render/botArt';
+
+/** Sticker badge per achievement (official sticker set ids 01–12). */
+export const ACHV_STICKER: Record<string, string> = {
+  'first-win': '01',
+  'three-star': '09',
+  'chapter-1': '03',
+  'chapter-2': '10',
+  'chapter-3': '04',
+  perfectionist: '12',
+  'one-shot': '08',
+  demolition: '05',
+  'combo-10': '07',
+  'tnt-chain': '02',
+  untouched: '06',
+  'flagship-down': '11',
+  'glass-smith': '10',
+  lumberjack: '06',
+  stonebreaker: '04',
+  'no-skip': '12',
+};
+
+export function achievementBadge(id: string): string {
+  return stickerImage(ACHV_STICKER[id] ?? '01');
+}
 
 export class AchievementsScreen {
   readonly el: HTMLElement;
@@ -41,7 +66,7 @@ export class AchievementsScreen {
       row.className = `achv-row${done ? '' : ' locked'}`;
       const prog = a.progress?.(save, levels);
       row.innerHTML = `
-        <span aria-hidden="true">${iconSvg(done ? 'trophy' : 'lock', 26)}</span>
+        <img class="achv-badge" alt="" src="${achievementBadge(a.id)}">
         <div style="flex:1">
           <div class="achv-name">${a.name}</div>
           <div class="achv-desc">${a.desc}</div>

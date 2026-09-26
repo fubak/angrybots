@@ -440,6 +440,77 @@ body,
   animation: ui-pop 0.3s 0.62s both;
 }
 
+/* Sticker lineup on the title screen — all 12 official bots, playable in front. */
+.title-lineup {
+  position: fixed;
+  left: 50%;
+  bottom: max(3.5%, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 5;
+  pointer-events: none;
+  animation: ui-pop 0.4s 0.7s both;
+}
+
+.lineup-row {
+  display: flex;
+  align-items: flex-end;
+}
+
+.lineup-row.back {
+  gap: 6px;
+  margin-bottom: -16px;
+}
+
+.lineup-row.front {
+  gap: 14px;
+}
+
+.lineup-bot {
+  position: relative;
+  height: 64px;
+  animation: lineup-bob 2.6s ease-in-out calc(var(--i) * 0.17s) infinite;
+}
+
+.lineup-bot > img:first-child {
+  height: 100%;
+  display: block;
+}
+
+.lineup-bot > img.eyes {
+  position: absolute;
+  height: auto;
+  transform-origin: 50% 50%;
+  animation: lineup-blink 3.4s linear calc(var(--i) * 0.61s) infinite;
+}
+
+.lineup-row.back .lineup-bot {
+  height: 44px;
+}
+
+@keyframes lineup-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes lineup-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.12);
+  }
+}
+
 .hud-banner {
   position: absolute;
   left: 50%;
@@ -666,6 +737,14 @@ body,
   .title-card .title-stars { font-size: 15px; }
   .title-card .ui-btn.title-play { font-size: 22px; padding: 10px 40px; border-radius: 14px; margin-top: 0; }
 
+  /* Park the lineup in the right margin so it stays clear of the title card
+     and its buttons (card is centered; lineup sits at z-5, under the card). */
+  .title-lineup { left: auto; right: 6px; bottom: 5px; transform: none; }
+  .lineup-bot { height: 30px; }
+  .lineup-row.back .lineup-bot { height: 20px; }
+  .lineup-row.back { margin-bottom: -6px; gap: 3px; }
+  .lineup-row.front { gap: 5px; }
+
   .lvl-node {
     width: 44px;
     height: 44px;
@@ -791,6 +870,12 @@ body,
   background: linear-gradient(#6b5b95, #4a3d6e);
   box-shadow: 0 4px 0 #2e2547;
   text-shadow: 1px 1px 0 #23180f;
+}
+
+.ui-toast .toast-badge {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
 }
 
 /* ---- results ---- */
@@ -950,6 +1035,17 @@ body,
   opacity: 0.55;
 }
 
+.achv-badge {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  flex: none;
+}
+
+.achv-row.locked .achv-badge {
+  filter: grayscale(0.9);
+}
+
 .achv-row .achv-name {
   font-weight: 800;
 }
@@ -1018,6 +1114,8 @@ body,
   .title-card .tagline,
   .title-card .ui-btn.title-play,
   .title-secondary,
+  .title-lineup,
+  .lineup-bot,
   .ui-toast,
   .results-ribbon,
   .star.on {

@@ -16,8 +16,9 @@ import { SoundBank } from '../audio/SoundBank';
 import { createDebugApi } from '../debug/DebugApi';
 import { effectiveReducedMotion } from './motion';
 import { achievementById } from '../game/achievements';
+import { achievementBadge } from '../ui/Achievements';
 import { firstUnseenBotInQueue } from '../bots/tutorialTips';
-import { botFaces } from '../render/illustrations';
+import { botStickerCanvas } from '../render/botArt';
 import { RotatePrompt } from '../ui/RotatePrompt';
 import { Splash } from '../ui/Splash';
 import { type View } from '../camera/fitRect';
@@ -441,7 +442,7 @@ export class App {
         this.screens.hud.hide();
         for (const id of this.runUnlocks) {
           const name = achievementById(id)?.name ?? id;
-          this.screens.toast(name, 'achv');
+          this.screens.toast(name, 'achv', achievementBadge(id));
         }
       }
     }
@@ -449,7 +450,8 @@ export class App {
     if (state === 'aim' && this.pendingBotCard) {
       const kind = this.pendingBotCard;
       this.pendingBotCard = null;
-      const face = botFaces(kind).idle.image as CanvasImageSource;
+      const face = botStickerCanvas(kind);
+      if (!face) return;
       this.screens.botIntro.show(kind, face, () => {
         this.save.markTutorialSeen(kind);
         this.syncSimulationPause();
@@ -502,6 +504,7 @@ export class App {
     this.syncSimulationPause();
     // Hit-stop and collapse slow-motion scale the sim clock; render keeps running.
     const rm = effectiveReducedMotion(this.save.settings.reducedMotion);
+    this.renderer.reducedMotion = rm;
     this.fx.hitStopLeft = Math.max(0, this.fx.hitStopLeft - frameDt);
     this.fx.slowMoLeft = Math.max(0, this.fx.slowMoLeft - frameDt);
     this.loop.timeScale = rm ? 1 : this.fx.hitStopLeft > 0 ? 0 : this.fx.slowMoLeft > 0 ? 0.6 : 1;

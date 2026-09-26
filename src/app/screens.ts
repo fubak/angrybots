@@ -5,7 +5,8 @@ import type { SoundBank } from '../audio/SoundBank';
 import { allLevels, nextLevel } from '../levels/registry';
 import { CHAPTERS } from '../levels/chapters';
 import { currentLevelId, PROGRESSION } from '../game/progression';
-import { botFaces, pigFaces } from '../render/illustrations';
+import { pigFaces } from '../render/illustrations';
+import { botStickerImage } from '../render/botArt';
 import { iconSvg } from '../ui/icons';
 import { Hud } from '../ui/Hud';
 import { PauseMenu } from '../ui/PauseMenu';
@@ -38,9 +39,7 @@ type ScreensDeps = {
 };
 
 export function botImage(kind: string): string {
-  const tex = botFaces(kind).idle;
-  const img = tex.image as HTMLCanvasElement;
-  return img?.toDataURL?.() ?? '';
+  return botStickerImage(kind as Parameters<typeof botStickerImage>[0]);
 }
 
 export function pigImage(): string {
@@ -219,10 +218,13 @@ export class AppScreens {
     );
   }
 
-  toast(text: string, cls = ''): void {
+  toast(text: string, cls = '', badgeUrl = ''): void {
     const el = document.createElement('div');
     el.className = `ui-toast ${cls}`.trim();
-    el.innerHTML = `${iconSvg('trophy', 20)}<span></span>`;
+    const icon = badgeUrl
+      ? `<img class="toast-badge" alt="" src="${badgeUrl}">`
+      : iconSvg('trophy', 20);
+    el.innerHTML = `${icon}<span></span>`;
     el.querySelector('span')!.textContent = text;
     this.uiRoot.appendChild(el);
     window.setTimeout(() => el.remove(), 2500);
