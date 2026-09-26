@@ -93,7 +93,7 @@ function tower(out: BlockV2[], cx: number, floorY: number, tiers: number, o: {
   return y;
 }
 
-type Built = { blocks: BlockV2[]; pigs: PigV2[]; terrain: TerrainV2[]; maxX: number; maxY: number };
+type Built = { blocks: BlockV2[]; pigs: PigV2[]; terrain: TerrainV2[] };
 type Spec = {
   file: string; id: string; name: string; chapter: 'training' | 'workshop' | 'citadel';
   order: number; archetype: string; bots: BotKind[]; hint?: string;
@@ -117,7 +117,7 @@ const specs: Spec[] = [
       stack(b, 9.6, 2.0, 1, 'glass', 'cubeS');                   // 1 caps on the foot stacks
       stack(b, 13.2, 2.0, 1, 'glass', 'cubeS');                  // 1 => 12
       const pigs = [P('M', 10.8, r + 0.8), P('S', 12.0, r + 0.8)];
-      return { blocks: b, pigs, terrain: [], maxX: 16, maxY: 8 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -135,7 +135,7 @@ const specs: Spec[] = [
       b.push(B('wood', 'slab', 9.2, 1.6));                        // 1
       b.push(B('wood', 'cubeS', 9.9, 0));                         // 1 => 14
       const pigs = [P('M', 11.4, 0), P('S', 13.8, 2.8), P('S', 9.2, 2.4)];
-      return { blocks: b, pigs, terrain: [], maxX: 17, maxY: 9 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -153,7 +153,7 @@ const specs: Spec[] = [
       stack(b, 10.9, 2.4, 3, 'wood');                                   // 3 (on the stone span ends)
       stack(b, 13.9, 2.4, 3, 'wood');                                   // 3 => 14
       const pigs = [P('S', 12.4, 0), P('S', 12.4, 4.8), P('S', 10.9, 4.8), P('S', 13.9, 4.8)];
-      return { blocks: b, pigs, terrain: [], maxX: 17, maxY: 9 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -168,7 +168,7 @@ const specs: Spec[] = [
         b.push(B('stone', 'plankM', x, 1.6));                         // 1
       }
       const pigs = [P('S', 9.6, 2.0), P('S', 12.6, 2.0), P('S', 15.6, 2.0), P('S', 18.2, 2.0)];
-      return { blocks: b, pigs, terrain: [], maxX: 20, maxY: 8 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -188,7 +188,7 @@ const specs: Spec[] = [
       stack(b, 15.0, r2 + 0.8, 1, 'stone', 'cubeS');                   // 1
       b.push(B('wood', 'cubeS', 15.0, r2 + 1.2));                      // 1 => 15
       const pigs = [P('M', 11.9, 1.6), P('M', 15.0, 1.6), P('S', 13.4, 4.8)];
-      return { blocks: b, pigs, terrain, maxX: 18, maxY: 9 };
+      return { blocks: b, pigs, terrain };
     },
   },
   {
@@ -205,7 +205,7 @@ const specs: Spec[] = [
       cell(b, 9.8, 0, { h: 'postM', wall: 'stone', roof: 'stone' });   // 3 armored side bunkers
       cell(b, 15.0, 0, { h: 'postM', wall: 'stone', roof: 'stone' });  // 3 => 15
       const pigs = [P('S', 12.4, r1 + 3.2), P('M', 12.4, 0), P('S', 9.8, 0), P('S', 15.0, 0)];
-      return { blocks: b, pigs, terrain: [], maxX: 18, maxY: 10 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -220,7 +220,7 @@ const specs: Spec[] = [
       stack(b, 11.6, br.deckY + 0.8, 1, 'glass');                      // 1 => 13
       stack(b, 15.6, br.deckY + 0.8, 1, 'glass');                      // 1 => 14
       const pigs = [P('S', 11.6, br.deckY + 1.6), P('M', 13.2, br.deckY), P('S', 14.2, br.deckY), P('S', 15.6, br.deckY + 1.6)];
-      return { blocks: b, pigs, terrain: [], maxX: 20, maxY: 8 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -237,7 +237,7 @@ const specs: Spec[] = [
         b.push(B('wood', 'slab', cx, r1 + 1.2));                       // 1 (rests on both postS tops; slab is 0.8 tall) => 7 per fort = 14
       }
       const pigs = [P('M', 10.6, 0), P('M', 13.8, 0), P('S', 10.6, 2.4), P('S', 13.8, 2.4), P('S', 10.6, 4.4)];
-      return { blocks: b, pigs, terrain: [], maxX: 17, maxY: 9 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -258,7 +258,7 @@ const specs: Spec[] = [
       b.push(B('stone', 'plankS', 15.6, 2.4));                         // 1
       stack(b, 13.1, 4.4, 1, 'wood');                                  // 1 => 18
       const pigs = [P('M', 9.8, 0), P('S', 9.8, t), P('S', 13.55, 0), P('M', 15.6, 2.8)];
-      return { blocks: b, pigs, terrain: [], maxX: 18, maxY: 9 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -280,7 +280,7 @@ const specs: Spec[] = [
       const pigs = [
         P('M', 8.8, 0), P('M', 13.6, 0), P('S', 18.4, 0),
       ];
-      return { blocks: b, pigs, terrain: [], maxX: 22, maxY: 10 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   // ==================== WORKSHOP (20-45 blocks; finale = 45) ====================
@@ -300,7 +300,7 @@ const specs: Spec[] = [
       stack(b, 9.4, l + 2.4, 1, 'wood', 'cubeS');                    // 1
       stack(b, 15.4, rr + 2.4, 1, 'wood', 'cubeS');                  // 1 => 21
       const pigs = [P('M', 12.4, 0), P('M', 9.4, 0), P('M', 15.4, 0), P('S', 12.4, r + 3.2)];
-      return { blocks: b, pigs, terrain: [], maxX: 19, maxY: 11 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -315,7 +315,7 @@ const specs: Spec[] = [
       stack(b, 8.8, 0, 3, 'wood');                                   // 3
       stack(b, 16.0, 0, 3, 'wood');                                  // 3 => 22
       const pigs = [P('M', 10.4, 0), P('M', 14.4, 0), P('S', 9.9, t1), P('S', 14.9, t2), P('S', 12.4, 3.6)];
-      return { blocks: b, pigs, terrain: [], maxX: 19, maxY: 10 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -341,7 +341,7 @@ const specs: Spec[] = [
       b.push(B('glass', 'cubeS', 16.2, 2.6));                        // 1
       stack(b, 16.2, 3.0, 1, 'wood', 'cubeS');                       // 1 => 20
       const pigs = [P('M', 14.8, 1.8), P('M', 17.6, 1.8), P('S', 14.8, 5.0), P('S', 17.6, 5.0)];
-      return { blocks: b, pigs, terrain, maxX: 21, maxY: 9 };
+      return { blocks: b, pigs, terrain };
     },
   },
   {
@@ -362,7 +362,7 @@ const specs: Spec[] = [
       b.push(B('wood', 'plankS', 16.7, 4.6));                        // 1
       stack(b, 15.2, k + 2.0, 1, 'wood', 'cubeS');                   // 1 => 24
       const pigs = [P('M', 9.2, 0), P('M', 12.0, 0), P('S', 9.2, t1), P('M', 15.2, 3.0), P('S', 16.7, 5.0)];
-      return { blocks: b, pigs, terrain, maxX: 20, maxY: 10 };
+      return { blocks: b, pigs, terrain };
     },
   },
   {
@@ -384,7 +384,7 @@ const specs: Spec[] = [
       const pigs = [
         P('S', 9.3, 0.8), P('S', 10.4, 4.0), P('M', 11.825, 4.0), P('S', 13.25, 4.0), P('S', 16.9, 0.8),
       ];
-      return { blocks: b, pigs, terrain: [], maxX: 20, maxY: 10 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -408,7 +408,7 @@ const specs: Spec[] = [
       stack(b, 8.0, 0, 3, 'wood');                                     // ground fillers beside the bridge
       stack(b, 20.0, 0, 3, 'wood');                                    // => 20
       const pigs = [P('M', 12.0, 0), P('M', 16.0, 0), P('S', 12.0, 4.8), P('S', 16.0, 4.8), P('S', 14.0, 4.0)];
-      return { blocks: b, pigs, terrain: [], maxX: 21, maxY: 10 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -434,7 +434,7 @@ const specs: Spec[] = [
         P('M', 11.0, 0, { helmet: 'helmet' }), P('S', 11.0, r + 1.2, { helmet: 'hat' }),
         P('M', 16.0, 2.0, { helmet: 'helmet' }), P('S', 16.0, c + 1.6), P('S', 17.8, 4.4), P('S', 12.6, 2.4),
       ];
-      return { blocks: b, pigs, terrain, maxX: 21, maxY: 10 };
+      return { blocks: b, pigs, terrain };
     },
   },
   {
@@ -456,7 +456,7 @@ const specs: Spec[] = [
       stack(b, 9.4, t1, 1, 'wood', 'slab');                            // 1 cap slabs: flat seats
       stack(b, 15.8, t2, 1, 'wood', 'slab');                           // 1 => 22
       const pigs = [P('M', 13.25, 0), P('S', 12.6, 5.2), P('M', 9.4, 0), P('M', 15.8, 0), P('S', 15.8, t2 + 0.8)];
-      return { blocks: b, pigs, terrain: [], maxX: 19, maxY: 10 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -475,7 +475,7 @@ const specs: Spec[] = [
         P('S', 10.5, 2.8), P('M', 12.0, 2.8), P('S', 15.0, 2.8),
         P('S', 19.0, 2.8), P('S', 20.5, 2.8), P('S', 16.5, 2.8),
       ];
-      return { blocks: b, pigs, terrain: [], maxX: 24, maxY: 12 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -506,7 +506,7 @@ const specs: Spec[] = [
         P('M', 12.6, 0, { helmet: 'helmet' }), P('S', 13.3, 3.2), P('S', 9.6, 3.2),
         P('S', 15.6, 3.2), P('S', 7.0, 2.4), P('S', 18.2, 2.4),
       ];
-      return { blocks: b, pigs, terrain: [], maxX: 22, maxY: 12 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   // ==================== CITADEL (30-60 blocks; finale = 60) ====================
@@ -532,7 +532,7 @@ const specs: Spec[] = [
         P('L', 12.6, 0, { king: true }), P('M', 8.8, 0), P('M', 16.4, 0),
         P('S', 8.8, g1 + 2.4), P('S', 16.4, g2 + 2.4),
       ];
-      return { blocks: b, pigs, terrain: [], maxX: 20, maxY: 12 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -556,7 +556,7 @@ const specs: Spec[] = [
         P('S', 10.9, 0), P('S', 8.8, t1), P('S', 13.0, t2),
         P('M', 17.4, 2.6), P('S', 17.4, lk + 2.4),
       ];
-      return { blocks: b, pigs, terrain, maxX: 22, maxY: 10 };
+      return { blocks: b, pigs, terrain };
     },
   },
   {
@@ -581,7 +581,7 @@ const specs: Spec[] = [
       stack(b, 9.0, 0, 3, 'wood');                                   // 3 ground guards
       stack(b, 17.0, 0, 3, 'wood');                                  // 3 => 32
       const pigs = [P('S', 11.9, 4.8), P('M', 14.1, 4.8), P('S', 11.9, 7.2), P('S', 10.0, 3.2), P('S', 16.0, 3.2)];
-      return { blocks: b, pigs, terrain, maxX: 20, maxY: 11 };
+      return { blocks: b, pigs, terrain };
     },
   },
   {
@@ -605,7 +605,7 @@ const specs: Spec[] = [
         P('S', 10.9, 2.4), P('M', 13.6, 2.4), P('S', 16.3, 3.2),
         P('S', 17.2, 2.4), P('S', 19.4, 0.8), P('S', 9.0, 0.8),
       ];
-      return { blocks: b, pigs, terrain: [], maxX: 22, maxY: 10 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -630,7 +630,7 @@ const specs: Spec[] = [
         P('M', 12.6, 0), P('M', 16.6, 0), P('M', 19.6, 0),
         P('S', 9.4, t1 + 1.6), P('S', 16.6, t3 + 1.6),
       ];
-      return { blocks: b, pigs, terrain: [], maxX: 23, maxY: 10 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -646,7 +646,7 @@ const specs: Spec[] = [
         P('M', 13.0, br.deckY), P('M', 17.0, br.deckY), P('S', 16.0, br.deckY),
         P('M', 10.5, br.deckY), P('S', 19.0, br.deckY),
       ];
-      return { blocks: b, pigs, terrain, maxX: 24, maxY: 12 };
+      return { blocks: b, pigs, terrain };
     },
   },
   {
@@ -669,7 +669,7 @@ const specs: Spec[] = [
         P('L', 11.9, 0, { king: true }), P('S', 12.4, v),
         P('M', 9.65, 3.2), P('M', 14.9, 3.2), P('S', 8.2, t1), P('S', 16.6, t2),
       ];
-      return { blocks: b, pigs, terrain: [], maxX: 20, maxY: 12 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -699,7 +699,7 @@ const specs: Spec[] = [
         P('M', 16.0, 3.0), P('S', 17.6, 7.4, { helmet: 'hat' }), P('S', 12.6, 3.6),
         P('S', 13.6, 4.0),
       ];
-      return { blocks: b, pigs, terrain, maxX: 21, maxY: 12 };
+      return { blocks: b, pigs, terrain };
     },
   },
   {
@@ -719,7 +719,7 @@ const specs: Spec[] = [
         P('M', 9.2, 0), P('M', 12.3, 0), P('M', 15.4, 0), P('M', 19.0, 0),
         P('S', 9.2, t1), P('S', 17.4, 1.6),
       ];
-      return { blocks: b, pigs, terrain: [], maxX: 24, maxY: 12 };
+      return { blocks: b, pigs, terrain: [] };
     },
   },
   {
@@ -758,13 +758,14 @@ const specs: Spec[] = [
         P('M', 20.4, 1.4), P('S', 22.2, 4.6),
       ];
       const terrain: TerrainV2[] = [{ kind: 'plateau', x0: 19.4, x1: 22.6, top: 1.4 }];
-      return { blocks: b, pigs, terrain, maxX: 26, maxY: 13 };
+      return { blocks: b, pigs, terrain };
     },
   },
 ];
 
 // ---------- emit + audit ----------
-import { validateStatic } from '../src/levels/validate';
+import { blockAabb, validateStatic } from '../src/levels/validate';
+import { expandLevel } from '../src/levels/expand';
 import { Level } from '../src/game/Level';
 import { Vec2 as PVec2 } from 'planck';
 
@@ -831,13 +832,29 @@ for (let i = 0; i < specs.length; i++) {
     order: s.order,
     bots: s.bots,
     stars: [1, 2, 3],
-    camera: { minX: -11, maxX: built.maxX, minY: 0, maxY: built.maxY },
+    camera: { minX: -11, maxX: 0, minY: 0, maxY: 0 },
     sling: { x: -7.5 },
     terrain: built.terrain,
     blocks: built.blocks,
     pigs: built.pigs,
   };
   if (s.hint) level.hint = s.hint;
+
+  // camera bounds = real block/pig extents + 0.5 margin, rounded up
+  const expanded = expandLevel(level);
+  let extentX = -Infinity;
+  let extentY = -Infinity;
+  for (const eb of expanded.blocks) {
+    const [, , x1, y1] = blockAabb(eb);
+    extentX = Math.max(extentX, x1);
+    extentY = Math.max(extentY, y1);
+  }
+  for (const ep of expanded.pigs) {
+    extentX = Math.max(extentX, ep.cx + ep.r);
+    extentY = Math.max(extentY, ep.cy + ep.r);
+  }
+  level.camera.maxX = Math.ceil(extentX + 0.5);
+  level.camera.maxY = Math.ceil(extentY + 0.5);
 
   for (const e of validateStatic(level)) err(`${s.id}: STATIC ${e}`);
 

@@ -12,10 +12,11 @@ type SolutionEntry = {
 const EPS = 0.002;
 const SUPPORT_Y = 0.003;
 const SUPPORT_X = 0.05;
+const CAMERA_MARGIN = 0.5;
 
 type Vec = { x: number; y: number };
 
-function blockAabb(b: ExpandedBlock): [number, number, number, number] {
+export function blockAabb(b: ExpandedBlock): [number, number, number, number] {
   if (b.shape === 'circle') {
     return [b.cx - b.r!, b.cy - b.r!, b.cx + b.r!, b.cy + b.r!];
   }
@@ -198,6 +199,28 @@ export function validateStatic(levelRaw: LevelV2): string[] {
   ];
   if (allX.some((x) => x < cam.minX || x > cam.maxX) || allY.some((y) => y < cam.minY || y > cam.maxY)) {
     errs.push('S5: out of camera bounds');
+  }
+  for (const b of blocks) {
+    const [x0, y0, x1, y1] = blockAabb(b);
+    if (x0 < cam.minX || x1 > cam.maxX || y0 < cam.minY || y1 > cam.maxY) {
+      errs.push(`S5: block ${b.id} outside camera`);
+    }
+    if (x1 > cam.maxX - CAMERA_MARGIN || y1 > cam.maxY - CAMERA_MARGIN) {
+      errs.push(`S5: block ${b.id} camera margin`);
+    }
+  }
+  for (const p of L.pigs) {
+    if (
+      p.cx - p.r < cam.minX ||
+      p.cx + p.r > cam.maxX ||
+      p.cy - p.r < cam.minY ||
+      p.cy + p.r > cam.maxY
+    ) {
+      errs.push(`S5: pig ${p.id} outside camera`);
+    }
+    if (p.cx + p.r > cam.maxX - CAMERA_MARGIN || p.cy + p.r > cam.maxY - CAMERA_MARGIN) {
+      errs.push(`S5: pig ${p.id} camera margin`);
+    }
   }
   let nearestBlockX = Infinity;
   for (const b of blocks) nearestBlockX = Math.min(nearestBlockX, b.cx);
