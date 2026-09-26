@@ -2,6 +2,7 @@ import { oneShotIdForEvent, renderOneShot, type OneShotId } from './oneshots';
 import {
   generateSting,
   generateTrack,
+  musicLowpass,
   renderMusicBuffer,
   type MusicSequence,
   type MusicTrackId,
@@ -19,6 +20,8 @@ function panFor(id: OneShotId): number {
 
 export class SoundBank {
   musicGain = 0.8;
+  /** Music sits ~6 dB under its previous level relative to SFX. */
+  private static readonly MUSIC_BUS = 0.09;
   sfxGain = 0.8;
   voiceGain = 0.8;
   lastPlayed: string[] = [];
@@ -178,8 +181,10 @@ export class SoundBank {
       const wide = this.ctx.createChannelMerger(2);
       const delay = this.ctx.createDelay(0.03);
       delay.delayTime.value = 0.013;
-      this.music.connect(wide, 0, 0);
-      this.music.connect(delay);
+      const mlp = musicLowpass(this.ctx);
+      this.music.connect(mlp);
+      mlp.connect(wide, 0, 0);
+      mlp.connect(delay);
       delay.connect(wide, 0, 1);
       wide.connect(this.master);
       this.sfx.connect(this.master);
@@ -195,7 +200,7 @@ export class SoundBank {
   private applyGains(): void {
     if (!this.master || !this.music || !this.sfx || !this.voice) return;
     this.master.gain.value = this.muted ? 0 : 1;
-    this.music.gain.value = this.musicGain * 0.18;
+    this.music.gain.value = this.musicGain * SoundBank.MUSIC_BUS;
     this.sfx.gain.value = this.sfxGain;
     this.voice.gain.value = this.voiceGain;
   }
@@ -232,7 +237,7 @@ export class SoundBank {
     const ctx = this.ctx;
     if (!ctx || !this.music) return;
     const now = ctx.currentTime;
-    const base = this.musicGain * 0.18;
+    const base = this.musicGain * SoundBank.MUSIC_BUS;
     const dip = holdSec > 0 ? base * 0.08 : base * 0.35;
     const back = holdSec > 0 ? now + holdSec : now + 0.55;
     this.music.gain.cancelScheduledValues(now);

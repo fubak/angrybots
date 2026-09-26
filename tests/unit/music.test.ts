@@ -81,4 +81,59 @@ describe('procedural music sequences', () => {
     }
     expect(v).not.toEqual(d);
   });
+
+  it('keeps all melodic content low — nothing above ~880 Hz, lead median ≤400 Hz', () => {
+    const median = (xs: number[]) => {
+      const s = [...xs].sort((a, b) => a - b);
+      return s[Math.floor(s.length / 2)]!;
+    };
+    for (const id of TRACKS) {
+      const seq = generateTrack(id);
+      const melodic = seq.events.filter((e) => e.voice !== 'perc');
+      expect(melodic.length).toBeGreaterThan(0);
+      for (const e of melodic) expect(e.freq).toBeLessThanOrEqual(880);
+      const lead = melodic.filter((e) => e.voice === 'lead');
+      expect(lead.length).toBeGreaterThan(10);
+      expect(median(lead.map((e) => e.freq))).toBeLessThanOrEqual(400);
+    }
+    for (const s of [generateSting('victory'), generateSting('defeat')]) {
+      for (const e of s.events.filter((e) => e.voice !== 'perc')) {
+        expect(e.freq).toBeLessThanOrEqual(880);
+      }
+    }
+  });
+
+  it('uses soft timbres — no square or sawtooth anywhere in the music', () => {
+    for (const id of TRACKS) {
+      for (const e of generateTrack(id).events) {
+        expect(['square', 'sawtooth']).not.toContain(e.osc);
+      }
+    }
+  });
+
+  it('plays the seeded 2-bar motif AABA — blocks 0,1,3 repeat; block 2 differs', () => {
+    for (const id of TRACKS) {
+      const seq = generateTrack(id);
+      const lead = seq.events.filter((e) => e.voice === 'lead').sort((a, b) => a.t - b.t);
+      const barDur = seq.duration / (id === 'workshop' || id === 'training' ? 32 : 24);
+      const block = (b: number) =>
+        lead
+          .filter((e) => e.t >= b * 2 * barDur && e.t < (b + 1) * 2 * barDur)
+          .map((e) => `${((e.t - b * 2 * barDur) / barDur).toFixed(2)}:${e.freq.toFixed(1)}`);
+      expect(block(0)).toEqual(block(1));
+      expect(block(0)).toEqual(block(3));
+      expect(block(2)).not.toEqual(block(0));
+      expect(block(0).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('drops the lead for the last 8-bar phrase (pads + bass only)', () => {
+    for (const id of TRACKS) {
+      const seq = generateTrack(id);
+      const cut = seq.duration - (seq.duration / (id === 'workshop' || id === 'training' ? 32 : 24)) * 8;
+      const late = seq.events.filter((e) => e.voice === 'lead' && e.t >= cut - 1e-6);
+      // only the final-bar cadence note may sound in the dropout phrase
+      expect(late.length).toBeLessThanOrEqual(1);
+    }
+  });
 });
