@@ -27,6 +27,8 @@ type ScreensDeps = {
   setPhase: (p: AppPhase) => void;
   getLevelId: () => string | null;
   startLevel: (id: string) => void;
+  startDaily: () => void;
+  dailyLevelName: () => string;
   restartLevel: () => void;
   togglePause: (force?: boolean) => void;
   leavePlay: () => void;
@@ -88,10 +90,12 @@ export class AppScreens {
     this.results = new ResultsPanel(uiRoot, (a) => this.onResultsAction(a));
     this.title = new TitleScreen(uiRoot, {
       play: () => this.goLevelSelect(),
+      daily: () => deps.startDaily(),
       settings: () => this.openSettings(),
       achievements: () => this.openAchievements(),
       credits: () => this.openCredits(),
     });
+    this.title.setDaily(deps.dailyLevelName());
     this.levelSelect = new LevelSelect(
       uiRoot,
       (id) => deps.startLevel(id),
@@ -193,6 +197,7 @@ export class AppScreens {
 
   refreshTitleStats(): void {
     const refs = this.deps.levelRefs();
+    this.title.setDaily(this.deps.dailyLevelName());
     this.title.setStats(
       this.deps.save.totalStars(refs),
       refs.length * 3,
@@ -262,7 +267,7 @@ export class AppScreens {
       return;
     }
     if (action === 'retry' && levelId) {
-      this.deps.startLevel(levelId);
+      this.deps.restartLevel();
       return;
     }
     if (action === 'skip' && levelId) {

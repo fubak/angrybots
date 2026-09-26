@@ -25,6 +25,7 @@ import type { BotKind } from '../levels/schema';
 import { SimFeedback } from './simFeedback';
 import { AppScreens, botImage, pigImage, tipFor, type AppPhase } from './screens';
 import { track } from '../analytics';
+import { localDateString, pickDailyLevel } from '../game/daily';
 
 export class App {
   private readonly bus = new EventBus<GameEvents>();
@@ -46,6 +47,7 @@ export class App {
 
   private phase: AppPhase = 'title';
   private levelId: string | null = null;
+  private daily: { date: string; levelId: string } | null = null;
   private introElapsed = 0;
   private currentView: View = { cx: 0, cy: 5, h: 12 };
   private paused = false;
@@ -57,6 +59,7 @@ export class App {
     stars: number;
     newBest: boolean;
     canSkip: boolean;
+    daily?: { best: number; streak: number };
   } | null = null;
   private nextBotT: number | null = null;
   private bonusT: number | null = null;
@@ -117,6 +120,8 @@ export class App {
       },
       getLevelId: () => this.levelId,
       startLevel: (id) => this.startLevel(id),
+      startDaily: () => this.startDaily(),
+      dailyLevelName: () => pickDailyLevel(localDateString()).name,
       restartLevel: () => this.restartLevel(),
       togglePause: (force) => this.togglePause(force),
       leavePlay: () => this.leavePlay(),
@@ -259,10 +264,16 @@ export class App {
     this.syncSimulationPause();
   }
 
-  private startLevel(id: string): void {
+  private startDaily(): void {
+    const date = localDateString();
+    this.startLevel(pickDailyLevel(date).id, date);
+  }
+
+  private startLevel(id: string, dailyDate?: string): void {
     const def = levelById(id);
     if (!def) return;
     this.leavePlay();
+    this.daily = dailyDate ? { date: dailyDate, levelId: id } : null;
     this.levelId = id;
     this.phase = 'play';
     this.resultDelay = 0;
@@ -297,12 +308,13 @@ export class App {
     }
     this.pendingBotCard = firstUnseenBotInQueue(def.bots, this.save.tutorialsSeen);
     this.levelStartT = performance.now();
-    track('level_start', { levelId: id });
+    if (this.daily) track('daily_start', { levelId: id, date: this.daily.date });
+    else track('level_start', { levelId: id });
   }
 
   private restartLevel(): void {
     if (!this.levelId || this.phase !== 'play') return;
-    this.startLevel(this.levelId);
+    this.startLevel(this.levelId, this.daily?.date);
   }
 
   private togglePause(force?: boolean): void {
@@ -331,24 +343,43 @@ export class App {
   }
 
   private recordResultOnce(): void {
-    const rec = this.fx.recordResult(this.levelId, this.levelRefs());
+    // Daily runs never touch campaign progress (levelId null → no stars/unlocks/skips).
+    const rec = this.fx.recordResult(this.daily ? null : this.levelId, this.levelRefs());
     if (!rec) return;
+    let dailyResult: { best: number; streak: number } | undefined;
+    if (this.daily) {
+      this.save.recordDailyResult(this.daily.date, rec.won, rec.score);
+      dailyResult = {
+        best: this.save.daily.bestByDate[this.daily.date] ?? rec.score,
+        streak: this.save.daily.streak,
+      };
+    }
     this.pendingResult = {
       won: rec.won,
       score: rec.score,
       stars: rec.stars,
       newBest: rec.newBest,
       canSkip: rec.canSkip,
+      daily: dailyResult,
     };
     this.runUnlocks = rec.unlockIds;
-    if (this.levelId) {
+    const durationMs = Math.round(performance.now() - this.levelStartT);
+    if (this.daily) {
+      track('daily_end', {
+        levelId: this.daily.levelId,
+        date: this.daily.date,
+        won: rec.won,
+        score: rec.score,
+        durationMs,
+      });
+    } else if (this.levelId) {
       track('level_end', {
         levelId: this.levelId,
         won: rec.won,
         score: rec.score,
         stars: rec.stars,
         shotsUsed: this.fx.shotsFired,
-        durationMs: Math.round(performance.now() - this.levelStartT),
+        durationMs,
       });
     }
     for (const id of rec.unlockIds) track('achievement_unlock', { id });
@@ -396,6 +427,7 @@ export class App {
           stars: pending.stars,
           newBest: pending.newBest,
           canSkip: pending.canSkip,
+          daily: pending.daily,
           isFinal,
           unlockedNames: this.runUnlocks
             .map((id) => achievementById(id)?.name ?? id),

@@ -9,6 +9,8 @@ export type ResultsShowOpts = {
   stars: number;
   newBest: boolean;
   canSkip: boolean;
+  /** daily challenge stats — replaces Next/Skip actions */
+  daily?: { best: number; streak: number };
   /** last level of the last chapter → end card instead of Next */
   isFinal: boolean;
   /** achievement names unlocked by this run */
@@ -33,6 +35,7 @@ export class ResultsPanel {
       <div class="results-ribbon" hidden>NEW HIGHSCORE!</div>
       <div id="results-stars"></div>
       <div class="results-achv"></div>
+      <div class="results-daily" hidden></div>
       <div class="results-endcard" hidden>To be continued: more levels coming</div>
       <div class="results-actions"></div>
     `;
@@ -75,7 +78,13 @@ export class ResultsPanel {
     const endcard = this.el.querySelector<HTMLElement>('.results-endcard')!;
     endcard.hidden = !(o.won && o.isFinal);
 
-    // Buttons: levels / retry / skip / next
+    const dailyEl = this.el.querySelector<HTMLElement>('.results-daily')!;
+    dailyEl.hidden = !o.daily;
+    if (o.daily) {
+      dailyEl.textContent = `Daily best ${o.daily.best.toLocaleString()} · Streak ${o.daily.streak}`;
+    }
+
+    // Buttons: levels / retry / skip / next (daily runs only get Levels + Retry)
     const actions = this.el.querySelector('.results-actions')!;
     actions.replaceChildren();
     const mk = (icon: IconName, label: string, a: ResultsAction, cls = '') => {
@@ -85,9 +94,13 @@ export class ResultsPanel {
       return b;
     };
     actions.appendChild(mk('levels', 'Levels', 'levels'));
-    if (!o.won && o.canSkip) actions.appendChild(mk('next', 'Skip level', 'skip', 'ui-danger'));
+    if (!o.daily && !o.won && o.canSkip) {
+      actions.appendChild(mk('next', 'Skip level', 'skip', 'ui-danger'));
+    }
     actions.appendChild(mk('restart', 'Retry', 'retry', o.won ? '' : 'ui-primary'));
-    if (o.won && !o.isFinal) actions.appendChild(mk('next', 'Next', 'next', 'ui-primary'));
+    if (!o.daily && o.won && !o.isFinal) {
+      actions.appendChild(mk('next', 'Next', 'next', 'ui-primary'));
+    }
 
     // Score counts up over ~1s with tick audio.
     const scoreEl = this.el.querySelector<HTMLElement>('.results-score')!;

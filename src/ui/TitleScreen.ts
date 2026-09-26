@@ -2,6 +2,7 @@ import { iconSvg, iconButton } from './icons';
 
 export type TitleActions = {
   play: () => void;
+  daily: () => void;
   settings: () => void;
   achievements: () => void;
   credits: () => void;
@@ -11,6 +12,7 @@ export class TitleScreen {
   readonly el: HTMLElement;
   private readonly starsEl: HTMLElement;
   private readonly achvLabel: HTMLElement;
+  private readonly dailyLabel: HTMLElement;
 
   constructor(parent: HTMLElement, actions: TitleActions) {
     this.el = document.createElement('div');
@@ -27,6 +29,14 @@ export class TitleScreen {
     play.setAttribute('aria-label', 'Play');
     play.addEventListener('click', actions.play);
 
+    const daily = document.createElement('button');
+    daily.type = 'button';
+    daily.className = 'ui-btn title-daily';
+    daily.innerHTML = `${iconSvg('star', 22)} <span class="daily-name"></span>`;
+    daily.setAttribute('aria-label', 'Daily challenge');
+    daily.addEventListener('click', actions.daily);
+    this.dailyLabel = daily.querySelector('.daily-name')!;
+
     const secondary = document.createElement('div');
     secondary.className = 'title-secondary';
     const settings = iconButton('settings', 'Settings');
@@ -40,8 +50,12 @@ export class TitleScreen {
     secondary.append(settings, achv, credits);
 
     this.starsEl = this.el.querySelector('.title-stars')!;
-    this.el.append(play, secondary);
+    this.el.append(play, daily, secondary);
     parent.appendChild(this.el);
+  }
+
+  setDaily(levelName: string): void {
+    this.dailyLabel.textContent = `Daily · ${levelName}`;
   }
 
   setStats(totalStars: number, maxStars: number, achvDone: number, achvTotal: number): void {

@@ -7,6 +7,7 @@ import {
   totalStars,
   type LevelRef,
 } from './progression';
+import { applyDailyResult, freshDaily, type DailyState } from './daily';
 
 export type LevelProgress = {
   bestScore: number;
@@ -39,12 +40,18 @@ export type SaveV3 = {
   lastLevelId: string | null;
 };
 
-const KEY = 'angrybots-save-v3';
+export type SaveV4 = Omit<SaveV3, 'version'> & {
+  version: 4;
+  daily: DailyState;
+};
+
+const KEY = 'angrybots-save-v4';
+const V3_KEY = 'angrybots-save-v3';
 const V2_KEY = 'angrybots-save-v2';
 const V1_KEY = 'angrybots-progress-v1';
 
-const DEFAULTS: SaveV3 = {
-  version: 3,
+const DEFAULTS: SaveV4 = {
+  version: 4,
   levels: {},
   settings: {
     music: 0.8,
@@ -64,10 +71,21 @@ const DEFAULTS: SaveV3 = {
     destroyed: { wood: 0, glass: 0, stone: 0, tnt: 0 },
   },
   lastLevelId: null,
+  daily: { lastDate: null, bestByDate: {}, streak: 0 },
 };
 
-function freshDefaults(): SaveV3 {
+function freshDefaults(): SaveV4 {
   return structuredClone(DEFAULTS);
+}
+
+function freshV3(): SaveV3 {
+  const { daily: _d, version: _v, ...rest } = freshDefaults();
+  return { ...rest, version: 3 };
+}
+
+function toV4(v3: SaveV3): SaveV4 {
+  const v4: SaveV4 = { ...v3, version: 4, daily: freshDaily() };
+  return v4;
 }
 
 type V2 = {
@@ -78,7 +96,7 @@ type V2 = {
 };
 
 function migrateV2(raw: V2): SaveV3 {
-  const s = freshDefaults();
+  const s = freshV3();
   for (const [id, p] of Object.entries(raw.levels ?? {})) {
     s.levels[id] = {
       bestScore: p.bestScore ?? 0,
@@ -101,7 +119,7 @@ function migrateV2(raw: V2): SaveV3 {
 }
 
 function migrateV1(raw: Record<string, unknown>): SaveV3 {
-  const s = freshDefaults();
+  const s = freshV3();
   if (typeof raw.masterVolume === 'number') {
     s.settings.music = raw.masterVolume as number;
     s.settings.sfx = raw.masterVolume as number;
@@ -119,14 +137,14 @@ function migrateV1(raw: Record<string, unknown>): SaveV3 {
 }
 
 export class SaveStore {
-  private data: SaveV3 = freshDefaults();
+  private data: SaveV4 = freshDefaults();
 
-  load(): SaveV3 {
+  load(): SaveV4 {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as SaveV3;
-        if (parsed.version === 3) {
+        const parsed = JSON.parse(raw) as SaveV4;
+        if (parsed.version === 4) {
           const d = freshDefaults();
           d.levels = { ...d.levels, ...(parsed.levels ?? {}) };
           for (const [id, p] of Object.entries(d.levels)) {
@@ -144,19 +162,57 @@ export class SaveStore {
           Object.assign(d.stats, parsed.stats ?? {});
           Object.assign(d.stats.destroyed, parsed.stats?.destroyed ?? {});
           d.lastLevelId = parsed.lastLevelId ?? null;
+          const daily = parsed.daily;
+          if (daily) {
+            d.daily = {
+              lastDate: typeof daily.lastDate === 'string' ? daily.lastDate : null,
+              bestByDate: daily.bestByDate ?? {},
+              streak: typeof daily.streak === 'number' ? daily.streak : 0,
+            };
+          }
           this.data = d;
+          return this.data;
+        }
+      }
+      const v3 = localStorage.getItem(V3_KEY);
+      if (v3) {
+        const parsed = JSON.parse(v3) as SaveV3;
+        if (parsed.version === 3) {
+          const d = freshV3();
+          for (const [id, p] of Object.entries(parsed.levels ?? {})) {
+            d.levels[id] = {
+              bestScore: p.bestScore ?? 0,
+              stars: (p.stars ?? 0) as 0 | 1 | 2 | 3,
+              cleared: p.cleared ?? false,
+              skipped: p.skipped ?? false,
+              fails: p.fails ?? 0,
+            };
+          }
+          Object.assign(d.settings, parsed.settings ?? {});
+          d.tutorialsSeen = parsed.tutorialsSeen ?? {};
+          d.achievements = parsed.achievements ?? {};
+          Object.assign(d.stats, parsed.stats ?? {});
+          Object.assign(d.stats.destroyed, parsed.stats?.destroyed ?? {});
+          d.lastLevelId = parsed.lastLevelId ?? null;
+          this.data = toV4(d);
+          this.persist();
+          try {
+            localStorage.removeItem(V3_KEY);
+          } catch {
+            /* ignore */
+          }
           return this.data;
         }
       }
       const v2 = localStorage.getItem(V2_KEY);
       if (v2) {
-        this.data = migrateV2(JSON.parse(v2) as V2);
+        this.data = toV4(migrateV2(JSON.parse(v2) as V2));
         this.persist();
         return this.data;
       }
       const v1 = localStorage.getItem(V1_KEY);
       if (v1) {
-        this.data = migrateV1(JSON.parse(v1) as Record<string, unknown>);
+        this.data = toV4(migrateV1(JSON.parse(v1) as Record<string, unknown>));
         this.persist();
         return this.data;
       }
@@ -190,6 +246,16 @@ export class SaveStore {
 
   get achievements() {
     return this.data.achievements;
+  }
+
+  get daily() {
+    return this.data.daily;
+  }
+
+  /** Daily challenge results live apart from campaign progress (stars/unlocks/skips). */
+  recordDailyResult(date: string, won: boolean, score: number): void {
+    applyDailyResult(this.data.daily, date, won, score);
+    this.persist();
   }
 
   get tutorialsSeen() {

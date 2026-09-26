@@ -8,7 +8,7 @@ const REFS: LevelRef[] = [
   { id: 'lone-guard', chapter: 'training' },
 ];
 
-describe('SaveStore v3', () => {
+describe('SaveStore v4', () => {
   const bag: Record<string, string> = {};
   beforeEach(() => {
     for (const k of Object.keys(bag)) delete bag[k];
@@ -27,10 +27,10 @@ describe('SaveStore v3', () => {
   });
 
   it('defaults when corrupt', () => {
-    localStorage.setItem('angrybots-save-v3', '{not json');
+    localStorage.setItem('angrybots-save-v4', '{not json');
     const s = new SaveStore();
     const d = s.load();
-    expect(d.version).toBe(3);
+    expect(d.version).toBe(4);
     expect(d.settings.music).toBe(0.8);
   });
 
@@ -81,7 +81,7 @@ describe('SaveStore v3', () => {
     );
     const s = new SaveStore();
     const d = s.load();
-    expect(d.version).toBe(3);
+    expect(d.version).toBe(4);
     expect(d.levels['first-flight']).toEqual({
       bestScore: 4000,
       stars: 2,
@@ -94,7 +94,8 @@ describe('SaveStore v3', () => {
     expect(d.tutorialsSeen.grok).toBe(true);
     expect(d.lastLevelId).toBe('first-flight');
     expect(localStorage.getItem('angrybots-save-v2')).toBeNull();
-    expect(localStorage.getItem('angrybots-save-v3')).toBeTruthy();
+    expect(localStorage.getItem('angrybots-save-v4')).toBeTruthy();
+    expect(d.daily).toEqual({ lastDate: null, bestByDate: {}, streak: 0 });
   });
 
   it('fills missing nested fields of a partial v3 save', () => {
