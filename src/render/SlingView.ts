@@ -64,6 +64,7 @@ export class SlingView {
   private readonly trailDots: THREE.Mesh[] = [];
   private readonly impactPuff: THREE.Mesh;
   private loadedKind: BotKind | null = null;
+  private loadedBot: THREE.Object3D | null = null;
   private queueKinds: string = '';
   private guide: 'off' | 'short' | 'full' = 'full';
   private now = 0;
@@ -71,6 +72,7 @@ export class SlingView {
   private readonly aimLook = { x: 0, y: -1 };
   private wasDragging = false;
   private releaseAt: number | null = null;
+  private bonusActive = false;
   readonly shadowCasters: ShadowCaster[] = [];
 
   constructor(scene: THREE.Scene) {
@@ -234,6 +236,7 @@ export class SlingView {
   ): void {
     this.group.visible = true;
     this.shadowCasters.length = 0;
+    this.bonusActive = fx.bonusT !== null;
     if (this.wasDragging && model.phase !== 'dragging') this.releaseAt = this.now;
     this.wasDragging = model.phase === 'dragging';
     if (this.releaseAt !== null && this.now - this.releaseAt > 0.45) this.releaseAt = null;
@@ -248,6 +251,7 @@ export class SlingView {
         const mesh = makeBotCharacter(kind, TUNING.bots[kind].r);
         this.loaded.add(mesh);
         this.loadedKind = kind;
+        this.loadedBot = mesh;
       }
       const p = model.botWorldPosition();
       this.loaded.visible = true;
@@ -420,13 +424,17 @@ export class SlingView {
 
   animate(time: number, reducedMotion = false): void {
     this.now = time;
-    tickBot(this.loaded, time, {
-      lookX: this.aimLook.x,
-      lookY: this.aimLook.y,
-      aimTension: this.aimTension,
-      reducedMotion,
-    });
-    for (const q of this.queue) tickBot(q, time, { queue: true, reducedMotion });
+    if (this.loadedBot) {
+      tickBot(this.loadedBot, time, {
+        lookX: this.aimLook.x,
+        lookY: this.aimLook.y,
+        aimTension: this.aimTension,
+        reducedMotion,
+      });
+    }
+    for (const q of this.queue) {
+      tickBot(q, time, { queue: true, happy: this.bonusActive, reducedMotion });
+    }
   }
 
   /** World position of the loaded pouch bot, if shown. */
