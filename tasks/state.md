@@ -43,6 +43,9 @@
 | `6624eb4` | merge | Additive visuals ported from main: sun/moon disc with action-tracking eyes + rays, light shafts, level-name banner, bot impact squash, HUD mute (uses existing `settings.muted`, save stays v4), `border-box` portrait panels. Skipped: queue idle (equivalent bounce exists), SaveV2, campaign re-solve |
 | `8719810` | merge | CI: e2e split into per-project matrix jobs (desktop / phone-landscape), `workers: CI?1:2`, `reducedMotion: 'reduce'`, retry 1 on CI, job timeouts; visual baselines skipped under CI (ISSUE-02 tag) — main CI had failed 37/38 on SwiftShader "element is not stable" timeouts |
 | `976eb52` | merge | Evidence screenshots for ported visuals in `docs/evidence/merge/` |
+| `0c74c90` | 6 | CI root cause: SwiftShader ~1 fps + frameDt clamp 0.1 s + 5-step cap ran the sim at ~10% wall time → all post-launch polls timed out. FixedStepLoop now has a 60 ms/frame wall-clock catch-up budget, 40-step cap, 0.5 s frame-dt cap — sim keeps real-time pace on slow renderers |
+| `a2c2f58` | 6 | Pseudo-3D head yaw matching user's refs: per-eye planes/textures, sin-slide clamped inside a silhouette ellipse, cos foreshortening + near/far asymmetry, edge fade to back-of-head at \|yaw\|>~0.96, yaw-velocity lean/squash (off under reduced motion). Queue + loaded-sling idle look-around (4.8 s cycle, staggered), loss turn-away-and-hold, rare title gag |
+| `a29b340` | 6 | User animation references committed to `art/bots/` (gif/mp4/webp/originals, not shipped); motion comparison sheets + lost-turnaway evidence in `docs/evidence/bots/`; `tools/capture-bot-motion.mjs` + `tools/motion-sheet.html`; regenerated level1-idle baseline |
 
 ## Next steps (in order)
 
