@@ -184,6 +184,14 @@ const YAW_FADE_START = 0.72;
 const YAW_FADE_END = 0.96;
 /** Slide limit as a fraction of the eye-pair half-span (matches the refs' ~±0.15 body widths). */
 const YAW_SLIDE_LIM = 0.55;
+/** |yaw| below this uses the look-around group layout; above LOOK_BLEND_HI the
+ *  sphere projection (turn-away) is used unchanged. Blend between. */
+const LOOK_BLEND_LO = 0.42;
+const LOOK_BLEND_HI = 0.7;
+/** Look-around spacing compression: cos(a·LOOK_COMPRESS) ≈ 11% at yaw ±0.35. */
+const LOOK_COMPRESS = 0.8;
+/** Look-around foreshorten: far eye lands at ≈0.75× at yaw ±0.35. */
+const LOOK_DROP = 0.46;
 /** Approximate the body silhouette as an ellipse (fraction of viewBox) so the
  *  slide clamp keeps eyes inside the silhouette — they never float outside it. */
 const BODY_RX = 0.44;
@@ -197,12 +205,22 @@ export type EyePose = {
   visible: boolean;
 };
 
+function smooth01(t: number): number {
+  const k = Math.max(0, Math.min(1, t));
+  return k * k * (3 - 2 * k);
+}
+
 /**
- * Per-eye pose for a head yaw (−1..1). Near-side eye squashes into the edge
- * first; the far eye slides inward, then also thins out — at full turn no
- * eyes show (back of head). dx is in viewBox units; scale to the render
- * space (world k or CSS %) at the call site. Slide is clamped inside an
- * ellipse approximating the body silhouette so eyes stay on the face.
+ * Per-eye pose for a head yaw (−1..1). Two regimes, blended:
+ * - Look-around (|yaw| ≲ 0.42): the pair slides as one group (offset ∝ yaw,
+ *   clamped so the whole group stays inside the silhouette), spacing
+ *   compresses ≤ ~12%, the far eye narrows to no less than ~0.75× — the eyes
+ *   never merge, matching the look-around reference.
+ * - Turn-away (|yaw| → 1): eyes ride a face-sphere projection — they slide
+ *   toward the edge, thin out and fade past YAW_FADE_START so none show at
+ *   full turn (back of head).
+ * dx is in viewBox units; scale to the render space (world k or CSS %) at
+ * the call site.
  */
 export function yawEyeTransforms(art: StickerArt, yaw: number): EyePose[] {
   const y = Math.max(-1.15, Math.min(1.15, yaw));
@@ -218,23 +236,50 @@ export function yawEyeTransforms(art: StickerArt, yaw: number): EyePose[] {
     0,
     1 - Math.max(0, Math.abs(y) - YAW_FADE_START) / (YAW_FADE_END - YAW_FADE_START)
   );
-  return art.eyes.map((e) => {
+  const a = y * YAW_TO_ANGLE;
+  const comp = Math.cos(a * LOOK_COMPRESS);
+  const m = smooth01((Math.abs(y) - LOOK_BLEND_LO) / (LOOK_BLEND_HI - LOOK_BLEND_LO));
+
+  // Per-eye rest offset + silhouette bounds (eye's shrunken half-width must
+  // stay inside the body ellipse at its own height).
+  const bounds = art.eyes.map((e) => {
     const ecx = e.box[0] + e.box[2] / 2 - ecx0;
-    const theta = (ecx / span) * EYE_THETA_MAX;
-    const a = theta + y * YAW_TO_ANGLE;
-    const c = Math.cos(a);
-    let x = Math.max(-xLim, Math.min(xLim, Math.sin(a) * rx));
-    // Silhouette clamp: the eye's shrunken half-width must stay inside the
-    // body ellipse at the eye's own height.
+    const c = Math.cos((ecx / span) * EYE_THETA_MAX + a);
     const ny = Math.max(-1, Math.min(1, (e.box[1] + e.box[3] / 2 - art.vbH / 2) / bry));
     const halfW = brx * Math.sqrt(1 - ny * ny);
     const hw = (e.box[2] / 2) * Math.max(0.25, c);
-    const lo = bcx - halfW + hw + BODY_MARGIN - ecx0;
-    const hi = bcx + halfW - hw - BODY_MARGIN - ecx0;
-    x = Math.max(Math.min(lo, ecx), Math.min(Math.max(hi, ecx), x));
-    // Softened foreshortening: the reference keeps eyes mostly legible through
-    // the turn — they thin fast only once the edge fade kicks in.
-    const sx = Math.pow(Math.max(0, c), 0.7) * edge;
+    return {
+      ecx,
+      lo: bcx - halfW + hw + BODY_MARGIN - ecx0,
+      hi: bcx + halfW - hw - BODY_MARGIN - ecx0,
+    };
+  });
+
+  // Group offset ∝ yaw, limited so the whole pair stays inside the silhouette.
+  let group = Math.sin(a) * span;
+  let gLo = -Infinity;
+  let gHi = Infinity;
+  for (const b of bounds) {
+    gLo = Math.max(gLo, Math.min(b.lo, b.ecx) - b.ecx * comp);
+    gHi = Math.min(gHi, Math.max(b.hi, b.ecx) - b.ecx * comp);
+  }
+  if (gHi >= gLo) group = Math.max(gLo, Math.min(gHi, group));
+
+  return art.eyes.map((_e, i) => {
+    const b = bounds[i]!;
+    const ecx = b.ecx;
+    const theta = (ecx / span) * EYE_THETA_MAX;
+    const ai = theta + a;
+    const c = Math.cos(ai);
+    // Turn-away sphere pose.
+    const xs = Math.max(-xLim, Math.min(xLim, Math.sin(ai) * rx));
+    const xSph = Math.max(Math.min(b.lo, ecx), Math.min(Math.max(b.hi, ecx), xs));
+    const sxSph = Math.pow(Math.max(0, c), 0.7);
+    // Look-around group pose.
+    const xLook = group + ecx * comp;
+    const sxLook = Math.max(0.25, 1 - LOOK_DROP * (1 - c));
+    const x = xLook + (xSph - xLook) * m;
+    const sx = (sxLook + (sxSph - sxLook) * m) * edge;
     return {
       dx: x - ecx,
       sx,
