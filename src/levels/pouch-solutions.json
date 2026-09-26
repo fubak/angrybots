@@ -8,24 +8,25 @@
     ],
     "powder-row": [
       {
-        "angleDeg": 58,
+        "angleDeg": 24,
+        "speed": 21
+      },
+      {
+        "angleDeg": 34,
         "speed": 20
       }
     ],
     "glass-house": [
       {
-        "angleDeg": 30,
-        "speed": 22
+        "angleDeg": 32,
+        "speed": 23
       }
     ],
     "stone-keep": [
       {
-        "angleDeg": 38,
-        "speed": 22
-      },
-      {
-        "angleDeg": 34,
-        "speed": 20
+        "angleDeg": 24,
+        "speed": 23,
+        "abilityAt": 0.8
       }
     ],
     "hilltop": [
@@ -42,11 +43,7 @@
     ],
     "twin-posts": [
       {
-        "angleDeg": 64,
-        "speed": 22
-      },
-      {
-        "angleDeg": 56,
+        "angleDeg": 62,
         "speed": 22
       }
     ],
@@ -67,14 +64,6 @@
         "angleDeg": 26,
         "speed": 22,
         "abilityAt": 0.8
-      },
-      {
-        "angleDeg": 64,
-        "speed": 23
-      },
-      {
-        "angleDeg": 30,
-        "speed": 23
       }
     ],
     "heavy-gate": [
@@ -148,16 +137,8 @@
     ],
     "king-court": [
       {
-        "angleDeg": 52,
+        "angleDeg": 22,
         "speed": 22
-      },
-      {
-        "angleDeg": 26,
-        "speed": 23
-      },
-      {
-        "angleDeg": 28,
-        "speed": 17
       }
     ],
     "high-perch": [
@@ -217,29 +198,25 @@
     ],
     "hat-row": [
       {
-        "angleDeg": 28,
+        "angleDeg": 22,
+        "speed": 23
+      },
+      {
+        "angleDeg": 52,
         "speed": 21
       },
       {
-        "angleDeg": 46,
-        "speed": 21
+        "angleDeg": 54,
+        "speed": 23
       },
       {
-        "angleDeg": 58,
+        "angleDeg": 42,
         "speed": 23
       }
     ],
     "triple-keep": [
       {
-        "angleDeg": 28,
-        "speed": 21
-      },
-      {
         "angleDeg": 32,
-        "speed": 23
-      },
-      {
-        "angleDeg": 48,
         "speed": 23
       }
     ],

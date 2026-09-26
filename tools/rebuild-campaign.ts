@@ -221,7 +221,7 @@ const specs: Spec[] = [
       // the twin posts carry a heavy stone beam; the pigs huddle between them
       for (const x of [11.5, 15.5]) {
         b.push(B('wood', 'postL', x, 0));
-        b.push(B('wood', 'postL', x, 2.0));
+        b.push(B('stone', 'postL', x, 2.0));
       }                                                             // 4
       b.push(B('stone', 'plankL', 13.5, 4.0));                        // 1 beam
       b.push(B('stone', 'slab', 13.5, 4.4));                          // 1 weight
@@ -231,7 +231,7 @@ const specs: Spec[] = [
       stack(b, 16.7, 0, 1, 'glass');                                  // 1
       b.push(B('wood', 'cubeS', 12.2, 4.4));                          // 1
       b.push(B('wood', 'cubeS', 14.8, 4.4));                          // 1 => 14
-      const pigs = [P('S', 12.5, 0), P('S', 13.5, 0), P('S', 14.5, 0)];
+      const pigs = [P('S', 12.5, 0), P('S', 13.5, 0), P('S', 17.6, 1.6)];
       return { blocks: b, pigs, terrain: [] };
     },
   },
@@ -543,7 +543,7 @@ const specs: Spec[] = [
       stack(b, 7.2, 0, 3, 'wood');                                   // 3 outriggers
       stack(b, 18.0, 0, 3, 'wood');                                  // 3 => 34
       const pigs = [
-        P('L', 12.6, 0, { king: true }), P('S', 11.45, 0), P('S', 13.8, 0),
+        P('L', 12.6, 0, { king: true }), P('S', 11.45, 0), P('S', 8.8, g1 + 2.4),
       ];
       return { blocks: b, pigs, terrain: [] };
     },
@@ -556,12 +556,13 @@ const specs: Spec[] = [
       const b: BlockV2[] = [];
       // ground castle: 2 towers + a low keep squeezed between their roof planes
       const t1 = tower(b, 8.8, 0, 2, { h: 'postM', wall: 'stone', roof: 'stone' });  // 6 -> 3.2
-      const t2 = tower(b, 13.0, 0, 2, { h: 'postM', wall: 'wood', roof: 'stone' });  // 6 -> 3.2
+      const t2 = tower(b, 13.0, 0, 2, { h: 'postM', wall: 'glass', roof: 'stone' }); // 6 -> 3.2
+      b.push(B('tnt', 'cube', 13.0, 0));                             // 1 keg inside t2's lower cell
       const k = cell(b, 10.9, 0, { h: 'postL', gap: 0.7, wall: 'glass', roof: 'stone' }); // 3 -> 2.4
       stack(b, 10.9, k, 1, 'stone');                                 // 1
-      stack(b, 14.6, 0, 3, 'stone');                                 // 3
+      stack(b, 14.6, 0, 3, 'wood');                                  // 3
       // ledge keep
-      const lk = cell(b, 17.4, 2.6, { h: 'postM', wall: 'stone', roof: 'stone' });  // 3 -> 4.2
+      const lk = cell(b, 17.4, 2.6, { h: 'postM', wall: 'wood', roof: 'stone' });   // 3 -> 4.2
       stack(b, 17.4, lk, 3, 'stone');                                // 3
       stack(b, 19.0, 2.6, 3, 'wood');                                // 3
       stack(b, 14.6, 2.4, 2, 'stone');                                 // 2 => 32

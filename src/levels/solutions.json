@@ -12,39 +12,31 @@
   "powder-row": {
     "shots": [
       {
-        "angleDeg": 24,
-        "speed": 21
-      },
-      {
-        "angleDeg": 34,
-        "speed": 20
+        "angleDeg": 42,
+        "speed": 19
       }
     ],
-    "score": 39160,
+    "score": 39020,
     "source": "solver-robust"
   },
   "glass-house": {
     "shots": [
       {
-        "angleDeg": 39,
-        "speed": 18
+        "angleDeg": 30,
+        "speed": 21
       }
     ],
-    "score": 45430,
+    "score": 40540,
     "source": "solver-robust"
   },
   "stone-keep": {
     "shots": [
       {
-        "angleDeg": 33,
-        "speed": 21
-      },
-      {
-        "angleDeg": 30,
+        "angleDeg": 36,
         "speed": 20
       }
     ],
-    "score": 31070,
+    "score": 37600,
     "source": "solver-robust"
   },
   "hilltop": {
@@ -78,16 +70,12 @@
   "twin-posts": {
     "shots": [
       {
-        "angleDeg": 30,
-        "speed": 19
-      },
-      {
-        "angleDeg": 32,
-        "speed": 22
+        "angleDeg": 27,
+        "speed": 21
       }
     ],
-    "score": 32320,
-    "source": "solver"
+    "score": 40980,
+    "source": "solver-robust"
   },
   "glass-alley": {
     "shots": [
@@ -112,23 +100,19 @@
   "split-lesson": {
     "shots": [
       {
-        "angleDeg": 30,
-        "speed": 23
-      },
-      {
-        "angleDeg": 34,
-        "speed": 22
-      },
-      {
-        "angleDeg": 26,
-        "speed": 22
+        "angleDeg": 42,
+        "speed": 21
       },
       {
         "angleDeg": 26,
         "speed": 20
+      },
+      {
+        "angleDeg": 22,
+        "speed": 22
       }
     ],
-    "score": 19600,
+    "score": 31180,
     "source": "solver-robust"
   },
   "heavy-gate": {
@@ -218,41 +202,33 @@
   "hat-row": {
     "shots": [
       {
-        "angleDeg": 15,
+        "angleDeg": 27,
         "speed": 23
       },
       {
-        "angleDeg": 46,
+        "angleDeg": 38,
+        "speed": 18
+      },
+      {
+        "angleDeg": 58,
         "speed": 22
       },
       {
-        "angleDeg": 18,
-        "speed": 22
-      },
-      {
-        "angleDeg": 34,
+        "angleDeg": 50,
         "speed": 22
       }
     ],
-    "score": 34810,
+    "score": 36560,
     "source": "solver-robust"
   },
   "blast-shed": {
     "shots": [
       {
-        "angleDeg": 21,
-        "speed": 22
-      },
-      {
-        "angleDeg": 42,
-        "speed": 20
-      },
-      {
-        "angleDeg": 30,
-        "speed": 22
+        "angleDeg": 15,
+        "speed": 23
       }
     ],
-    "score": 45670,
+    "score": 58280,
     "source": "solver-robust"
   },
   "cross-beam": {
@@ -294,45 +270,25 @@
   "king-court": {
     "shots": [
       {
-        "angleDeg": 69,
-        "speed": 20
-      },
-      {
-        "angleDeg": 42,
-        "speed": 22
-      },
-      {
-        "angleDeg": 18,
-        "speed": 22
-      },
-      {
-        "angleDeg": 18,
-        "speed": 22
-      },
-      {
-        "angleDeg": 14,
+        "angleDeg": 24,
         "speed": 22
       }
     ],
-    "score": 43260,
+    "score": 67160,
     "source": "solver-robust"
   },
   "triple-keep": {
     "shots": [
       {
-        "angleDeg": 18,
-        "speed": 22
+        "angleDeg": 27,
+        "speed": 23
       },
       {
-        "angleDeg": 34,
-        "speed": 22
-      },
-      {
-        "angleDeg": 38,
+        "angleDeg": 22,
         "speed": 22
       }
     ],
-    "score": 27970,
+    "score": 47160,
     "source": "solver-robust"
   },
   "high-perch": {

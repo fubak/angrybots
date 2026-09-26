@@ -10,9 +10,9 @@
     "grok"
   ],
   "stars": [
-    1,
-    2,
-    3
+    15000,
+    29500,
+    41500
   ],
   "camera": {
     "minX": -11,
@@ -34,7 +34,7 @@
     },
     {
       "id": "b2",
-      "material": "wood",
+      "material": "stone",
       "kit": "postL",
       "x": 11.5,
       "y": 2
@@ -48,7 +48,7 @@
     },
     {
       "id": "b4",
-      "material": "wood",
+      "material": "stone",
       "kit": "postL",
       "x": 15.5,
       "y": 2
@@ -140,8 +140,8 @@
     {
       "id": "p3",
       "size": "S",
-      "x": 14.5,
-      "y": 0
+      "x": 17.6,
+      "y": 1.6
     }
   ],
   "hint": "Tap during flight to dash through the beam."

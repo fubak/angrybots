@@ -11,8 +11,8 @@
   ],
   "stars": [
     25000,
-    26500,
-    27500
+    37000,
+    47000
   ],
   "camera": {
     "minX": -11,
@@ -77,14 +77,14 @@
     },
     {
       "id": "b7",
-      "material": "wood",
+      "material": "glass",
       "kit": "postM",
       "x": 12.1,
       "y": 0
     },
     {
       "id": "b8",
-      "material": "wood",
+      "material": "glass",
       "kit": "postM",
       "x": 13.9,
       "y": 0
@@ -98,14 +98,14 @@
     },
     {
       "id": "b10",
-      "material": "wood",
+      "material": "glass",
       "kit": "postM",
       "x": 12.1,
       "y": 1.6
     },
     {
       "id": "b11",
-      "material": "wood",
+      "material": "glass",
       "kit": "postM",
       "x": 13.9,
       "y": 1.6
@@ -119,125 +119,132 @@
     },
     {
       "id": "b13",
-      "material": "glass",
-      "kit": "postL",
-      "x": 10.200000000000001,
+      "material": "tnt",
+      "kit": "cube",
+      "x": 13,
       "y": 0
     },
     {
       "id": "b14",
       "material": "glass",
       "kit": "postL",
-      "x": 11.6,
+      "x": 10.200000000000001,
       "y": 0
     },
     {
       "id": "b15",
+      "material": "glass",
+      "kit": "postL",
+      "x": 11.6,
+      "y": 0
+    },
+    {
+      "id": "b16",
       "material": "stone",
       "kit": "plankM",
       "x": 10.9,
       "y": 2
     },
     {
-      "id": "b16",
+      "id": "b17",
       "material": "stone",
       "kit": "cube",
       "x": 10.9,
       "y": 2.4
     },
     {
-      "id": "b17",
-      "material": "stone",
+      "id": "b18",
+      "material": "wood",
       "kit": "cube",
       "x": 14.6,
       "y": 0
     },
     {
-      "id": "b18",
-      "material": "stone",
+      "id": "b19",
+      "material": "wood",
       "kit": "cube",
       "x": 14.6,
       "y": 0.8
     },
     {
-      "id": "b19",
-      "material": "stone",
+      "id": "b20",
+      "material": "wood",
       "kit": "cube",
       "x": 14.6,
       "y": 1.6
     },
     {
-      "id": "b20",
-      "material": "stone",
+      "id": "b21",
+      "material": "wood",
       "kit": "postM",
       "x": 16.5,
       "y": 2.6
     },
     {
-      "id": "b21",
-      "material": "stone",
+      "id": "b22",
+      "material": "wood",
       "kit": "postM",
       "x": 18.299999999999997,
       "y": 2.6
     },
     {
-      "id": "b22",
+      "id": "b23",
       "material": "stone",
       "kit": "plankM",
       "x": 17.4,
       "y": 3.8
     },
     {
-      "id": "b23",
-      "material": "stone",
-      "kit": "cube",
-      "x": 17.4,
-      "y": 4.2
-    },
-    {
       "id": "b24",
       "material": "stone",
       "kit": "cube",
       "x": 17.4,
-      "y": 5
+      "y": 4.2
     },
     {
       "id": "b25",
       "material": "stone",
       "kit": "cube",
       "x": 17.4,
-      "y": 5.8
+      "y": 5
     },
     {
       "id": "b26",
-      "material": "wood",
+      "material": "stone",
       "kit": "cube",
-      "x": 19,
-      "y": 2.6
+      "x": 17.4,
+      "y": 5.8
     },
     {
       "id": "b27",
       "material": "wood",
       "kit": "cube",
       "x": 19,
-      "y": 3.4000000000000004
+      "y": 2.6
     },
     {
       "id": "b28",
       "material": "wood",
       "kit": "cube",
       "x": 19,
-      "y": 4.2
+      "y": 3.4000000000000004
     },
     {
       "id": "b29",
+      "material": "wood",
+      "kit": "cube",
+      "x": 19,
+      "y": 4.2
+    },
+    {
+      "id": "b30",
       "material": "stone",
       "kit": "cube",
       "x": 14.6,
       "y": 2.4
     },
     {
-      "id": "b30",
+      "id": "b31",
       "material": "stone",
       "kit": "cube",
       "x": 14.6,
