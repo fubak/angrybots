@@ -24,6 +24,7 @@ export type DebugSnapshot = {
     speed: number;
   } | null;
   camera: { cx: number; cy: number; height: number };
+  frame: number;
   fps: { p50: number; p5Low: number };
   renderer: { calls: number; triangles: number; geometries: number; textures: number };
 };
@@ -81,6 +82,7 @@ export function createDebugApi(opts: {
             }
           : null,
       camera: { cx: view.cx, cy: view.cy, height: view.h },
+      frame: opts.renderer.frameCount,
       fps,
       renderer: info,
     };

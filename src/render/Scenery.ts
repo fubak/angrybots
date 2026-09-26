@@ -264,6 +264,15 @@ export class Scenery {
     this.parallaxRef = null;
   }
 
+  /**
+   * Anchor parallax to a known view instead of the next rendered frame —
+   * level load calls this with the intro start view so the reference can't
+   * race the camera snap (a mid-transition capture offsets every layer).
+   */
+  setParallaxAnchor(anchor: { cx: number; cy: number; h: number }): void {
+    this.parallaxRef = { cx: anchor.cx, cy: anchor.cy, h: anchor.h };
+  }
+
   /** Layers offset by (cam - ref) * factor and scaled by viewH relative to ref. */
   applyParallax(camCx: number, camCy: number, viewH: number): void {
     if (!this.parallaxRef) {

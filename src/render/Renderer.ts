@@ -70,6 +70,7 @@ export class Renderer {
   private fpsSamples: number[] = [];
   private lastFpsSample = 0;
   private lastFrameAt = 0;
+  frameCount = 0;
   private clock = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -99,6 +100,11 @@ export class Renderer {
 
   setChapter(chapter: string): void {
     this.scenery.setChapter(chapter);
+  }
+
+  /** Deterministic parallax reference — pass the view the camera will start at. */
+  anchorParallax(view: View): void {
+    this.scenery.setParallaxAnchor(view);
   }
 
   setTerrain(pieces: LevelV2['terrain']): void {
@@ -470,10 +476,15 @@ export class Renderer {
       }
     }
     this.juice.update(frameDt);
-    this.scenery.lookAt(this.focus.x, this.focus.y, frameDt);
-    this.scenery.update(frameDt);
+    // Reduced motion stills ambient scenery (cloud drift, gaze, blink) so
+    // screenshots and motion-sensitive users get a static frame.
+    if (!this.reducedMotion) {
+      this.scenery.lookAt(this.focus.x, this.focus.y, frameDt);
+      this.scenery.update(frameDt);
+    }
     this.renderer.info.reset();
     this.renderer.render(this.scene, this.camera);
+    this.frameCount += 1;
     const now = performance.now();
     if (this.lastFrameAt > 0) {
       const wall = (now - this.lastFrameAt) / 1000;
