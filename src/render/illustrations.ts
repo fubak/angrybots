@@ -114,155 +114,6 @@ function shadeAndOutline(
   outlineStroke(ctx, w);
 }
 
-type BotPose = 'look' | 'dash' | 'dots' | 'wide' | 'alert';
-
-function grokEye(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  rot: number
-): void {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(rot);
-  ctx.beginPath();
-  ctx.roundRect(-w / 2, -h / 2, w, h, Math.min(w, h) / 2);
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
-  ctx.restore();
-}
-
-type BotBody = 'disc' | 'blob' | 'bang';
-
-/** Pale rim keeps dark bots readable on the citadel night sky (harmless on day sky). */
-const BOT_RIM = 'rgba(214, 228, 255, 0.85)';
-
-/** Official SpaceXAI Grok Bot forms: disc, soft blob, and exclamation, with white marks. */
-function paintGrokBot(
-  ctx: CanvasRenderingContext2D,
-  s: number,
-  expression: Expression,
-  pose: BotPose,
-  body: BotBody = 'disc',
-  fill = '#15161a'
-): void {
-  const cx = s * 0.5;
-  const cy = s * 0.5;
-  const r = s * 0.4;
-  const blink = expression === 'blink';
-  const hurt = expression === 'hurt';
-  if (body === 'bang') {
-    shadeAndOutline(
-      ctx,
-      s,
-      cx,
-      cy,
-      r,
-      () => {
-        ctx.beginPath();
-        ctx.roundRect(cx - r * 0.28, cy - r * 0.95, r * 0.56, r * 1.35, r * 0.28);
-        if (!blink) {
-          ctx.moveTo(cx + r * 0.2, cy + r * 0.72);
-          ctx.arc(cx, cy + r * 0.72, r * 0.2, 0, Math.PI * 2);
-        }
-      },
-      fill,
-      BOT_RIM
-    );
-    if (hurt) {
-      circle(ctx, cx - r * 0.06, cy - r * 0.42, r * 0.12);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      circle(ctx, cx + r * 0.14, cy - r * 0.5, r * 0.11);
-      ctx.fill();
-      return;
-    }
-    if (!blink) {
-      grokEye(ctx, cx - r * 0.03, cy - r * 0.42, r * 0.16, r * 0.34, -0.15);
-      grokEye(ctx, cx + r * 0.13, cy - r * 0.52, r * 0.13, r * 0.28, 0.3);
-    }
-    return;
-  }
-  if (body === 'blob') {
-    shadeAndOutline(
-      ctx,
-      s,
-      cx,
-      cy,
-      r,
-      () => {
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - r * 0.95);
-        ctx.quadraticCurveTo(cx + r * 1.05, cy - r * 0.2, cx + r * 0.72, cy + r * 0.78);
-        ctx.quadraticCurveTo(cx, cy + r * 1.05, cx - r * 0.72, cy + r * 0.78);
-        ctx.quadraticCurveTo(cx - r * 1.05, cy - r * 0.15, cx, cy - r * 0.95);
-        ctx.closePath();
-      },
-      fill,
-      BOT_RIM
-    );
-    ctx.strokeStyle = '#3ddc97';
-    ctx.lineWidth = r * 0.08;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(cx - r * 0.35, cy + r * 0.15);
-    ctx.quadraticCurveTo(cx - r * 0.05, cy - r * 0.15, cx + r * 0.08, cy - r * 0.45);
-    ctx.stroke();
-  } else {
-    shadeAndOutline(
-      ctx,
-      s,
-      cx,
-      cy,
-      r,
-      () => circle(ctx, cx, cy, r),
-      fill,
-      BOT_RIM
-    );
-  }
-  if (pose === 'dots' || hurt) {
-    const rad = hurt ? r * 0.16 : r * 0.22;
-    circle(ctx, cx - r * 0.16, cy - r * 0.16, rad);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    circle(ctx, cx + r * 0.22, cy - r * 0.22, rad * 0.9);
-    ctx.fill();
-    if (pose === 'dots' && !hurt) {
-      circle(ctx, cx + r * 0.52, cy - r * 0.52, r * 0.11);
-      ctx.fillStyle = '#4aa3ff';
-      ctx.fill();
-    }
-    return;
-  }
-  if (blink) {
-    grokEye(ctx, cx - r * 0.02, cy - r * 0.16, r * 0.4, r * 0.12, -0.3);
-    grokEye(ctx, cx + r * 0.32, cy - r * 0.28, r * 0.28, r * 0.1, 0.4);
-    return;
-  }
-  if (pose === 'dash') {
-    grokEye(ctx, cx - r * 0.06, cy - r * 0.1, r * 0.55, r * 0.2, -0.12);
-    grokEye(ctx, cx + r * 0.34, cy - r * 0.22, r * 0.38, r * 0.16, 0.5);
-    circle(ctx, cx + r * 0.5, cy - r * 0.5, r * 0.1);
-    ctx.fillStyle = '#4aa3ff';
-    ctx.fill();
-    return;
-  }
-  if (pose === 'wide') {
-    grokEye(ctx, cx - r * 0.12, cy - r * 0.08, r * 0.28, r * 0.55, -0.08);
-    grokEye(ctx, cx + r * 0.26, cy - r * 0.12, r * 0.24, r * 0.48, 0.16);
-    return;
-  }
-  if (pose === 'alert') {
-    grokEye(ctx, cx - r * 0.06, cy - r * 0.12, r * 0.22, r * 0.52, -0.18);
-    grokEye(ctx, cx + r * 0.28, cy - r * 0.22, r * 0.18, r * 0.44, 0.32);
-    return;
-  }
-  grokEye(ctx, cx - r * 0.04, cy - r * 0.12, r * 0.24, r * 0.5, -0.25);
-  grokEye(ctx, cx + r * 0.28, cy - r * 0.24, r * 0.18, r * 0.42, 0.38);
-}
-
 /** Eye whites only — pupils live on a separate tracking plane. */
 function eyeSockets(
   ctx: CanvasRenderingContext2D,
@@ -383,32 +234,6 @@ function paintPig(ctx: CanvasRenderingContext2D, s: number, expression: Expressi
   }
 }
 
-function paintDash(ctx: CanvasRenderingContext2D, s: number, expression: Expression): void {
-  paintGrokBot(ctx, s, expression, 'dash', 'disc', '#f2a51f');
-}
-
-function paintSplit(ctx: CanvasRenderingContext2D, s: number, expression: Expression): void {
-  paintGrokBot(ctx, s, expression, 'dots', 'disc', '#37b6ff');
-}
-
-function paintHeavy(ctx: CanvasRenderingContext2D, s: number, expression: Expression): void {
-  paintGrokBot(ctx, s, expression, 'wide', 'blob', '#6b5b95');
-}
-
-function paintBlast(ctx: CanvasRenderingContext2D, s: number, expression: Expression): void {
-  // Round disc — physics stays a circle (recorded solutions depend on it) — with a white "!" mark.
-  paintGrokBot(ctx, s, expression, 'alert', 'disc', '#e2452b');
-  const cx = s * 0.5;
-  const cy = s * 0.5;
-  const r = s * 0.4;
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.roundRect(cx - r * 0.1, cy + r * 0.1, r * 0.2, r * 0.44, r * 0.1);
-  ctx.fill();
-  circle(ctx, cx, cy + r * 0.72, r * 0.11);
-  ctx.fill();
-}
-
 const faceCache = new Map<string, FaceSet>();
 
 export function faceSet(key: string, draw: (ctx: CanvasRenderingContext2D, s: number, expression: Expression) => void): FaceSet {
@@ -423,14 +248,6 @@ export function faceSet(key: string, draw: (ctx: CanvasRenderingContext2D, s: nu
   };
   faceCache.set(key, set);
   return set;
-}
-
-export function botFaces(kind: string): FaceSet {
-  if (kind === 'dash') return faceSet('dash', paintDash);
-  if (kind === 'split') return faceSet('split', paintSplit);
-  if (kind === 'heavy') return faceSet('heavy', paintHeavy);
-  if (kind === 'blast') return faceSet('blast', paintBlast);
-  return faceSet('grok', (ctx, s, expression) => paintGrokBot(ctx, s, expression, 'look'));
 }
 
 function paintRidge(
