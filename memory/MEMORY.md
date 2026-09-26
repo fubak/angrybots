@@ -11,7 +11,7 @@ Vite + TypeScript slingshot game. Rendering is Three.js ortho. Physics is Planck
 
 ## What the player sees
 
-- Bots are distinct colors: grok black, dash amber, split blue, heavy purple blob, blast red disc with a white "!". Blast still uses a circle collider — a capsule broke last-stand's recorded solution. Queue spacing uses `TUNING.bots[kind].r`.
+- Bots render the official GrokBot sticker set (`src/assets/bots/GrokBot_StickerSet_GrokBot-01..12.svg`, PNG masters in `art/bots/png`): grok = 01 black disc, dash = 08 red triangle, split = 11 blue drop (children share it), heavy = 06 brown disc, blast = 05 pink cyclops; stickers 02/03/04/07/09/10/12 are title-lineup + achievement art only. Layered runtime: `tools/extract-bot-art.ts` → `src/render/botArt.generated.ts`, `src/render/botArt.ts` paints backing+body+extras and a separate eyes layer that looks/blinks/squints. Blast still uses a circle collider — a capsule broke last-stand's recorded solution. Queue spacing uses `TUNING.bots[kind].r`.
 - The sling is a Y-fork with visible bands (sagging at rest, wobbling on release).
 - Targets are still `kind: 'pig'` in the sim. On screen they are a chat bubble (plain), a host with antennae (`hat`), a visor robot (`helmet`), or a flagship with a gold antenna (`king`). Not other companies' logos.
 - A target with `airborne` set (center above `r + 0.18`) is destroyed on a grass contact whose approach speed is at least 1.2. A target that starts on the grass is not. Terrain is not that contact.
@@ -39,7 +39,7 @@ Vite + TypeScript slingshot game. Rendering is Three.js ortho. Physics is Planck
 
 - No real-time lights or shadow maps. Every material is `MeshBasicMaterial`; lighting is painted into textures (2D cartoon look).
 - Shadows are instanced blob shadows (`src/render/BlobShadows.ts`); parallax layers live in `Scenery.applyParallax`.
-- Damage visuals: `Renderer.tintDamage` swaps the block-face `map` to shared `damagedBlockTexture(material, stage)` at hp ≤ 66% (cracked) and ≤ 33% (broken); terrain bodies/caps use shared `TEX.terrainBody`/`TEX.terrainCap`. Citadel clouds are night-tinted; dark bots get a pale rim via `shadeAndOutline`.
+- Damage visuals: `Renderer.tintDamage` swaps the block-face `map` to shared `damagedBlockTexture(material, stage)` at hp ≤ 66% (cracked) and ≤ 33% (broken); terrain bodies/caps use shared `TEX.terrainBody`/`TEX.terrainCap`. Citadel clouds are night-tinted; bot stickers carry their own white borders (the phase-5 pale rim was removed with the sticker switch).
 - Particles are 8 instanced pools (wood/glass/stone/feather/smoke/spark/glow/ring); popups come from a glyph atlas (`textSprite` in `src/render/Juice.ts`).
 
 ## Audio

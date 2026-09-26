@@ -15,6 +15,8 @@ All art is generated at runtime or committed to the repo — no third-party art.
 | `public/manifest.webmanifest` | PWA manifest (relative `start_url`/`scope` — works under `/` and `/angrybots/`) | Original (repo) |
 | Baloo 2 webfonts (via `@fontsource/baloo-2`) | UI font, bundled at build | Baloo 2, OFL |
 | `src/assets/hero.png` | Splash hero image | Original (repo) |
+| `src/assets/bots/GrokBot_StickerSet_GrokBot-01..12.svg` | Official bot sticker artwork — playable bots, title lineup, achievement badges | Official GrokBot sticker set supplied by the user |
+| `art/bots/png/GrokBot_StickerSet_GrokBot-01..12.png` | 2048px sticker masters (committed, not shipped in dist) | Official GrokBot sticker set supplied by the user |
 
 ## Runtime-generated (no file)
 
@@ -22,7 +24,8 @@ All art is generated at runtime or committed to the repo — no third-party art.
 |--------|------|-------|
 | `TEX` | `src/render/textures.ts` | Wood/stone/grass/dirt/metal/TNT/sky canvas textures plus `terrainBody`/`terrainCap` for plateaus, ramps, ledges |
 | `damagedBlockTexture()` | `src/render/textures.ts` | Shared cracked/broken maps per material (wood, glass, stone), cached — no per-block allocation |
-| `ILL` | `src/render/illustrations.ts` | Painted block faces, pig/bot faces, sprite art with `shadeAndOutline` |
+| `ILL` | `src/render/illustrations.ts` | Painted block faces, pig faces, sprite art with `shadeAndOutline` |
+| `botArt` | `src/render/botArt.generated.ts` + `src/render/botArt.ts` | Layered sticker rendering extracted from the official SVGs by `tools/extract-bot-art.ts`: composite body texture (backing + silhouette + shines) + separate eyes texture for look/blink/squint/dizzy. Verified pixel-identical by `tools/check-bot-composite.mjs` |
 | `blockMaterial()` / `decorateBlock()` | `src/render/characters.ts` | Per-material block look + decorative face overlays |
 | `Scenery` | `src/render/Scenery.ts` | Sky gradient, clouds, hills, stars, dust per chapter palette |
 | `music` | `src/audio/music.ts` | Deterministic procedural tracks (title + per-chapter) and victory/defeat stings rendered via `OfflineAudioContext` |
