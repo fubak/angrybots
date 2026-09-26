@@ -8,7 +8,7 @@ let preview: ChildProcess | undefined;
 test.describe('PWA offline', () => {
   test.beforeAll(async () => {
     if (!existsSync('dist/sw.js')) execSync('npm run build', { stdio: 'inherit' });
-    preview = spawn('npx', ['vite', 'preview', '--port', '5198', '--strictPort'], {
+    preview = spawn('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', '5198', '--strictPort'], {
       stdio: 'ignore',
       detached: true,
     });
