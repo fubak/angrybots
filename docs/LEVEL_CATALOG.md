@@ -9,33 +9,33 @@ castle, pyramid — no two consecutive levels share one.
 
 | id | chapter-order | name | archetype | blocks | targets | bots | intro | oneShotClear | anyKill | stars (1/2/3) |
 |----|---------------|------|-----------|--------|---------|------|-------|--------------|---------|----------------|
-| first-flight | training-1 | First Flight | tower | 12 | 2 | grok/grok/grok | grok | 37.5% | 46.6% | 30000 / 31500 / 32000 |
-| powder-row | training-2 | Powder Row | bunker | 14 | 3 | grok/grok/grok | — | 5.5% | 72.3% | 36500 / 38500 / 39000 |
-| glass-house | training-3 | Glass House | bridge | 14 | 4 | grok/grok/grok | — | 9.9% | 31.2% | 42500 / 44500 / 45000 |
-| stone-keep | training-4 | Triple Tap | tower | 20 | 4 | split/grok/grok | split | 0.0% | 36.0% | 30000 / 30500 / 31000 |
-| hilltop | training-5 | Hilltop | stilted | 15 | 3 | grok/grok/grok | — | 3.2% | 17.8% | 36000 / 37500 / 38000 |
-| lone-guard | training-6 | Lone Guard | tower | 14 | 4 | grok/grok/grok | — | 1.2% | 38.3% | 36500 / 37000 / 37500 |
-| twin-posts | training-7 | Dash Lane | bridge | 18 | 4 | dash/grok/grok | dash | 0.0% | 20.9% | 31000 / 31500 / 32000 |
-| glass-alley | training-8 | Glass Alley | bunker | 14 | 5 | grok/grok/grok | — | 4.3% | 27.7% | 45500 / 46000 / 46500 |
-| tnt-porch | training-9 | TNT Porch | castle | 18 | 4 | grok/grok/grok | — | 2.8% | 52.2% | 45500 / 47000 / 47500 |
-| split-lesson | training-10 | Grand Stand | pyramid | 30 | 3 | split/grok/grok/grok | — | 0.0% | 4.3% | 18500 / 19000 / 19500 |
-| heavy-gate | workshop-1 | Heavy Gate | bunker | 21 | 4 | heavy/grok/grok | heavy | 7.1% | 45.1% | 44000 / 45500 / 46000 |
-| wheel-yard | workshop-2 | Wheel Yard | tower | 23 | 5 | heavy/grok/grok | — | 0.4% | 47.0% | 50500 / 51000 / 52500 |
-| ramp-run | workshop-3 | Ramp Run | stilted | 20 | 4 | grok/grok/grok | — | 0.4% | 20.2% | 41000 / 41500 / 42000 |
-| ledge-nest | workshop-4 | Ledge Nest | castle | 24 | 5 | grok/grok/grok | — | 0.0% | 52.6% | 40500 / 41000 / 41500 |
-| powder-stack | workshop-5 | Powder Stack | pyramid | 30 | 5 | grok/grok/grok | — | 0.4% | 80.6% | 49000 / 49500 / 50000 |
-| glass-stack | workshop-6 | Glass Stack | bridge | 20 | 5 | split/grok/grok | — | 0.0% | 22.1% | 35000 / 35500 / 36000 |
-| hat-row | workshop-7 | Hat Row | bunker | 21 | 6 | grok/grok/grok/grok | — | 0.0% | 39.5% | 33500 / 34000 / 34500 |
-| blast-shed | workshop-8 | Blast Shed | tower | 22 | 5 | blast/grok/grok | blast | 1.6% | 37.1% | 44500 / 45000 / 45500 |
-| cross-beam | workshop-9 | Cross Beam | bridge | 21 | 6 | grok/grok/grok | — | 0.0% | 34.0% | 41000 / 41500 / 42000 |
-| mixed-yard | workshop-10 | Mixed Yard | castle | 45 | 6 | heavy/grok/grok/grok | — | 0.0% | 52.2% | 45500 / 46000 / 46500 |
-| king-court | citadel-1 | King Court | bunker | 34 | 5 | grok/grok/grok/grok/grok | — | 0.0% | 43.1% | 42000 / 42500 / 43000 |
-| triple-keep | citadel-2 | Triple Keep | castle | 30 | 5 | grok/grok/grok | — | 0.0% | 41.1% | 26500 / 27000 / 27500 |
-| high-perch | citadel-3 | High Perch | stilted | 32 | 5 | split/grok/grok | — | 1.2% | 30.8% | 47500 / 48500 / 49000 |
-| fuse-line | citadel-4 | Fuse Line | pyramid | 33 | 6 | blast/grok/grok | — | 0.0% | 84.6% | 46000 / 46500 / 47000 |
-| split-keep | citadel-5 | Split Keep | castle | 36 | 5 | heavy/heavy/split/grok/grok/grok | — | 0.0% | 51.8% | 85000 / 85500 / 86000 |
-| dash-bridge | citadel-6 | Dash Bridge | bridge | 33 | 5 | dash/grok/grok | — | 0.0% | 26.9% | 34000 / 34500 / 35000 |
-| blast-vault | citadel-7 | Blast Vault | bunker | 30 | 6 | blast/heavy/grok | — | 0.0% | 43.9% | 55500 / 56000 / 56500 |
-| helmet-keep | citadel-8 | Helmet Keep | tower | 30 | 6 | heavy/grok/grok | — | 0.8% | 45.1% | 42500 / 43000 / 43500 |
-| four-roles | citadel-9 | Four Roles | castle | 31 | 6 | grok/dash/split/heavy/blast/grok | — | 0.0% | 36.0% | 50500 / 51000 / 51500 |
-| last-stand | citadel-10 | Last Stand | pyramid | 60 | 6 | grok/dash/split/heavy/blast | — | 0.0% | 34.4% | 49000 / 49500 / 50000 |
+| first-flight | training-1 | First Flight | tower | 12 | 2 | grok/grok/grok | grok | 39.1% | 49.4% | 10000 / 22500 / 33000 |
+| powder-row | training-2 | Powder Row | bunker | 14 | 3 | grok/grok/grok | — | 13.0% | 42.3% | 15000 / 29500 / 41000 |
+| glass-house | training-3 | Glass House | bridge | 14 | 3 | grok/grok/grok | — | 11.9% | 29.3% | 15000 / 29500 / 41000 |
+| stone-keep | training-4 | Triple Tap | tower | 17 | 3 | split/grok/grok | split | 7.1% | 34.0% | 15000 / 28500 / 39500 |
+| hilltop | training-5 | Hilltop | stilted | 15 | 3 | grok/grok/grok | — | 3.6% | 18.6% | 15000 / 27500 / 38000 |
+| lone-guard | training-6 | Lone Guard | tower | 14 | 4 | grok/grok/grok | — | 1.2% | 38.7% | 20000 / 34500 / 46500 |
+| twin-posts | training-7 | Dash Lane | bridge | 14 | 3 | dash/grok/grok | dash | 13.0% | 26.5% | 15000 / 29500 / 41500 |
+| glass-alley | training-8 | Glass Alley | bunker | 14 | 5 | grok/grok/grok | — | 4.3% | 28.9% | 25000 / 37500 / 47500 |
+| tnt-porch | training-9 | TNT Porch | castle | 18 | 4 | grok/grok/grok | — | 2.8% | 54.1% | 20000 / 35000 / 47500 |
+| split-lesson | training-10 | Grand Stand | pyramid | 30 | 3 | split/grok/grok/grok | — | 0.0% | 24.9% | 15000 / 24000 / 31000 |
+| heavy-gate | workshop-1 | Heavy Gate | bunker | 21 | 4 | heavy/grok/grok | heavy | 7.1% | 45.1% | 20000 / 35000 / 47500 |
+| wheel-yard | workshop-2 | Wheel Yard | tower | 23 | 5 | heavy/grok/grok | — | 0.4% | 47.8% | 25000 / 40000 / 52500 |
+| ramp-run | workshop-3 | Ramp Run | stilted | 20 | 4 | grok/grok/grok | — | 0.4% | 20.9% | 20000 / 32000 / 42000 |
+| ledge-nest | workshop-4 | Ledge Nest | castle | 24 | 5 | grok/grok/grok | — | 0.0% | 53.4% | 25000 / 34000 / 41500 |
+| powder-stack | workshop-5 | Powder Stack | pyramid | 30 | 5 | grok/grok/grok | — | 0.0% | 81.4% | 25000 / 39000 / 50000 |
+| glass-stack | workshop-6 | Glass Stack | bridge | 20 | 5 | split/grok/grok | — | 0.0% | 22.9% | 25000 / 31000 / 36000 |
+| hat-row | workshop-7 | Hat Row | bunker | 21 | 6 | grok/grok/grok/grok | — | 0.0% | 40.3% | 30000 / 33500 / 36500 |
+| blast-shed | workshop-8 | Blast Shed | tower | 24 | 5 | blast/grok/grok | blast | 9.1% | 86.6% | 25000 / 44500 / 60000 |
+| cross-beam | workshop-9 | Cross Beam | bridge | 21 | 6 | grok/grok/grok | — | 0.0% | 34.0% | 30000 / 36500 / 42000 |
+| mixed-yard | workshop-10 | Mixed Yard | castle | 45 | 6 | heavy/grok/grok/grok | — | 0.0% | 52.2% | 30000 / 39000 / 46500 |
+| king-court | citadel-1 | King Court | bunker | 34 | 3 | grok/grok/grok/grok/grok | — | 14.2% | 46.3% | 20000 / 47000 / 69000 |
+| triple-keep | citadel-2 | Triple Keep | castle | 31 | 5 | grok/grok/grok | — | 0.0% | 47.8% | 25000 / 37000 / 47000 |
+| high-perch | citadel-3 | High Perch | stilted | 32 | 5 | split/grok/grok | — | 1.2% | 30.8% | 25000 / 38000 / 49000 |
+| fuse-line | citadel-4 | Fuse Line | pyramid | 33 | 6 | blast/grok/grok | — | 0.0% | 85.4% | 30000 / 39500 / 47000 |
+| split-keep | citadel-5 | Split Keep | castle | 36 | 5 | heavy/heavy/split/grok/grok/grok | — | 0.0% | 52.6% | 25000 / 58500 / 86000 |
+| dash-bridge | citadel-6 | Dash Bridge | bridge | 33 | 5 | dash/grok/grok | — | 0.0% | 26.9% | 25000 / 30500 / 35000 |
+| blast-vault | citadel-7 | Blast Vault | bunker | 30 | 6 | blast/heavy/grok | — | 0.0% | 43.9% | 35000 / 47000 / 56500 |
+| helmet-keep | citadel-8 | Helmet Keep | tower | 30 | 6 | heavy/grok/grok | — | 0.8% | 45.1% | 30000 / 47500 / 62000 |
+| four-roles | citadel-9 | Four Roles | castle | 31 | 6 | grok/dash/split/heavy/blast/grok | — | 0.0% | 36.0% | 30000 / 42000 / 51500 |
+| last-stand | citadel-10 | Last Stand | pyramid | 60 | 6 | grok/dash/split/heavy/blast | — | 0.0% | 34.4% | 35000 / 43500 / 50000 |
