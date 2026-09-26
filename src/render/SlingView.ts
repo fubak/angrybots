@@ -12,8 +12,11 @@ import { bandWobble, hopArc } from './slingAnim';
 import type { ShadowCaster } from './BlobShadows';
 
 const FORK = 1.08;
-const TIP_Y = 3.15;
-const FORK_JOINT_Y = 1.95;
+// Tips sit just above the loaded bot's center so it nests inside the Y
+// opening; the crotch stays below the biggest bot (heavy r=0.72) so wood
+// never crosses its face. A trunk runs from the joint down into the ground.
+const TIP_Y = SLING.anchor.y + 0.35;
+const FORK_JOINT_Y = SLING.anchor.y - TUNING.bots.heavy.r - 0.28;
 const REST_SAG = 0.3;
 const HOP_SECONDS = 0.5;
 const BONUS_POP_EVERY = 0.5;
