@@ -167,6 +167,35 @@ export class Renderer {
     return this.slingView.queuePositions();
   }
 
+  /** Loaded pouch bot's world position, if shown. */
+  loadedPos(): { x: number; y: number } | null {
+    return this.slingView.loadedPos();
+  }
+
+  /** Hopper transform while the queue→pouch hop plays (debug snapshot). */
+  hopperPose(): { x: number; y: number; sx: number; sy: number; rot: number; t: number } | null {
+    return this.slingView.hopperPose();
+  }
+
+  /**
+   * Fixture hook: render once into the drawing buffer and read back a rect of
+   * it (canvas CSS-pixel coordinates, top-left origin). Tests use this to
+   * assert rendered bot colors without trusting a stale presented frame.
+   */
+  samplePixels(x: number, y: number, w: number, h: number): Uint8ClampedArray {
+    this.renderer.render(this.scene, this.camera);
+    const src = this.domElement;
+    const box = src.getBoundingClientRect();
+    const kx = src.width / Math.max(1, box.width);
+    const ky = src.height / Math.max(1, box.height);
+    const off = document.createElement('canvas');
+    off.width = Math.max(1, Math.round(w * kx));
+    off.height = Math.max(1, Math.round(h * ky));
+    const ctx = off.getContext('2d')!;
+    ctx.drawImage(src, x * kx, y * ky, w * kx, h * ky, 0, 0, off.width, off.height);
+    return ctx.getImageData(0, 0, off.width, off.height).data;
+  }
+
   /** Pop pulse on a live shot bot — driven by the sim 'bot:ability' event. */
   pulseBot(botId: string): void {
     const mesh = this.entityMeshes.get(botId);

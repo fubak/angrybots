@@ -98,6 +98,7 @@ export class SlingView {
   /** 0..1 eyes-up glance for the hopping bot, fed to tickBot next animate(). */
   private hopEyesUp = 0;
   private hoppingNow = false;
+  private hopTNow = 0;
   private readonly dust: THREE.Mesh[] = [];
   private aimTension = 0;
   private readonly aimLook = { x: 0, y: -1 };
@@ -386,6 +387,7 @@ export class SlingView {
     const oldX = spots(waiting);
     const newX = spots(waiting.slice(1));
     this.hoppingNow = hopping;
+    this.hopTNow = fx.hopT ?? 0;
     this.hopEyesUp = 0;
     this.queuePos.length = 0;
     for (let i = 0; i < this.queue.length; i++) {
@@ -402,7 +404,6 @@ export class SlingView {
       if (fx.bonusT !== null) {
         const bt = fx.bonusT - i * BONUS_POP_EVERY;
         if (bt > 0 && bt < 0.4) y += Math.sin((bt / 0.4) * Math.PI) * 0.55;
-        this.queuePos.push({ x, y });
       }
       if (isHopper) {
         const t = Math.min(1, fx.hopT! / SLING_HOP_SECONDS);
@@ -463,6 +464,7 @@ export class SlingView {
       }
       node.visible = true;
       node.position.set(x, y, DEPTH.entities + (isHopper ? 0.3 : 0));
+      this.queuePos.push({ x, y });
       this.shadowCasters.push({ x, y: Math.max(0, y - rad), w: rad * 2 });
     }
     if (!hopping) for (const d of this.dust) d.visible = false;
@@ -493,6 +495,21 @@ export class SlingView {
   /** World positions of the queued bots, in order — used for bonus popups. */
   queuePositions(): readonly { x: number; y: number }[] {
     return this.queuePos;
+  }
+
+  /** Hopper transform while the queue→pouch hop plays (debug snapshot). */
+  hopperPose(): { x: number; y: number; sx: number; sy: number; rot: number; t: number } | null {
+    if (!this.hoppingNow) return null;
+    const n = this.queue[0];
+    if (!n) return null;
+    return {
+      x: n.position.x,
+      y: n.position.y,
+      sx: n.scale.x,
+      sy: n.scale.y,
+      rot: n.rotation.z,
+      t: this.hopTNow,
+    };
   }
 
   /** Aim guide: 'short' truncates the preview arc to its first 40%, 'off' hides it. */

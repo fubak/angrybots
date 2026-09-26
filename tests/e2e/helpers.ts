@@ -13,6 +13,11 @@ export type DebugSnapshot = {
   pullX: number;
   pullY: number;
   bot: { kind: string; x: number; y: number; vx: number; vy: number; speed: number } | null;
+  sling: {
+    loaded: { x: number; y: number } | null;
+    queue: { x: number; y: number }[];
+    hopper: { x: number; y: number; sx: number; sy: number; rot: number; t: number } | null;
+  };
   camera: { cx: number; cy: number; height: number };
 };
 

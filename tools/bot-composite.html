@@ -4,9 +4,15 @@
   <body>
     <script type="module">
       import { STICKERS } from '/src/render/botArt.generated.ts';
+      import { paintSticker, STICKER_INSET } from '/src/render/botArt.ts';
 
       const R = 252; // cell render width in viewBox scale
       const DIFF_TOL = 48; // per-pixel channel-sum tolerance
+      // Runtime outline: dark silhouette at full size, rim + body inset (see
+      // STICKER_INSET in botArt.ts). The check rebuilds the same layering in
+      // SVG so a runtime paint failure (missing body fill, bad path) diffs.
+      const OUTLINE = '#23180f'; // PALETTE.outline
+      const INSET = STICKER_INSET;
 
       async function rasterize(svgText, art) {
         // Rasterize at the target size — an <svg> without width/height renders
@@ -37,18 +43,32 @@
       // + eyes) and rasterize it through the same pipeline as the original —
       // this verifies the layer data reconstructs the sticker exactly, without
       // SVG-vs-Path2D edge-rasterizer noise.
-      function compositeSvg(art) {
+      function compositeSvg(art, outlined = false) {
         const backing = art.backing.circle
           ? `<circle cx="${art.backing.circle[0]}" cy="${art.backing.circle[1]}" r="${art.backing.circle[2]}" fill="#fff"/>`
           : `<path d="${art.backing.d}" fill="#fff" fill-rule="evenodd"/>`;
+        const dark = art.backing.circle
+          ? `<circle cx="${art.backing.circle[0]}" cy="${art.backing.circle[1]}" r="${art.backing.circle[2]}" fill="${OUTLINE}"/>`
+          : `<path d="${art.backing.d}" fill="${OUTLINE}" fill-rule="evenodd"/>`;
         const layer = (shapes) =>
           shapes.map((s) => `<path d="${s.d}" fill="#fff"/>`).join('');
-        return (
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${art.vbW} ${art.vbH}">` +
+        const sticker =
           backing +
           `<path d="${art.body}" fill="${art.bodyColor}"/>` +
-          layer(art.extras) +
-          layer(art.eyes) +
+          layer(art.extras);
+        const cx = art.vbW / 2;
+        const cy = art.vbH / 2;
+        // Eyes are unscaled in both paths — they live on separate planes in
+        // the runtime, so they are not part of the body inset.
+        return (
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${art.vbW} ${art.vbH}">` +
+          (outlined
+            ? dark +
+              `<g transform="translate(${cx} ${cy}) scale(${INSET}) translate(${-cx} ${-cy})">` +
+              sticker +
+              `</g>` +
+              layer(art.eyes)
+            : sticker + layer(art.eyes)) +
           `</svg>`
         );
       }
@@ -57,12 +77,67 @@
         return rasterize(compositeSvg(art), art);
       }
 
+      // The actual runtime paint path — Path2D fills of the extracted layers,
+      // exactly what stickerBodyTexture paints for the in-game planes.
+      function compositeRuntime(art) {
+        const c = document.createElement('canvas');
+        c.width = R;
+        c.height = Math.round((R * art.vbH) / art.vbW);
+        const ctx = c.getContext('2d');
+        ctx.scale(R / art.vbW, R / art.vbW);
+        paintSticker(ctx, art);
+        return c;
+      }
+
+      // Structural diff for the runtime check: alpha is compared as a binary
+      // solid mask (alpha > 128) with 2px of slack, and RGB is compared only
+      // where BOTH pixels are solid — partial-alpha pixels are skipped, so
+      // the different AA ramp widths of the SVG rasterizer and Canvas2D
+      // (which fooled a raw RGBA diff) cannot produce noise. A missing layer
+      // (e.g. body fill skipped) still shows as a huge interior mismatch.
+      function structDiff(a, b) {
+        const w = Math.min(a.width, b.width);
+        const h = Math.min(a.height, b.height);
+        const da = a.getContext('2d').getImageData(0, 0, w, h).data;
+        const db = b.getContext('2d').getImageData(0, 0, w, h).data;
+        const solid = (d, i) => d[i + 3] > 128;
+        const rgb = (d, i, d2, j) =>
+          Math.abs(d[i] - d2[j]) + Math.abs(d[i + 1] - d2[j + 1]) + Math.abs(d[i + 2] - d2[j + 2]);
+        let bad = 0;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const sa = solid(da, i);
+            const sb = solid(db, i);
+            if (sa !== sb) {
+              // excused only if the transition exists nearby in both images
+              let ok = false;
+              for (let ny = Math.max(0, y - 2); ny <= Math.min(h - 1, y + 2) && !ok; ny++)
+                for (let nx = Math.max(0, x - 2); nx <= Math.min(w - 1, x + 2); nx++) {
+                  const j = (ny * w + nx) * 4;
+                  if (solid(da, j) === sb && solid(db, j) === sb) { ok = true; break; }
+                }
+              if (!ok) bad++;
+            } else if (sa && rgb(da, i, db, i) > 60) {
+              let ok = false;
+              for (let ny = Math.max(0, y - 2); ny <= Math.min(h - 1, y + 2) && !ok; ny++)
+                for (let nx = Math.max(0, x - 2); nx <= Math.min(w - 1, x + 2); nx++) {
+                  const j = (ny * w + nx) * 4;
+                  if (solid(da, j) && rgb(da, j, db, i) <= 60) { ok = true; break; }
+                }
+              if (!ok) bad++;
+            }
+          }
+        }
+        return bad / (w * h || 1);
+      }
+
       // Shift-tolerant diff: SVG and Path2D rasterize edges with ~1px AA
       // differences. A pixel counts as different only when its color does not
       // appear in the 3x3 neighborhood of the OTHER image — so edge AA shifts
       // are excused, but a missing/extra feature (a color absent from the
       // neighborhood entirely) still counts.
-      function diff(a, b) {
+      function diff(a, b, rad = 1) {
         const w = Math.min(a.width, b.width);
         const h = Math.min(a.height, b.height);
         const da = a.getContext('2d').getImageData(0, 0, w, h).data;
@@ -79,8 +154,8 @@
             if (dSum(da, i, db, i) <= DIFF_TOL) continue;
             let foundA = false;
             let foundB = false;
-            for (let ny = Math.max(0, y - 1); ny <= Math.min(h - 1, y + 1); ny++) {
-              for (let nx = Math.max(0, x - 1); nx <= Math.min(w - 1, x + 1); nx++) {
+            for (let ny = Math.max(0, y - rad); ny <= Math.min(h - 1, y + rad); ny++) {
+              for (let nx = Math.max(0, x - rad); nx <= Math.min(w - 1, x + rad); nx++) {
                 const j = (ny * w + nx) * 4;
                 if (dSum(da, i, db, j) <= DIFF_TOL) foundA = true;
                 if (dSum(db, i, da, j) <= DIFF_TOL) foundB = true;
@@ -100,11 +175,16 @@
       for (const art of STICKERS) {
         const a = await rasterizeSvg(art.id, art);
         const b = await composite(art);
+        const rt = compositeRuntime(art);
+        const ref = await rasterize(compositeSvg(art, true), art);
         const d = diff(a, b);
-        rows.push({ id: art.id, a, b, d });
+        // Runtime Path2D paint vs the outlined SVG reconstruction — catches
+        // layers the extracted data has but the runtime fails to paint.
+        const d2 = structDiff(ref, rt);
+        rows.push({ id: art.id, a, b, rt, d, d2 });
         maxH = Math.max(maxH, a.height);
       }
-      const cellW = R * 2 + gap;
+      const cellW = R * 3 + gap * 2;
       const cols = 4;
       const sheetH = Math.ceil(rows.length / cols) * (maxH + labelH + pad) + pad;
       const sheetW = cols * (cellW + pad) + pad;
@@ -119,13 +199,18 @@
         const cx = pad + (i % cols) * (cellW + pad);
         const cy = pad + Math.floor(i / cols) * (maxH + labelH + pad);
         sctx.fillStyle = '#fff';
-        sctx.fillText(`${r.id}  diff ${(r.d * 100).toFixed(2)}%`, cx, cy + 16);
+        sctx.fillText(
+          `${r.id}  extract ${(r.d * 100).toFixed(2)}%  runtime ${(r.d2 * 100).toFixed(2)}%`,
+          cx,
+          cy + 16
+        );
         sctx.drawImage(r.a, cx, cy + labelH);
         sctx.drawImage(r.b, cx + R + gap, cy + labelH);
+        sctx.drawImage(r.rt, cx + R * 2 + gap * 2, cy + labelH);
       });
       document.body.appendChild(sheet);
       window.__result = {
-        diffs: rows.map((r) => ({ id: r.id, diff: r.d })),
+        diffs: rows.map((r) => ({ id: r.id, diff: r.d, runtimeDiff: r.d2 })),
         sheet: sheet.toDataURL('image/png'),
       };
     </script>
