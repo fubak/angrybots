@@ -31,20 +31,21 @@ export function pickDailyLevel(dateStr: string): LevelV2 {
 
 export type DailyState = {
   lastDate: string | null;
+  lastWinDate: string | null;
   bestByDate: Record<string, number>;
   streak: number;
 };
 
 export function freshDaily(): DailyState {
-  return { lastDate: null, bestByDate: {}, streak: 0 };
+  return { lastDate: null, lastWinDate: null, bestByDate: {}, streak: 0 };
 }
 
 const MAX_DATES = 30;
 
 /**
- * Applies one daily run: records the day's best score and updates the streak.
- * Streak grows only on consecutive-day wins; a loss or a skipped day resets it
- * (a same-day replay never resets it). Keeps the 30 most recent dates.
+ * Applies one daily run: records the day's best score and updates the win
+ * streak. The streak counts consecutive days on which the daily was WON —
+ * losses never change it. Keeps the 30 most recent dates.
  */
 export function applyDailyResult(
   daily: DailyState,
@@ -55,17 +56,23 @@ export function applyDailyResult(
   daily.bestByDate[date] = Math.max(daily.bestByDate[date] ?? 0, score);
   if (won) {
     daily.streak =
-      daily.lastDate === date
-        ? Math.max(daily.streak, 1)
-        : daily.lastDate === yesterdayOf(date)
+      daily.lastWinDate === date
+        ? daily.streak
+        : daily.lastWinDate === yesterdayOf(date)
           ? daily.streak + 1
           : 1;
-  } else if (daily.lastDate !== date) {
-    daily.streak = 0;
+    daily.lastWinDate = date;
   }
   daily.lastDate = date;
   const dates = Object.keys(daily.bestByDate).sort();
   if (dates.length > MAX_DATES) {
     for (const k of dates.slice(0, dates.length - MAX_DATES)) delete daily.bestByDate[k];
   }
+}
+
+/** Streak as of `today`: alive only if the daily was won today or yesterday. */
+export function currentStreak(daily: DailyState, today: string): number {
+  return daily.lastWinDate === today || daily.lastWinDate === yesterdayOf(today)
+    ? daily.streak
+    : 0;
 }

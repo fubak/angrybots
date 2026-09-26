@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
   applyDailyResult,
+  currentStreak,
   fnv1a,
   freshDaily,
   localDateString,
@@ -50,22 +51,40 @@ describe('daily streak logic', () => {
     expect(d.bestByDate['2026-09-23']).toBe(900);
   });
 
-  it('keeps the max score per date and never re-decrements on replay', () => {
+  it('losing first then winning the same day still extends the streak', () => {
     const d = freshDaily();
     applyDailyResult(d, '2026-09-20', true, 1000);
-    applyDailyResult(d, '2026-09-20', false, 0); // same-day loss after win keeps streak
     expect(d.streak).toBe(1);
-    applyDailyResult(d, '2026-09-20', true, 3000);
-    expect(d.bestByDate['2026-09-20']).toBe(3000);
-    expect(d.streak).toBe(1); // still day one of the streak
+    applyDailyResult(d, '2026-09-21', false, 500); // lost the first attempt today
+    applyDailyResult(d, '2026-09-21', true, 900); // won a replay today
+    expect(d.streak).toBe(2);
+    expect(d.lastWinDate).toBe('2026-09-21');
   });
 
-  it('a loss on a new day resets the streak', () => {
+  it('a loss never resets the streak', () => {
     const d = freshDaily();
     applyDailyResult(d, '2026-09-20', true, 1000);
     applyDailyResult(d, '2026-09-21', false, 500);
-    expect(d.streak).toBe(0);
+    expect(d.streak).toBe(1);
+    expect(d.lastWinDate).toBe('2026-09-20');
     expect(d.bestByDate['2026-09-21']).toBe(500);
+    expect(currentStreak(d, '2026-09-21')).toBe(1);
+  });
+
+  it('a missed day reports 0 and the next win restarts at 1', () => {
+    const d = freshDaily();
+    applyDailyResult(d, '2026-09-20', true, 1000);
+    expect(currentStreak(d, '2026-09-22')).toBe(0);
+    applyDailyResult(d, '2026-09-22', true, 700);
+    expect(d.streak).toBe(1);
+  });
+
+  it('a same-day double win does not double-count', () => {
+    const d = freshDaily();
+    applyDailyResult(d, '2026-09-20', true, 1000);
+    applyDailyResult(d, '2026-09-20', true, 3000);
+    expect(d.streak).toBe(1);
+    expect(d.bestByDate['2026-09-20']).toBe(3000);
   });
 
   it('keeps only the 30 most recent dates', () => {
@@ -131,7 +150,12 @@ describe('SaveStore v3 → v4 migration', () => {
     expect(d.settings.music).toBe(0.5);
     expect(d.achievements['first-win']).toBe(true);
     expect(d.stats.shots).toBe(7);
-    expect(d.daily).toEqual({ lastDate: null, bestByDate: {}, streak: 0 });
+    expect(d.daily).toEqual({
+      lastDate: null,
+      lastWinDate: null,
+      bestByDate: {},
+      streak: 0,
+    });
     expect(localStorage.getItem('angrybots-save-v3')).toBeNull();
     expect(localStorage.getItem('angrybots-save-v4')).toBeTruthy();
   });

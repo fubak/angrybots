@@ -71,7 +71,7 @@ const DEFAULTS: SaveV4 = {
     destroyed: { wood: 0, glass: 0, stone: 0, tnt: 0 },
   },
   lastLevelId: null,
-  daily: { lastDate: null, bestByDate: {}, streak: 0 },
+  daily: freshDaily(),
 };
 
 function freshDefaults(): SaveV4 {
@@ -166,6 +166,7 @@ export class SaveStore {
           if (daily) {
             d.daily = {
               lastDate: typeof daily.lastDate === 'string' ? daily.lastDate : null,
+              lastWinDate: typeof daily.lastWinDate === 'string' ? daily.lastWinDate : null,
               bestByDate: daily.bestByDate ?? {},
               streak: typeof daily.streak === 'number' ? daily.streak : 0,
             };

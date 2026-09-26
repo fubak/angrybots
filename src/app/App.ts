@@ -25,7 +25,7 @@ import type { BotKind } from '../levels/schema';
 import { SimFeedback } from './simFeedback';
 import { AppScreens, botImage, pigImage, tipFor, type AppPhase } from './screens';
 import { track } from '../analytics';
-import { localDateString, pickDailyLevel } from '../game/daily';
+import { currentStreak, localDateString, pickDailyLevel } from '../game/daily';
 
 export class App {
   private readonly bus = new EventBus<GameEvents>();
@@ -351,7 +351,7 @@ export class App {
       this.save.recordDailyResult(this.daily.date, rec.won, rec.score);
       dailyResult = {
         best: this.save.daily.bestByDate[this.daily.date] ?? rec.score,
-        streak: this.save.daily.streak,
+        streak: currentStreak(this.save.daily, this.daily.date),
       };
     }
     this.pendingResult = {

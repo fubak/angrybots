@@ -95,7 +95,7 @@ describe('SaveStore v4', () => {
     expect(d.lastLevelId).toBe('first-flight');
     expect(localStorage.getItem('angrybots-save-v2')).toBeNull();
     expect(localStorage.getItem('angrybots-save-v4')).toBeTruthy();
-    expect(d.daily).toEqual({ lastDate: null, bestByDate: {}, streak: 0 });
+    expect(d.daily).toEqual({ lastDate: null, lastWinDate: null, bestByDate: {}, streak: 0 });
   });
 
   it('fills missing nested fields of a partial v3 save', () => {
