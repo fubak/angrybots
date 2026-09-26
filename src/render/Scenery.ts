@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { DEPTH, PALETTE } from '../config/render';
+import { yawEyeTransforms } from './botArt';
+import type { StickerArt } from './botArt.generated';
+import { DEPTH } from '../config/render';
 import { TEX } from './textures';
 import { ILL } from './illustrations';
 
@@ -66,6 +68,41 @@ const PARALLAX = {
 const CLOUD_DRIFT = 0.15;
 const CLOUD_WRAP = 36;
 const CLOUD_SPAN = 72;
+
+// Sun/moon eyes: two dark pill eyes, proportioned like the sticker-01/cloud
+// eye pills relative to the disc (diameter 4.2 world units). CELESTIAL_EYES is
+// a viewBox-space description of the pair so yawEyeTransforms can drive the
+// group slide + mild foreshortening exactly like the bot stickers.
+const SUN_EYE_X = 0.62;
+const SUN_EYE_Y = 0.2;
+const SUN_EYE_W = 0.4;
+const SUN_EYE_H = 0.95;
+const SUN_EYE_TILT = 0.14;
+const CELESTIAL_EYE_BOXES = [-1, 1].map(
+  (side) =>
+    [
+      2.1 + side * SUN_EYE_X - SUN_EYE_W / 2,
+      2.1 - SUN_EYE_Y - SUN_EYE_H / 2,
+      SUN_EYE_W,
+      SUN_EYE_H,
+    ] as readonly [number, number, number, number]
+);
+const CELESTIAL_EYES: StickerArt = {
+  id: 'celestial',
+  vbW: 4.2,
+  vbH: 4.2,
+  backing: { circle: [2.1, 2.1, 2.1] },
+  bodyColor: '#000000',
+  body: '',
+  eyes: CELESTIAL_EYE_BOXES.map((box) => ({ d: '', box })),
+  extras: [],
+  eyeBox: [
+    CELESTIAL_EYE_BOXES[0]![0],
+    CELESTIAL_EYE_BOXES[0]![1],
+    CELESTIAL_EYE_BOXES[1]![0] + SUN_EYE_W - CELESTIAL_EYE_BOXES[0]![0],
+    SUN_EYE_H,
+  ],
+};
 
 export class Scenery {
   readonly group = new THREE.Group();
@@ -300,9 +337,16 @@ export class Scenery {
     this.gazeTarget.set((dx / dist) * reach, (dy / dist) * reach);
     const k = 1 - Math.exp(-dt * 6);
     this.gaze.lerp(this.gazeTarget, k);
-    for (const p of this.pupils) {
-      p.position.x = (p.userData.homeX as number) + this.gaze.x * 0.26;
+    // Same look-around math as the bot stickers: the pill pair slides as one
+    // group ∝ gaze, spacing compresses a little, the far eye narrows mildly —
+    // the eyes never merge or slide off the disc.
+    const poses = yawEyeTransforms(CELESTIAL_EYES, this.gaze.x * 0.42);
+    for (let i = 0; i < this.pupils.length; i++) {
+      const p = this.pupils[i]!;
+      const pose = poses[i];
+      p.position.x = (p.userData.homeX as number) + (pose?.dx ?? 0);
       p.position.y = (p.userData.homeY as number) + this.gaze.y * 0.2;
+      p.scale.x = Math.max(0.05, pose?.sx ?? 1);
     }
     this.blinkAt -= dt;
     if (this.blinkAt < -0.14) this.blinkAt = 2.5 + Math.random() * 3;
@@ -314,22 +358,19 @@ export class Scenery {
     const face = this.face;
     face.position.z = 0.15;
     this.celestial.add(face);
-    const visor = new THREE.MeshBasicMaterial({ color: PALETTE.bot.visor, fog: false });
-    const glow = new THREE.MeshBasicMaterial({ color: PALETTE.bot.eye, fog: false });
+    // Dark rounded pills on the pale disc — same style as the sticker bots
+    // (e.g. the white cloud), with a slight inward tilt.
+    const pill = new THREE.MeshBasicMaterial({ color: '#1d2433', fog: false });
+    const geo = new THREE.CapsuleGeometry(SUN_EYE_W / 2, SUN_EYE_H - SUN_EYE_W, 4, 12);
     for (const side of [-1, 1]) {
       const eye = new THREE.Group();
-      eye.position.set(side * 0.72, 0.18, 0);
-      const socket = new THREE.Mesh(new THREE.CircleGeometry(0.5, 24), visor);
-      socket.scale.set(1, 1.15, 1);
-      const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), glow);
-      pupil.position.z = 0.05;
-      pupil.userData.homeX = 0;
-      pupil.userData.homeY = 0;
-      const shine = new THREE.Mesh(new THREE.CircleGeometry(0.07, 8), glow);
-      shine.position.set(-0.14, 0.2, 0.06);
-      eye.add(socket, pupil, shine);
+      eye.position.set(side * SUN_EYE_X, SUN_EYE_Y, 0);
+      eye.rotation.z = side * SUN_EYE_TILT;
+      eye.userData.homeX = side * SUN_EYE_X;
+      eye.userData.homeY = SUN_EYE_Y;
+      eye.add(new THREE.Mesh(geo, pill));
       face.add(eye);
-      this.pupils.push(pupil);
+      this.pupils.push(eye);
       this.lids.push(eye);
     }
   }
