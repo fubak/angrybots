@@ -2,13 +2,22 @@ import { iconSvg, iconButton } from './icons';
 import {
   BOT_STICKER,
   MENU_STICKERS,
-  lookAroundYaw,
   stickerArt,
   stickerBodyImage,
   stickerEyeImage,
   yawEyeTransforms,
 } from '../render/botArt';
 import type { StickerArt } from '../render/botArt.generated';
+import {
+  createPlayground,
+  selectCast,
+  setPointer,
+  step,
+  tapBot,
+  type BotSpec,
+  type Playground,
+  type Zone,
+} from './titlePlayground';
 
 export type TitleActions = {
   play: () => void;
@@ -18,21 +27,24 @@ export type TitleActions = {
   credits: () => void;
 };
 
-type LineupBot = {
+type PgBot = {
   el: HTMLElement;
   body: HTMLImageElement;
   eyes: HTMLImageElement[];
   art: StickerArt;
+  spec: BotSpec;
+  /** Playable bots render bigger than menu stickers. */
+  big: boolean;
   i: number;
 };
 
 const EYE_PAD = 0.08; // matches stickerEyeImage's canvas padding
+const STEP = 1 / 60;
 
-function lineupBot(id: string, front: boolean, i: number): LineupBot {
+function pgBot(id: string, i: number, big: boolean): PgBot {
   const art = stickerArt(id);
   const b = document.createElement('div');
-  b.className = `lineup-bot${front ? ' front' : ''}`;
-  b.style.setProperty('--i', String(i));
+  b.className = 'pg-bot';
   const body = document.createElement('img');
   body.className = 'body';
   body.src = stickerBodyImage(id);
@@ -50,40 +62,45 @@ function lineupBot(id: string, front: boolean, i: number): LineupBot {
     b.appendChild(img);
     eyes.push(img);
   });
-  return { el: b, body, eyes, art, i };
+  return { el: b, body, eyes, art, spec: { id, w: 64 }, big, i };
 }
 
-function hash01(n: number): number {
-  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
-  return x - Math.floor(x);
-}
-
-/** Blink schedule shared shape with tickBot: ~3.4 s cycle, staggered per bot. */
-function lineupLid(t: number, i: number): number {
-  const c = (t / 3.4 + hash01(i * 3.1) * 0.8) % 1;
-  return c > 0.94 ? Math.max(0.12, Math.abs(Math.sin(((c - 0.94) / 0.06) * Math.PI * 0.5 + Math.PI / 2))) : 1;
-}
-
-/** Rare gag: a quick turn-away-and-back, ≤ once per ~22 s per bot. */
-function lineupGag(t: number, i: number): number | null {
-  const u = (t + i * 7.31 + hash01(i * 17.3) * 11) % 23;
-  if (u >= 1.2) return null;
-  const dir = i % 2 === 0 ? 1 : -1;
-  return dir * 1.08 * Math.sin((u / 1.2) * Math.PI);
+/** Neutral gaze for the static (reduced-motion) lineup. */
+function neutralPose(): { yaw: number; pitch: number; lid: number; eyeW: number } {
+  return { yaw: 0, pitch: 0, lid: 1, eyeW: 1 };
 }
 
 export class TitleScreen {
   readonly el: HTMLElement;
-  private readonly lineup: HTMLElement;
-  private readonly lineupBots: LineupBot[] = [];
+  private readonly stage: HTMLElement;
+  private readonly bots: PgBot[] = [];
   private readonly starsEl: HTMLElement;
   private readonly achvLabel: HTMLElement;
   private readonly dailyLabel: HTMLElement;
   private readonly isReducedMotion: () => boolean;
+  /** CSS-px y of the 3D grass line the bots stand on (from the renderer). */
+  private readonly groundY: () => number;
+  private stageBottomPx = -1;
+  private readonly onResize = (): void => this.layout();
+  private readonly onPointerMove = (e: PointerEvent): void => {
+    if (!this.pg || !this.stageRect) return;
+    setPointer(this.pg, e.clientY >= this.stageRect.top ? e.clientX - this.stageRect.left : null);
+  };
+  private pg: Playground | null = null;
+  private stageRect: DOMRect | null = null;
+  private zPool: HTMLElement[] = [];
   private raf = 0;
+  private lastMs = 0;
+  private acc = 0;
 
-  constructor(parent: HTMLElement, actions: TitleActions, isReducedMotion: () => boolean = () => false) {
+  constructor(
+    parent: HTMLElement,
+    actions: TitleActions,
+    isReducedMotion: () => boolean = () => false,
+    groundY: () => number = () => window.innerHeight - 8
+  ) {
     this.isReducedMotion = isReducedMotion;
+    this.groundY = groundY;
     this.el = document.createElement('div');
     this.el.className = 'ui-panel title-card';
     this.el.innerHTML = `
@@ -122,54 +139,188 @@ export class TitleScreen {
     this.el.append(play, daily, secondary);
     parent.appendChild(this.el);
 
-    // Animated lineup: all 12 official stickers, the 5 playable bots in front.
-    this.lineup = document.createElement('div');
-    this.lineup.className = 'title-lineup';
-    this.lineup.setAttribute('aria-hidden', 'true');
-    const back = document.createElement('div');
-    back.className = 'lineup-row back';
-    MENU_STICKERS.forEach((id, i) => {
-      const b = lineupBot(id, false, i);
-      this.lineupBots.push(b);
-      back.appendChild(b.el);
+    // Playground stage: the 12 stickers roam the ground strip below/around
+    // the card. Container ignores pointers; each bot is individually tappable.
+    this.stage = document.createElement('div');
+    this.stage.className = 'title-stage';
+    this.stage.setAttribute('aria-hidden', 'true');
+    MENU_STICKERS.forEach((id) => this.bots.push(pgBot(id, this.bots.length, false)));
+    Object.values(BOT_STICKER).forEach((id) => this.bots.push(pgBot(id, this.bots.length, true)));
+    this.bots.forEach((b) => {
+      b.el.dataset.bot = b.spec.id;
+      this.stage.appendChild(b.el);
     });
-    const front = document.createElement('div');
-    front.className = 'lineup-row front';
-    Object.values(BOT_STICKER).forEach((id, i) => {
-      const b = lineupBot(id, true, i + MENU_STICKERS.length);
-      this.lineupBots.push(b);
-      front.appendChild(b.el);
+    // Tap uses the sim index, which is only known once the cast is picked —
+    // resolve it per click so re-casting on resize can't misroute taps.
+    this.bots.forEach((b) => {
+      b.el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (this.pg && !this.isReducedMotion() && b.i >= 0) tapBot(this.pg, b.i);
+      });
     });
-    this.lineup.append(back, front);
-    parent.appendChild(this.lineup);
+    parent.appendChild(this.stage);
+    window.addEventListener('resize', this.onResize);
+    window.addEventListener('pointermove', this.onPointerMove, { passive: true });
+    // The card resizes when fonts swap in or content changes (star counts,
+    // daily label) — re-derive zones so a stale measurement can't hide the
+    // stage or leave bots under the buttons.
+    new ResizeObserver(() => this.layout()).observe(this.el);
   }
 
-  /** Deterministic per-bot yaw pose — look-around cycle + rare gag turn-away. */
-  private poseLineup(t: number, neutral = false): void {
-    for (const b of this.lineupBots) {
-      const gag = neutral ? null : lineupGag(t, b.i);
-      const yaw = neutral ? 0 : (gag ?? lookAroundYaw(t, hash01(b.i * 5.7) * 1.0));
-      const pitch = neutral ? 0 : Math.sin(t * 0.83 + b.i) * 0.25;
-      const lid = neutral ? 1 : lineupLid(t, b.i);
-      const poses = yawEyeTransforms(b.art, yaw);
-      // Silhouette follows the look: ~10° lean (capped) + slight bob, like the
-      // reference strips — matches tickBot's in-game body motion.
-      const leanYaw = Math.max(-0.42, Math.min(0.42, yaw));
-      const bob = Math.sin(t * 1.31 + b.i * 1.7) * 1.2;
-      b.body.style.transform = `translateX(${yaw * 3}%) translateY(${bob}%) rotate(${-leanYaw * 28.6}deg)`;
-      b.eyes.forEach((img, ei) => {
-        const p = poses[ei]!;
-        const dxPct = (p.dx / (b.art.eyes[ei]!.box[2] * (1 + EYE_PAD * 2))) * 100;
-        const dyPct = (pitch * -b.art.eyeBox[3] * 0.15) / (b.art.eyes[ei]!.box[3] * (1 + EYE_PAD * 2)) * 100;
-        img.style.opacity = p.visible ? '1' : '0';
-        img.style.transform = `translate(-50%,-50%) translate(${dxPct}%, ${dyPct}%) scale(${Math.max(0.02, p.sx)}, ${lid}) rotate(${-yaw * 12.6}deg)`;
-      });
+  /**
+   * Compute the walkable zones from the real layout: below the card when
+   * there's room, otherwise the left/right gutters beside it. Both too
+   * narrow → no playground at all.
+   */
+  /** Keep the stage's bottom edge pinned to the rendered grass line. */
+  private syncGround(): void {
+    const gy = this.groundY();
+    if (!Number.isFinite(gy)) return;
+    const bottom = Math.max(0, window.innerHeight - gy);
+    if (Math.abs(bottom - this.stageBottomPx) > 0.4) {
+      this.stageBottomPx = bottom;
+      this.stage.style.bottom = `${bottom}px`;
+      this.stageRect = this.stage.getBoundingClientRect();
     }
   }
 
-  private readonly poseFrame = (ms: number): void => {
-    this.poseLineup(ms / 1000);
-    this.raf = requestAnimationFrame(this.poseFrame);
+  private layout(): void {
+    if (this.el.style.display === 'none') return;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const card = this.el.getBoundingClientRect();
+    // Bots stand ON the grass line (their feet = the stage's bottom edge) and
+    // scale with viewport height — desktop ~64px playable, ~46px menu.
+    const playableH = Math.round(Math.min(64, Math.max(26, H * 0.089)));
+    const menuH = Math.round(playableH * 0.72);
+    let u = playableH / 64; // hop/gravity scale for the sim
+    const ground = Number.isFinite(this.groundY()) ? this.groundY() : H;
+
+    // The full-width strip works whenever the band between card bottom and
+    // grass can hold a standing bot with headroom to hop. When the band is
+    // tighter than a full leap, cap the sim scale so the leap apex still
+    // stays below the card — a bot must never pass behind its buttons.
+    const LEAP_APEX = 104; // px at u=1 (leapfrog is the tallest hop)
+    const stripRoom = ground - card.bottom;
+    let zones: Zone[];
+    if (stripRoom >= playableH * 1.35) {
+      const maxU = (stripRoom - playableH - 4) / LEAP_APEX;
+      u = Math.max(0.3, Math.min(u, maxU));
+      zones = [{ x0: 8, x1: W - 8 }];
+    } else {
+      zones = [];
+      // Gutter mode needs room for at least the small bots.
+      const minGutter = menuH * 1.6;
+      if (card.left - 14 >= minGutter) zones.push({ x0: 8, x1: card.left - 14 });
+      if (W - card.right - 14 >= minGutter) zones.push({ x0: card.right + 14, x1: W - 8 });
+      if (zones.length === 0) {
+        this.stage.style.display = 'none';
+        this.pg = null;
+        return;
+      }
+    }
+    this.stage.style.height = `${playableH + Math.ceil(LEAP_APEX * u)}px`;
+    for (const b of this.bots) {
+      const h = b.big ? playableH : menuH;
+      const w = h * (b.art.vbW / b.art.vbH);
+      b.spec.w = w;
+      b.el.style.height = `${h}px`;
+      b.el.style.width = `${w}px`;
+    }
+    // Only as many bots as fit with room to roam (≤55% body-width coverage
+    // per zone) — playable five first, then the menu stickers.
+    const ordered = [...this.bots].sort((a, b) => Number(b.big) - Number(a.big));
+    const cast = selectCast(
+      ordered.map((b) => b.spec),
+      zones
+    );
+    if (cast.length === 0) {
+      this.stage.style.display = 'none';
+      this.pg = null;
+      return;
+    }
+    const castIndex = new Map(cast.map((c, i) => [c.spec, i]));
+    for (const b of this.bots) {
+      const i = castIndex.get(b.spec);
+      b.el.style.display = i === undefined ? 'none' : '';
+      b.i = i ?? -1;
+    }
+    // Rebuild the sim on every layout — cast membership changes on resize,
+    // so reusing a stale playground would misalign sim indices.
+    this.pg = createPlayground(
+      1234,
+      zones,
+      cast.map((c) => c.spec),
+      u
+    );
+    // Reveal only after sizes and positions exist — render one frame now so
+    // the bots never flash un-positioned at the stage corner.
+    this.syncGround();
+    this.stage.style.display = 'block';
+    this.render();
+    this.stageRect = this.stage.getBoundingClientRect();
+  }
+
+  /** Push sim state → DOM. Transforms/opacity only. */
+  private render(): void {
+    const pg = this.pg;
+    if (!pg) return;
+    this.syncGround();
+    for (const b of this.bots) {
+      if (b.el.style.display === 'none') continue;
+      const s = pg.bots[b.i]!;
+      const pose = this.isReducedMotion() ? neutralPose() : s;
+      b.el.dataset.behavior = s.kind;
+      b.el.style.transform = `translate(${(s.x - s.w / 2).toFixed(1)}px, ${(-s.y).toFixed(1)}px)`;
+      const leanYaw = Math.max(-0.42, Math.min(0.42, pose.yaw));
+      b.body.style.transform = `rotate(${(s.tilt - leanYaw * 0.45).toFixed(3)}rad) scale(${s.sx.toFixed(3)}, ${s.sy.toFixed(3)})`;
+      const poses = yawEyeTransforms(b.art, pose.yaw);
+      b.eyes.forEach((img, ei) => {
+        const p = poses[ei]!;
+        const dxPct = (p.dx / (b.art.eyes[ei]!.box[2] * (1 + EYE_PAD * 2))) * 100;
+        const dyPct =
+          ((pose.pitch * -b.art.eyeBox[3] * 0.15) / (b.art.eyes[ei]!.box[3] * (1 + EYE_PAD * 2))) *
+          100;
+        img.style.opacity = p.visible ? '1' : '0';
+        img.style.transform = `translate(-50%,-50%) translate(${dxPct}%, ${dyPct}%) scale(${Math.max(0.02, p.sx * pose.eyeW)}, ${pose.lid})`;
+      });
+    }
+    // Nap z's: one pooled span per live puff, rising + fading with age.
+    while (this.zPool.length < pg.zs.length) {
+      const z = document.createElement('span');
+      z.className = 'pg-z';
+      z.textContent = 'z';
+      this.stage.appendChild(z);
+      this.zPool.push(z);
+    }
+    this.zPool.forEach((el, i) => {
+      const z = pg.zs[i];
+      if (!z) {
+        el.style.display = 'none';
+        return;
+      }
+      el.style.display = 'block';
+      el.style.transform = `translate(${z.x.toFixed(0)}px, ${(-z.y - z.age * 30).toFixed(0)}px) scale(${(1 + z.age * 0.5).toFixed(2)})`;
+      el.style.opacity = String(Math.max(0, 1 - z.age / 1.4));
+    });
+  }
+
+  private readonly frame = (ms: number): void => {
+    if (!this.pg) {
+      this.raf = 0;
+      return;
+    }
+    const dt = Math.min(0.1, (ms - this.lastMs) / 1000);
+    this.lastMs = ms;
+    this.acc += dt;
+    let n = 0;
+    while (this.acc >= STEP && n < 6) {
+      step(this.pg, STEP);
+      this.acc -= STEP;
+      n++;
+    }
+    this.render();
+    this.raf = requestAnimationFrame(this.frame);
   };
 
   setDaily(levelName: string): void {
@@ -183,20 +334,24 @@ export class TitleScreen {
 
   hide(): void {
     this.el.style.display = 'none';
-    this.lineup.style.display = 'none';
+    this.stage.style.display = 'none';
     cancelAnimationFrame(this.raf);
     this.raf = 0;
   }
 
   show(): void {
     this.el.style.display = 'flex';
-    this.lineup.style.display = 'flex';
+    // The stage stays display:none until layout() has placed every bot;
+    // layout() reveals it (or leaves it hidden when there are no zones).
+    this.layout();
     cancelAnimationFrame(this.raf);
-    if (this.isReducedMotion()) {
-      this.poseLineup(0, true); // static neutral pose
+    if (this.isReducedMotion() || !this.pg) {
+      this.render(); // static neutral pose — no roaming under reduced motion
       this.raf = 0;
     } else {
-      this.raf = requestAnimationFrame(this.poseFrame);
+      this.lastMs = performance.now();
+      this.acc = 0;
+      this.raf = requestAnimationFrame(this.frame);
     }
   }
 }

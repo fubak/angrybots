@@ -105,18 +105,22 @@ for (const size of SIZES) {
     // Menus are never covered by the rotate prompt — it is gameplay-only.
     await expect.poll(() => rotateVisible(page)).toBe(false);
 
-    // Title: every button in view and tappable, lineup never over a button.
+    // Title: every button in view and tappable; no playground bot may sit
+    // on a button (they roam, so check each bot's current box).
     await assertReachable(page, '.title-card button');
     const overlap = await page.evaluate(() => {
-      const lineup = document.querySelector('.title-lineup');
-      if (!lineup || getComputedStyle(lineup).display === 'none') return false;
-      const lr = lineup.getBoundingClientRect();
-      return [...document.querySelectorAll('.title-card button')].some((b) => {
-        const r = b.getBoundingClientRect();
-        return r.left < lr.right && r.right > lr.left && r.top < lr.bottom && r.bottom > lr.top;
+      return [...document.querySelectorAll('.pg-bot')].some((bot) => {
+        if (!bot.checkVisibility()) return false;
+        const br = bot.getBoundingClientRect();
+        return [...document.querySelectorAll('.title-card button')].some((b) => {
+          const r = b.getBoundingClientRect();
+          return (
+            r.left < br.right && r.right > br.left && r.top < br.bottom && r.bottom > br.top
+          );
+        });
       });
     });
-    expect(overlap, 'lineup overlaps title buttons').toBe(false);
+    expect(overlap, 'playground bot overlaps a title button').toBe(false);
 
     // Chapter select: 3 cards + back, no page scroll needed.
     await page.getByRole('button', { name: 'Play', exact: true }).click();
@@ -156,6 +160,51 @@ for (const size of SIZES) {
     await page.context().close();
   });
 }
+
+// The title playground must stay live and clear of controls at the smallest
+// portrait size — needs motion, so this context opts out of reducedMotion.
+test('playground bots roam and leave every button tappable at portrait 390x664', async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 664 },
+    isMobile: true,
+    hasTouch: true,
+    reducedMotion: 'no-preference',
+  });
+  const page = await ctx.newPage();
+  await openApp(page);
+  // The cast is width-budgeted — at 390px portrait only a handful of bots fit
+  // at ≤55% stage coverage; that's the point (they'd otherwise cram). The
+  // stage reveals after the first layout pass, so poll for it.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => [...document.querySelectorAll('.pg-bot')].filter((b) => b.checkVisibility()).length
+      )
+    )
+    .toBeGreaterThanOrEqual(3);
+
+  const xs = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('.pg-bot')].map((b) => b.getBoundingClientRect().x)
+    );
+  const before = await xs();
+  await expect
+    .poll(async () => {
+      const after = await xs();
+      return before.filter((x, i) => Math.abs(x - after[i]!) > 3).length;
+    }, { timeout: 5000 })
+    .toBeGreaterThan(0);
+
+  // Sample hit-tests a few times while bots roam — a wandering bot must never
+  // be what's under a button center.
+  for (let i = 0; i < 4; i++) {
+    await assertReachable(page, '.title-card button');
+    await page.waitForTimeout(450);
+  }
+  await ctx.close();
+});
 
 test('portrait gameplay still shows the rotate prompt', async ({ browser }) => {
   const page = await mobilePage(browser, SIZES[0]!);

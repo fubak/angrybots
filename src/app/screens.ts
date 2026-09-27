@@ -37,6 +37,8 @@ type ScreensDeps = {
   isLevelUnlocked: (id: string) => boolean;
   levelRefs: () => readonly { id: string; chapter: string }[];
   applyAimGuide: () => void;
+  /** CSS-px y of the grass line — anchors the title playground stage. */
+  groundScreenY: () => number;
 };
 
 export function botImage(kind: string): string {
@@ -79,7 +81,8 @@ export class AppScreens {
     this.hud = new Hud(
       uiRoot,
       () => deps.togglePause(),
-      () => this.toggleMute()
+      () => this.toggleMute(),
+      () => effectiveReducedMotion(deps.save.settings.reducedMotion)
     );
     this.hud.setMuted(deps.audio.muted);
     this.pauseMenu = new PauseMenu(uiRoot, {
@@ -102,7 +105,8 @@ export class AppScreens {
         achievements: () => this.openAchievements(),
         credits: () => this.openCredits(),
       },
-      () => effectiveReducedMotion(deps.save.settings.reducedMotion)
+      () => effectiveReducedMotion(deps.save.settings.reducedMotion),
+      () => deps.groundScreenY()
     );
     this.title.setDaily(deps.dailyLevelName());
     this.levelSelect = new LevelSelect(
