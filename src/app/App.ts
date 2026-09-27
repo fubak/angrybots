@@ -31,6 +31,9 @@ import { AppScreens, botImage, pigImage, tipFor, type AppPhase } from './screens
 import { track } from '../analytics';
 import { currentStreak, localDateString, pickDailyLevel } from '../game/daily';
 
+/** Pixel height of the top HUD strip reserved by the camera framing. */
+const HUD_TOP_PX = 56;
+
 export class App {
   private readonly bus = new EventBus<GameEvents>();
   private readonly session = new GameSession();
@@ -158,7 +161,13 @@ export class App {
       worldPerPx: () => this.currentView.h / Math.max(1, this.canvas.clientHeight),
       currentView: () => this.currentView,
       limits: () =>
-        gestureLimitsFor(this.levelId ? (levelById(this.levelId) ?? null) : null, this.camera),
+        gestureLimitsFor(
+          this.levelId ? (levelById(this.levelId) ?? null) : null,
+          this.camera,
+          this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight),
+          HUD_TOP_PX,
+          this.canvas.clientHeight
+        ),
       aspect: () => this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight),
     });
     this.sling.setSuppress(() => this.gestures.isActive());
@@ -310,16 +319,21 @@ export class App {
     this.bonusFired = 0;
     this.fx.resetLevel();
     this.gestures.reset();
+    this.renderer.setImpactFocus(null);
     this.renderer.clearLevel();
     const rm = effectiveReducedMotion(this.save.settings.reducedMotion);
     this.session.loadLevel(def, rm);
     this.renderer.setChapter(def.chapter);
     this.renderer.setTerrain(def.terrain);
-    // Pin the parallax reference to the sling view — the framing the scenery
-    // was laid out for (moon/sun, hills, trees sit where designed). The intro
-    // pan then drifts layers naturally, and the deterministic value keeps the
+    // Pin the parallax reference to the aim view — the framing the scenery is
+    // laid out against (the celestial also clamps inside it). The intro pan
+    // then drifts layers naturally, and the deterministic value keeps the
     // first rendered frame from racing the camera snap.
-    this.renderer.anchorParallax(this.camera.slingView(def));
+    const aspect = this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight);
+    this.renderer.anchorParallax(
+      this.camera.slingView(def, 0, aspect, HUD_TOP_PX, this.canvas.clientHeight),
+      aspect
+    );
     this.audio.setChapter(def.chapter);
     const sim = this.session.getSim();
     if (sim) sim.fragmentsEnabled = true;
@@ -547,7 +561,7 @@ export class App {
         impactCenter: this.fx.impactCenter,
         introElapsed: this.introElapsed,
         reducedMotion: effectiveReducedMotion(this.save.settings.reducedMotion),
-        topHudPx: 56,
+        topHudPx: HUD_TOP_PX,
         canvasPxH: this.canvas.clientHeight,
         manualOffset: this.gestures.manualOffset(),
       },
