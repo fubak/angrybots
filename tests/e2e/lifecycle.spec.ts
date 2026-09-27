@@ -42,16 +42,21 @@ test('pause restart restores aim and ammo', async ({ page }) => {
   expect(s.paused).toBe(false);
 });
 
-test('portrait rotate prompt recovers in landscape while paused', async ({ page }, testInfo) => {
+test('portrait rotate prompt yields to pause menu and returns on resume', async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.includes('phone'), 'coarse-pointer devices only'); // ISSUE-1
   await skipToPlay(page, 'first-flight');
   await page.getByRole('button', { name: 'Pause' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator('#rotate-prompt')).toBeVisible();
-  await page.setViewportSize({ width: 844, height: 390 });
+  // The prompt only covers live gameplay — an open modal (pause) wins so the
+  // menu stays usable in portrait.
   await expect(page.locator('#rotate-prompt')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Resume' })).toBeVisible();
+  // Resume into portrait gameplay → prompt returns.
   await page.getByRole('button', { name: 'Resume' }).click();
+  await expect(page.locator('#rotate-prompt')).toBeVisible();
+  // Rotate back to landscape → prompt clears, play resumes.
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect(page.locator('#rotate-prompt')).toBeHidden();
   await waitForAim(page);
   expect((await snapshot(page)).paused).toBe(false);
 });

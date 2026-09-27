@@ -45,6 +45,34 @@ export function fitRect(
   return { cx, cy, h };
 }
 
+/**
+ * Fit a rect sitting on the ground (r.y0 = ground level). The bottom edge is
+ * pinned `strip` world units below ground — a small dirt band — so when the
+ * frame is width-limited the surplus height goes to sky instead of burying a
+ * third of the screen in dirt. `topHudPx/canvasPxH` reserves the HUD strip at
+ * the top so content stays fully visible below it.
+ */
+export function fitGroundRect(
+  r: Rect,
+  aspect: number,
+  pad = 0.5,
+  strip = 0.7,
+  topHudPx = 0,
+  canvasPxH = 1
+): View {
+  const w = r.x1 - r.x0;
+  const hRect = r.y1 - r.y0;
+  let h = Math.max(hRect + pad + strip, (w + 2 * pad) / aspect);
+  const cx = (r.x0 + r.x1) / 2;
+  let cy = r.y0 - strip + h / 2;
+  if (topHudPx > 0 && canvasPxH > 0) {
+    const add = h * (topHudPx / canvasPxH);
+    h += add;
+    cy += add / 2;
+  }
+  return { cx, cy, h };
+}
+
 export function clampView(v: View, bounds: Rect, aspect: number): View {
   const boundsW = bounds.x1 - bounds.x0;
   const boundsH = bounds.y1 - bounds.y0;

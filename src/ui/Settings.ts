@@ -82,12 +82,11 @@ export class Settings {
       handlers.onReset();
     });
 
-    const close = iconButton('close', 'Close settings');
-    close.style.position = 'absolute';
-    close.style.right = '10px';
-    close.style.top = '10px';
+    /* Sticky close — stays pinned top-right while the modal scrolls on short
+       screens (see .modal-close in styles.css). */
+    const close = iconButton('close', 'Close settings', 'modal-close');
     close.addEventListener('click', handlers.onClose);
-    this.el.querySelector('.ui-panel.modal')!.appendChild(close);
+    this.el.querySelector('.ui-panel.modal')!.prepend(close);
   }
 
   private disarmReset(): void {

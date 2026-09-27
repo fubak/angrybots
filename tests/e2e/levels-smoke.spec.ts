@@ -61,6 +61,9 @@ test.describe('levels smoke', () => {
       await page.getByRole('button', { name: 'Play' }).click();
       await pickLevel(page, id);
       await expect.poll(async () => (await snapshot(page)).state, { timeout: 20_000 }).toBe('aim');
+      // Boot may finish after a fast level entry — the title card must never
+      // be drawn over live gameplay.
+      await expect(page.locator('.title-card')).toBeHidden();
       expect(errors).toEqual([]);
     });
   }

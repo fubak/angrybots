@@ -85,7 +85,7 @@ async function freeze(page: Page, on: boolean): Promise<void> {
 }
 
 test.describe('bot sticker pixels', () => {
-  test.skip(({ isMobile }) => !!isMobile, 'desktop canvas pixel checks');
+  test.skip(({ isMobile }) => !!isMobile, 'desktop canvas pixel checks'); // ISSUE-06
   test.use({ reducedMotion: 'reduce' });
 
   test.beforeEach(async ({ page }) => {
@@ -95,7 +95,7 @@ test.describe('bot sticker pixels', () => {
 
   for (const kind of Object.keys(LEVEL_FOR) as BotKind[]) {
     test(`loaded ${kind} renders its opaque body color`, async ({ page }, testInfo) => {
-      test.skip(testInfo.project.name !== 'desktop', 'desktop only');
+      test.skip(testInfo.project.name !== 'desktop', 'desktop only'); // ISSUE-06
       await enterLevel(page, LEVEL_FOR[kind]);
       await freeze(page, true);
       const snap = await snapshot(page);
@@ -113,7 +113,7 @@ test.describe('bot sticker pixels', () => {
   }
 
   test('queue bot renders opaque at its queue slot', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'desktop only');
+    test.skip(testInfo.project.name !== 'desktop', 'desktop only'); // ISSUE-06
     await enterLevel(page, 'first-flight'); // queue after loaded = grok, grok
     await freeze(page, true);
     const snap = await snapshot(page);
@@ -134,7 +134,7 @@ test.describe('queue hop', () => {
   test('hopper crouches, rises above the queue, stretches, tumbles, lands', async ({
     page,
   }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'desktop only');
+    test.skip(testInfo.project.name !== 'desktop', 'desktop only'); // ISSUE-06
     // Full motion needed — the squash/tumble assertions are the point.
     await page.addInitScript(() => {
       localStorage.setItem(

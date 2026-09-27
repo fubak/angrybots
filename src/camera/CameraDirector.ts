@@ -1,8 +1,10 @@
-import type { LevelV2 } from '../levels/schema';
+import type { LevelV2, TerrainV2 } from '../levels/schema';
 import type { GameStateId } from '../game/states';
 import { TUNING } from '../config/tuning';
 import { expandLevel, type ExpandedBlock } from '../levels/expand';
-import { fitRect, unionRect, type Rect, type View } from './fitRect';
+import { SLING } from '../sling/launch';
+import { SLING_FORK, SLING_TIP_Y } from '../render/SlingView';
+import { fitGroundRect, unionRect, type Rect, type View } from './fitRect';
 
 export type CameraDirectorInput = {
   state: GameStateId;
@@ -27,9 +29,70 @@ const LAMBDA = {
   return: 2.4,
 };
 
-/** Level-open beat: snap onto the structure, hold/push in, then pan to the sling. */
+/** Level-open beat: snap onto the structure, hold/pull back a touch, then pan to the sling. */
 const INTRO_HOLD = 1.2;
 const INTRO_PAN = 1.4;
+/** Dirt strip below ground level — enough to read as ground, not a third of the screen. */
+export const GROUND_STRIP = 0.7;
+/** Intro structure shot fills at most ~70% of the visible region so nothing crops. */
+const STRUCTURE_FILL = 0.7;
+
+function blockRect(b: ExpandedBlock): Rect {
+  return b.shape === 'circle'
+    ? { x0: b.cx - b.r!, y0: b.cy - b.r!, x1: b.cx + b.r!, y1: b.cy + b.r! }
+    : { x0: b.cx - b.w / 2, y0: b.cy - b.h / 2, x1: b.cx + b.w / 2, y1: b.cy + b.h / 2 };
+}
+
+function terrainRect(t: TerrainV2): Rect {
+  if (t.kind === 'plateau') return { x0: t.x0, x1: t.x1, y0: 0, y1: t.top };
+  if (t.kind === 'ramp') return { x0: t.x0, x1: t.x1, y0: 0, y1: Math.max(t.y0, t.y1) };
+  return { x0: t.x0, x1: t.x1, y0: t.top - t.thickness, y1: t.top };
+}
+
+/**
+ * Everything that must sit inside the aim frame: the sling fork and its
+ * loaded bot, every queue slot (same layout math as SlingView.spots), all
+ * expanded blocks (circles included), pigs, terrain and the level's authored
+ * camera bounds. y0 is always the ground line.
+ */
+export function contentRect(level: LevelV2): Rect {
+  const sx = level.sling.x;
+  let r: Rect = {
+    x0: sx - SLING_FORK - 0.35,
+    x1: sx + SLING_FORK + 0.35,
+    y0: 0,
+    y1: Math.max(SLING_TIP_Y + 0.25, SLING.anchor.y + 0.85),
+  };
+  let qx = sx - SLING_FORK - 1.5;
+  for (const kind of level.bots.slice(1)) {
+    const br = TUNING.bots[kind].r;
+    qx -= br;
+    r = unionRect(r, { x0: qx - br, x1: qx + br, y0: 0, y1: br * 2 });
+    qx -= br + 0.28;
+  }
+  const ex = expandLevel(level);
+  for (const b of ex.blocks) r = unionRect(r, blockRect(b));
+  for (const p of ex.pigs) {
+    r = unionRect(r, { x0: p.cx - p.r, y0: p.cy - p.r, x1: p.cx + p.r, y1: p.cy + p.r });
+  }
+  for (const t of level.terrain) r = unionRect(r, terrainRect(t));
+  const c = level.camera;
+  r = unionRect(r, { x0: c.minX, x1: c.maxX, y0: c.minY, y1: c.maxY });
+  return { ...r, y0: 0 };
+}
+
+/** Blocks + pigs + terrain — the "castle" the intro close-up frames. */
+export function structureRect(level: LevelV2): Rect | null {
+  const ex = expandLevel(level);
+  let r: Rect | null = null;
+  for (const b of ex.blocks) r = r ? unionRect(r, blockRect(b)) : blockRect(b);
+  for (const p of ex.pigs) {
+    const pr: Rect = { x0: p.cx - p.r, y0: p.cy - p.r, x1: p.cx + p.r, y1: p.cy + p.r };
+    r = r ? unionRect(r, pr) : pr;
+  }
+  for (const t of level.terrain) r = r ? unionRect(r, terrainRect(t)) : terrainRect(t);
+  return r;
+}
 
 export class CameraDirector {
   private view: View = { cx: 0, cy: 5, h: 12 };
@@ -48,56 +111,82 @@ export class CameraDirector {
     this.trauma = Math.min(1, this.trauma + amount);
   }
 
-  /** Sling framing rect — widens with tension and includes level camera bounds so targets stay visible. */
-  private slingRect(level: LevelV2 | null, tension = 0): Rect {
-    const sx = level?.sling.x ?? TUNING.sling.x;
+  /**
+   * Aim frame: the whole level — queue, sling, structure, terrain — fit to the
+   * real canvas aspect with the HUD strip reserved, ground-pinned so surplus
+   * height is sky. Widens slightly with pull tension.
+   */
+  slingView(
+    level: LevelV2 | null,
+    tension = 0,
+    aspect = 16 / 9,
+    topHudPx = 0,
+    canvasPxH = 1
+  ): View {
+    if (!level) {
+      const sx = TUNING.sling.x;
+      return fitGroundRect(
+        { x0: sx - 3.5, x1: sx + 15.5, y0: 0, y1: 9 },
+        aspect,
+        0.5,
+        GROUND_STRIP,
+        topHudPx,
+        canvasPxH
+      );
+    }
+    const r = contentRect(level);
     const widen = 1.2 * tension;
-    let x1 = sx + 15.5 + widen;
-    let y1 = 9;
-    if (level) {
-      x1 = Math.max(x1, level.camera.maxX);
-      y1 = Math.max(y1, level.camera.maxY);
-    }
-    return { x0: sx - 3.5, x1, y0: 0, y1 };
+    return fitGroundRect(
+      { ...r, x1: r.x1 + widen },
+      aspect,
+      0.5,
+      GROUND_STRIP,
+      topHudPx,
+      canvasPxH
+    );
   }
 
-  slingView(level: LevelV2 | null, tension = 0): View {
-    return fitRect(this.slingRect(level, tension), 16 / 9, 0.5);
+  overviewView(
+    level: LevelV2 | null,
+    aspect = 16 / 9,
+    topHudPx = 0,
+    canvasPxH = 1
+  ): View {
+    return this.slingView(level, 0, aspect, topHudPx, canvasPxH);
   }
 
-  overviewView(level: LevelV2 | null): View {
-    if (!level) return { cx: 8, cy: 5, h: 12 };
-    const c = level.camera;
-    const r: Rect = { x0: c.minX, x1: c.maxX, y0: c.minY, y1: c.maxY };
-    return fitRect(r, 16 / 9, 0.5);
-  }
-
-  /** Close-up on the level's structure (blocks + targets) for the intro beat. */
-  structureView(level: LevelV2 | null): View {
-    if (!level) return this.slingView(level);
-    const ex = expandLevel(level);
-    const aabb = (b: ExpandedBlock): Rect =>
-      b.shape === 'circle'
-        ? { x0: b.cx - b.r!, y0: b.cy - b.r!, x1: b.cx + b.r!, y1: b.cy + b.r! }
-        : { x0: b.cx - b.w / 2, y0: b.cy - b.h / 2, x1: b.cx + b.w / 2, y1: b.cy + b.h / 2 };
-    let r: Rect | null = null;
-    for (const b of ex.blocks) r = r ? unionRect(r, aabb(b)) : aabb(b);
-    for (const p of ex.pigs) {
-      r = unionRect(r ?? { x0: p.cx, y0: p.cy, x1: p.cx, y1: p.cy }, {
-        x0: p.cx - p.r,
-        y0: p.cy - p.r,
-        x1: p.cx + p.r,
-        y1: p.cy + p.r,
-      });
-    }
-    if (!r) return this.slingView(level);
-    return fitRect({ x0: r.x0 - 1.5, x1: r.x1 + 1.5, y0: 0, y1: r.y1 + 1.5 }, 16 / 9, 0.5);
+  /**
+   * Level-open close-up on the structure. Ground-pinned like the aim frame,
+   * but the castle occupies at most ~70% of the visible width/height below the
+   * HUD so it never crops edge to edge.
+   */
+  structureView(
+    level: LevelV2 | null,
+    aspect = 16 / 9,
+    topHudPx = 0,
+    canvasPxH = 1
+  ): View {
+    if (!level) return this.slingView(level, 0, aspect, topHudPx, canvasPxH);
+    const r = structureRect(level);
+    if (!r) return this.slingView(level, 0, aspect, topHudPx, canvasPxH);
+    const f = canvasPxH > 0 ? Math.min(0.4, topHudPx / canvasPxH) : 0;
+    const w = r.x1 - r.x0;
+    const hRect = r.y1 - r.y0;
+    const h =
+      Math.max(hRect / STRUCTURE_FILL, w / (STRUCTURE_FILL * aspect), r.y1 + GROUND_STRIP) /
+      (1 - f);
+    return { cx: (r.x0 + r.x1) / 2, cy: r.y0 - GROUND_STRIP + h / 2, h };
   }
 
   update(input: CameraDirectorInput, dt: number): View {
     let target = this.view;
-    const sling = this.slingView(input.level);
-    const overview = this.overviewView(input.level);
+    const sling = this.wideView(input, 0);
+    const overview = this.overviewView(
+      input.level,
+      input.aspect,
+      input.topHudPx,
+      input.canvasPxH
+    );
 
     if (input.state === 'intro') {
       this.mode = 'intro';
@@ -110,7 +199,12 @@ export class CameraDirector {
         }
         target = sling;
       } else {
-        const structure = this.structureView(input.level);
+        const structure = this.structureView(
+          input.level,
+          input.aspect,
+          input.topHudPx,
+          input.canvasPxH
+        );
         // Snap straight onto the structure on the first intro frame — no glide
         // in from whatever the previous screen framed.
         if (!this.introSnapped) {
@@ -118,13 +212,15 @@ export class CameraDirector {
           this.introSnapped = true;
         }
         if (input.introElapsed < INTRO_HOLD) {
-          // Slow push-in on the castle while we hold on it.
-          const p = Math.min(1, input.introElapsed / INTRO_HOLD) * 0.05;
-          target = { cx: structure.cx, cy: structure.cy, h: structure.h * (1 - p) };
+          // Gentle pull-back on the castle while we hold on it (a push-in
+          // would crop edges — the frame already fits the structure).
+          const p = Math.min(1, input.introElapsed / INTRO_HOLD) * 0.03;
+          target = { cx: structure.cx, cy: structure.cy, h: structure.h * (1 + p) };
         } else {
           const t = Math.min(1, (input.introElapsed - INTRO_HOLD) / INTRO_PAN);
           const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-          const from = { ...structure, h: structure.h * 0.95 };
+          // Lands exactly on the aim frame — no second zoom when intro→aim flips.
+          const from = { ...structure, h: structure.h * 1.03 };
           target = {
             cx: from.cx + (sling.cx - from.cx) * e,
             cy: from.cy + (sling.cy - from.cy) * e,
@@ -196,10 +292,10 @@ export class CameraDirector {
   }
 
   private wideView(input: CameraDirectorInput, tension: number): View {
-    return fitRect(
-      this.slingRect(input.level, tension),
+    return this.slingView(
+      input.level,
+      tension,
       input.aspect,
-      0.5,
       input.topHudPx,
       input.canvasPxH
     );

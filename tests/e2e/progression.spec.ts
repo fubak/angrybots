@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { UNLOCK_ALL_LEVELS } from '../../src/game/progression';
 import { launchSolution, openApp, seedCleared, skipToPlay, snapshot } from './helpers';
 
 async function openTraining(page: import('@playwright/test').Page): Promise<void> {
@@ -19,7 +20,9 @@ test('winning First Flight unlocks the next level after reload', async ({ page }
   await openTraining(page);
   await expect(page.locator('button[data-level-id="first-flight"]')).toBeEnabled();
   await expect(page.locator('button[data-level-id="powder-row"]')).toBeEnabled();
-  await expect(page.locator('button[data-level-id="lone-guard"]')).toBeDisabled();
+  // UNLOCK_ALL_LEVELS opens every level; the gate assertion resumes when it flips off.
+  if (!UNLOCK_ALL_LEVELS)
+    await expect(page.locator('button[data-level-id="lone-guard"]')).toBeDisabled();
 });
 
 test('clearing the first five levels unlocks level six after reload', async ({ page }) => {
@@ -33,5 +36,6 @@ test('clearing the first five levels unlocks level six after reload', async ({ p
   await openApp(page);
   await openTraining(page);
   await expect(page.locator('button[data-level-id="lone-guard"]')).toBeEnabled();
-  await expect(page.locator('button[data-level-id="twin-posts"]')).toBeDisabled();
+  if (!UNLOCK_ALL_LEVELS)
+    await expect(page.locator('button[data-level-id="twin-posts"]')).toBeDisabled();
 });

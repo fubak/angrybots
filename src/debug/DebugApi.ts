@@ -30,6 +30,8 @@ export type DebugSnapshot = {
     hopper: { x: number; y: number; sx: number; sy: number; rot: number; t: number } | null;
   };
   camera: { cx: number; cy: number; height: number };
+  /** Celestial reaction playing right now, if any ('great'|'good'|'miss'). */
+  celestialReact: string | null;
   frame: number;
   fps: { p50: number; p5Low: number };
   renderer: { calls: number; triangles: number; geometries: number; textures: number };
@@ -46,6 +48,18 @@ export type DebugApi = {
   damage?: (id: string, amount: number) => boolean;
   /** Read back rendered pixels: canvas-relative CSS px rect → raw RGBA bytes. */
   sample?: (x: number, y: number, w: number, h: number) => number[];
+  /** Enter a level WITHOUT skipping the intro camera — evidence captures. */
+  startIntro?: (id: string) => void;
+  /** Force a sun/moon shot reaction — evidence captures. */
+  celestialReact?: (kind: 'great' | 'good' | 'miss' | null) => void;
+  /** Pause/resume the reaction clock mid-envelope — deterministic captures. */
+  celestialFreezeReact?: (frozen: boolean) => void;
+  /** CSS-px position of the celestial disc center — evidence captures. */
+  celestialScreen?: () => { x: number; y: number };
+  /** Teleport a drifting cloud (layer-local x) — evidence captures. */
+  cloudJump?: (i: number, x: number) => void;
+  /** Celestial layer-local home position — evidence captures. */
+  celestialHome?: () => { x: number; y: number };
 };
 
 export function createDebugApi(opts: {
@@ -60,6 +74,8 @@ export function createDebugApi(opts: {
   /** Full App-level level entry (screens, chapter, parallax, sling reset) so
    * fixture captures render the real in-game state, not a bare session. */
   enterLevel: (id: string) => void;
+  /** Same as enterLevel but keeps the intro camera (no skipIntro). */
+  enterLevelIntro: (id: string) => void;
 }): DebugApi {
   const snap = (): DebugSnapshot => {
     const sim = opts.session.getSim();
@@ -98,6 +114,7 @@ export function createDebugApi(opts: {
         hopper: opts.renderer.hopperPose(),
       },
       camera: { cx: view.cx, cy: view.cy, height: view.h },
+      celestialReact: opts.renderer.celestialReactKind(),
       frame: opts.renderer.frameCount,
       fps,
       renderer: info,
@@ -129,6 +146,14 @@ export function createDebugApi(opts: {
       return true;
     };
     api.sample = (x, y, w, h) => Array.from(opts.renderer.samplePixels(x, y, w, h));
+    api.startIntro = (id) => {
+      if (levelById(id)) opts.enterLevelIntro(id);
+    };
+    api.celestialReact = (kind) => opts.renderer.celestialReact(kind);
+    api.celestialFreezeReact = (frozen) => opts.renderer.celestialFreezeReaction(frozen);
+    api.celestialScreen = () => opts.renderer.celestialScreen();
+    api.cloudJump = (i, x) => opts.renderer.setCloudX(i, x);
+    api.celestialHome = () => opts.renderer.celestialHome();
   }
 
   return api;

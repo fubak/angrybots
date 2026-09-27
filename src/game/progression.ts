@@ -1,5 +1,11 @@
 import { CHAPTERS } from '../levels/chapters';
 
+/**
+ * Temporary: every level open while testing. Pure progression functions are
+ * unchanged — this only ORs into the App/screens unlock check.
+ */
+export const UNLOCK_ALL_LEVELS = true;
+
 /** Star gates for chapters beyond the first. */
 export const PROGRESSION = {
   chapterStars: { workshop: 15, citadel: 35 } as Record<string, number>,

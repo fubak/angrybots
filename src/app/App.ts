@@ -5,6 +5,7 @@ import { PALETTE } from '../config/render';
 import { TUNING } from '../config/tuning';
 import type { GameEvents } from '../game/events';
 import { GameSession, INTRO_SECONDS } from '../game/GameSession';
+import { UNLOCK_ALL_LEVELS } from '../game/progression';
 import { SaveStore } from '../game/SaveStore';
 import { allLevels, levelById, nextLevel } from '../levels/registry';
 import { CameraDirector } from '../camera/CameraDirector';
@@ -21,6 +22,7 @@ import { achievementBadge } from '../ui/Achievements';
 import { firstUnseenBotInQueue } from '../bots/tutorialTips';
 import { botStickerCanvas } from '../render/botArt';
 import { RotatePrompt } from '../ui/RotatePrompt';
+import { shotReaction } from '../render/celestialMood';
 import { Splash } from '../ui/Splash';
 import { type View } from '../camera/fitRect';
 import type { BotKind } from '../levels/schema';
@@ -28,6 +30,9 @@ import { SimFeedback } from './simFeedback';
 import { AppScreens, botImage, pigImage, tipFor, type AppPhase } from './screens';
 import { track } from '../analytics';
 import { currentStreak, localDateString, pickDailyLevel } from '../game/daily';
+
+/** Pixel height of the top HUD strip reserved by the camera framing. */
+const HUD_TOP_PX = 56;
 
 export class App {
   private readonly bus = new EventBus<GameEvents>();
@@ -73,7 +78,8 @@ export class App {
   private pendingBotCard: BotKind | null = null;
   private seenTips = new Set<string>();
   private readonly unlockAll =
-    import.meta.env.DEV && new URLSearchParams(location.search).get('unlockAll') === '1';
+    UNLOCK_ALL_LEVELS ||
+    (import.meta.env.DEV && new URLSearchParams(location.search).get('unlockAll') === '1');
 
   private gestures: CameraGestures;
 
@@ -152,7 +158,13 @@ export class App {
       worldPerPx: () => this.currentView.h / Math.max(1, this.canvas.clientHeight),
       currentView: () => this.currentView,
       limits: () =>
-        gestureLimitsFor(this.levelId ? (levelById(this.levelId) ?? null) : null, this.camera),
+        gestureLimitsFor(
+          this.levelId ? (levelById(this.levelId) ?? null) : null,
+          this.camera,
+          this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight),
+          HUD_TOP_PX,
+          this.canvas.clientHeight
+        ),
       aspect: () => this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight),
     });
     this.sling.setSuppress(() => this.gestures.isActive());
@@ -200,6 +212,9 @@ export class App {
       if (booted) return;
       booted = true;
       splash.ready(() => {
+        // A level may already be running if boot outlived an early level
+        // entry — the title must never overlay live gameplay.
+        if (this.phase === 'play') return;
         this.screens.refreshTitleStats();
         this.screens.title.show();
         this.screens.hud.hide();
@@ -233,6 +248,7 @@ export class App {
         this.startLevel(id);
         this.session.skipIntro();
       },
+      enterLevelIntro: (id) => this.startLevel(id),
     });
     if (window.__debug.freezeTime) {
       const setFreeze = window.__debug.freezeTime;
@@ -304,16 +320,21 @@ export class App {
     this.bonusFired = 0;
     this.fx.resetLevel();
     this.gestures.reset();
+    this.renderer.setImpactFocus(null);
     this.renderer.clearLevel();
     const rm = effectiveReducedMotion(this.save.settings.reducedMotion);
     this.session.loadLevel(def, rm);
     this.renderer.setChapter(def.chapter);
     this.renderer.setTerrain(def.terrain);
-    // Pin the parallax reference to the sling view — the framing the scenery
-    // was laid out for (moon/sun, hills, trees sit where designed). The intro
-    // pan then drifts layers naturally, and the deterministic value keeps the
+    // Pin the parallax reference to the aim view — the framing the scenery is
+    // laid out against (the celestial also clamps inside it). The intro pan
+    // then drifts layers naturally, and the deterministic value keeps the
     // first rendered frame from racing the camera snap.
-    this.renderer.anchorParallax(this.camera.slingView(def));
+    const aspect = this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight);
+    this.renderer.anchorParallax(
+      this.camera.slingView(def, 0, aspect, HUD_TOP_PX, this.canvas.clientHeight),
+      aspect
+    );
     this.audio.setChapter(def.chapter);
     const sim = this.session.getSim();
     if (sim) sim.fragmentsEnabled = true;
@@ -361,7 +382,11 @@ export class App {
 
   /** Orientation recovery must run even while simulation is paused. */
   private syncSimulationPause(): void {
-    const rotate = this.rotate.update();
+    // Menus and modals stay usable in portrait — the prompt only covers live
+    // gameplay.
+    const rotate = this.rotate.update(
+      this.phase === 'play' && !this.screens.anyModalVisible()
+    );
     this.loop.paused =
       this.paused ||
       this.backgrounded ||
@@ -427,6 +452,29 @@ export class App {
     if (prev === 'intro') this.introElapsed += dt;
     this.session.update(dt);
     const state = this.session.getState();
+
+    // Shot bookkeeping for the sun/moon: the baseline is snapped inside
+    // beginFlight (launches land between ticks on DOM events, so the
+    // aim→flight edge is never visible here); judge the shot at resolve.
+    if (
+      (prev === 'flight' || prev === 'resolve') &&
+      (state === 'nextBot' || state === 'bonus' || state === 'won' || state === 'lost')
+    ) {
+      const simNow = this.session.getSim();
+      const base = this.session.getShotBaseline();
+      this.renderer.celestialReact(
+        shotReaction({
+          kills: base.pigs - (simNow?.pigsAlive() ?? base.pigs),
+          shotScore: this.session.getScore() - base.score,
+          won: state === 'won' || state === 'bonus',
+        })
+      );
+    }
+    // While a shot is live the eyes track the flying bot until it connects,
+    // then stay on the impact point while the castle crumbles.
+    this.renderer.setImpactFocus(
+      state === 'flight' || state === 'resolve' ? this.fx.impactCenter : null
+    );
 
     if (state === 'nextBot') {
       this.nextBotT = (prev === 'nextBot' ? (this.nextBotT ?? 0) : 0) + dt;
@@ -516,7 +564,7 @@ export class App {
         impactCenter: this.fx.impactCenter,
         introElapsed: this.introElapsed,
         reducedMotion: effectiveReducedMotion(this.save.settings.reducedMotion),
-        topHudPx: 56,
+        topHudPx: HUD_TOP_PX,
         canvasPxH: this.canvas.clientHeight,
         manualOffset: this.gestures.manualOffset(),
       },

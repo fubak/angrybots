@@ -4,8 +4,8 @@ import {
   MENU_STICKERS,
   lookAroundYaw,
   stickerArt,
+  stickerBodyImage,
   stickerEyeImage,
-  stickerImage,
   yawEyeTransforms,
 } from '../render/botArt';
 import type { StickerArt } from '../render/botArt.generated';
@@ -35,7 +35,7 @@ function lineupBot(id: string, front: boolean, i: number): LineupBot {
   b.style.setProperty('--i', String(i));
   const body = document.createElement('img');
   body.className = 'body';
-  body.src = stickerImage(id);
+  body.src = stickerBodyImage(id);
   body.alt = '';
   b.appendChild(body);
   const eyes: HTMLImageElement[] = [];
