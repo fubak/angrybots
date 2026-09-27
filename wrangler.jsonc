@@ -3,10 +3,22 @@
   "name": "angrybots",
   "account_id": "4654797f062b81d036f9f5142ead6bcf",
   "compatibility_date": "2026-09-20",
+  "main": "worker/index.ts",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "angrybots",
+      "database_id": "fe74710f-79ff-4285-9149-18e8145c2afc",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": { "enabled": true },
   "routes": [
     { "pattern": "angrybots.lol", "custom_domain": true },
     { "pattern": "www.angrybots.lol", "custom_domain": true }
