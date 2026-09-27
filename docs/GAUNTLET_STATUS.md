@@ -1,5 +1,7 @@
 # Gauntlet status ledger
 
+> **Historical (frozen at `e2b8547`, 2026-09-23).** Current state lives in `tasks/state.md`; the live site is https://angrybots.lol (PRs #3–#6 shipped since this ledger).
+
 **Last updated:** 2026-09-23
 **HEAD:** `e2b8547` on `main` (pushed)
 **Repo:** public `fubak/angrybots`

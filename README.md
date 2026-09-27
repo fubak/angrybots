@@ -16,7 +16,12 @@ npm run dev
 - **Local:** Vite prints the URL. `npm run dev` is `vite --host` (default port 5173). A LAN share has used port 5175.
 - **Live progress:** same host, path `/progress.html`
 
-Thirty levels across three chapters, gated by progression: clearing a level unlocks the next, and later chapters require star thresholds (dev builds can pass `?unlockAll=1` to bypass). The things you knock down are chat bubbles, hosts, models, and a flagship. The five bot kinds are distinct Grok Bot forms with their own abilities. Hills, ramps, and ledges are drawn. This is not an Angry Birds parity claim.
+Thirty levels across three chapters, gated by progression: clearing a level unlocks the next, and later chapters require star thresholds. **Currently all levels are open** via the temporary `UNLOCK_ALL_LEVELS` flag in `src/game/progression.ts` (dev builds can also pass `?unlockAll=1`). The things you knock down are chat bubbles, hosts, models, and a flagship. The five bot kinds are distinct Grok Bot forms with their own abilities. Hills, ramps, and ledges are drawn. This is not an Angry Birds parity claim.
+
+## Deploy
+
+- **angrybots.lol:** manual, from an up-to-date `main`: `npm run build && npx wrangler deploy` (Cloudflare static-assets Worker `angrybots`, config in `wrangler.jsonc`, custom domains `angrybots.lol` + `www.angrybots.lol`).
+- **GitHub Pages mirror:** deploys automatically from `main` (`GITHUB_PAGES=1` build, base `/angrybots/`).
 
 ## Daily challenge
 

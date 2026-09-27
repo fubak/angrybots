@@ -14,4 +14,9 @@
 - `solve-robust` budget is `CANDS` env (default 10); `batch-solve` can find higher scores but unrobust shots — always re-check perturbed wins (±0.3°, ±0.2 speed, ≥3/4) after any book change.
 - In a service worker, `caches.match(requestObject)` can miss entries stored by `addAll` (Vary check compares the browser request's headers against the synthesized addAll request). Match precached entries by URL string (`caches.match(url.href)`).
 - `Array.prototype.slice(0, negative)` counts from the end, not zero — guard `arr.length > K` before `slice(0, len - K)` pruning, or it deletes nearly everything.
+- DOM layers that animate eyes over a sticker must use the body-only image (`stickerBodyImage`), never the full composite — baked-in eyes show as a ghost pair when the live ones move.
+- Objects in a parallax layer have layer-local positions; aim/gaze math must use `getWorldPosition`.
+- Player input (pointerup → launch) mutates session state between ticks; don't detect transitions by diffing `prev`/`state` in the tick — snapshot at the mutation site.
+- Evidence capture under SwiftShader: a screenshot can take longer than a sub-second animation. Freeze the animation clock (or re-check state after the shot) and clear capture temp dirs before globbing outputs — a stale webm/PNG looks like fresh evidence.
+- Always read the evidence yourself; agent reports said "recaptured" for files that were stale or showed the wrong moment.
 - `index.html` is not part of the rolldown `bundle` map in `generateBundle` — a build-plugin precache list must add it (and `public/` files) explicitly.
