@@ -30,6 +30,7 @@ import { SimFeedback } from './simFeedback';
 import { AppScreens, botImage, pigImage, tipFor, type AppPhase } from './screens';
 import { track } from '../analytics';
 import { currentStreak, localDateString, pickDailyLevel } from '../game/daily';
+import { OnlineClient } from '../net/api';
 
 /** Pixel height of the top HUD strip reserved by the camera framing. */
 const HUD_TOP_PX = 56;
@@ -43,6 +44,7 @@ export class App {
   private readonly audio = new SoundBank();
   private readonly rotate = new RotatePrompt();
   private readonly fx: SimFeedback;
+  private readonly online = new OnlineClient();
   private readonly screens: AppScreens;
 
   private readonly shell: HTMLElement;
@@ -129,6 +131,13 @@ export class App {
         this.phase = p;
       },
       getLevelId: () => this.levelId,
+      getScoreLevelId: () =>
+        this.daily ? `daily:${this.daily.date}` : this.levelId,
+      getLevelName: () => {
+        if (this.daily) return `Daily ${this.daily.date}`;
+        return this.levelId ? (levelById(this.levelId)?.name ?? null) : null;
+      },
+      online: this.online,
       startLevel: (id) => this.startLevel(id),
       startDaily: () => this.startDaily(),
       dailyLevelName: () => pickDailyLevel(localDateString()).name,
@@ -259,8 +268,57 @@ export class App {
       };
     }
 
+    this.online.onChange(() =>
+      this.screens.title.setOnline({
+        online: this.online.status === 'online',
+        oauth: this.online.oauth,
+        user: this.online.user,
+      })
+    );
+    void this.online.init().then(() => {
+      if (this.online.user) this.syncLocalBests();
+      const params = new URLSearchParams(location.search);
+      const auth = params.get('auth');
+      if (auth === 'ok') {
+        this.screens.toast(
+          this.online.user ? `Signed in as @${this.online.user.handle}` : 'Signed in'
+        );
+        track('auth_login', {});
+      } else if (auth === 'error') {
+        this.screens.toast('Sign-in failed');
+      }
+      if (auth) {
+        params.delete('auth');
+        const qs = params.toString();
+        history.replaceState(
+          null,
+          '',
+          location.pathname + (qs ? `?${qs}` : '') + location.hash
+        );
+      }
+    });
+
     this.loop.start();
     track('app_open', {});
+  }
+
+  /** Push local bests once per user-session after sign-in. */
+  private syncLocalBests(): void {
+    const uid = this.online.user?.id;
+    if (!uid) return;
+    const flag = `ab-synced-${uid}`;
+    if (sessionStorage.getItem(flag)) return;
+    sessionStorage.setItem(flag, '1');
+    const entries: { levelId: string; score: number; stars: number }[] = [];
+    for (const [levelId, p] of Object.entries(this.save.levels)) {
+      if (p.bestScore > 0) {
+        entries.push({ levelId, score: p.bestScore, stars: p.stars });
+      }
+    }
+    for (const [date, score] of Object.entries(this.save.daily.bestByDate)) {
+      if (score > 0) entries.push({ levelId: `daily:${date}`, score, stars: 0 });
+    }
+    if (entries.length) void this.online.syncBests(entries);
   }
 
   private levelRefs(): readonly { id: string; chapter: string }[] {
@@ -515,7 +573,32 @@ export class App {
           pigImgUrl: pigImage(),
           chime: (rate) => this.audio.playRate('victory', rate),
           tick: () => this.audio.play('ui'),
+          online:
+            this.online.status === 'online'
+              ? { signedIn: !!this.online.user, canSignIn: this.online.oauth }
+              : undefined,
         });
+        const scoreLevelId = this.daily
+          ? `daily:${this.daily.date}`
+          : this.levelId;
+        if (pending.won && this.online.user && scoreLevelId) {
+          void this.online
+            .submitScore(scoreLevelId, pending.score, pending.stars)
+            .then((r) => {
+              track('score_submit', {
+                levelId: scoreLevelId,
+                score: pending.score,
+                rank: r?.rank ?? null,
+              });
+              this.screens.results.setOnlineStatus(
+                r
+                  ? r.rank
+                    ? `Saved · #${r.rank} on this level`
+                    : 'Saved to leaderboard'
+                  : "Couldn't save score"
+              );
+            });
+        }
         this.screens.hud.hide();
         for (const id of this.runUnlocks) {
           const name = achievementById(id)?.name ?? id;

@@ -20,8 +20,37 @@ Thirty levels across three chapters, gated by progression: clearing a level unlo
 
 ## Deploy
 
-- **angrybots.lol:** manual, from an up-to-date `main`: `npm run build && npx wrangler deploy` (Cloudflare static-assets Worker `angrybots`, config in `wrangler.jsonc`, custom domains `angrybots.lol` + `www.angrybots.lol`).
+- **angrybots.lol:** `.github/workflows/deploy.yml` runs on every push to `main`: build → `wrangler d1 migrations apply --remote` → `wrangler deploy` (Cloudflare static-assets Worker `angrybots`, config in `wrangler.jsonc`, custom domains `angrybots.lol` + `www.angrybots.lol`). It needs the repo secret `CLOUDFLARE_API_TOKEN` (permissions: Workers Scripts:Edit, D1:Edit, Workers Routes:Edit on the `angrybots.lol` zone — without the zone permission the custom-domain step fails) and, optionally, the repo variable `GA_MEASUREMENT_ID`. Manual fallback: `npm run build && npm run db:migrate && npx wrangler deploy`.
 - **GitHub Pages mirror:** deploys automatically from `main` (`GITHUB_PAGES=1` build, base `/angrybots/`).
+
+## Accounts & leaderboard
+
+Sign-in with X, per-level best scores, and global/daily/level leaderboards are served by the Worker's `/api/*` routes (`worker/`) backed by the `angrybots` D1 database. The GitHub Pages mirror has no backend, so the leaderboard button is hidden there (the client probes `api/auth/me` under the deployment base; a 404 means offline).
+
+**X developer app** ([developer.x.com](https://developer.x.com)):
+
+1. User authentication settings → enable **OAuth 2.0**, type **"Web App, Automated App or Bot"** (confidential client).
+2. Callback URIs: `https://angrybots.lol/api/auth/x/callback` and `http://127.0.0.1:5173/api/auth/x/callback` (local dev via `npm run dev`). Changing the app type regenerates the Client ID/Secret — re-run the `wrangler secret put` commands below afterwards.
+3. Website URL: `https://angrybots.lol`.
+4. Scopes requested at login: `users.read tweet.read`.
+
+**Secrets** (never committed):
+
+```sh
+npx wrangler secret put X_CLIENT_ID
+npx wrangler secret put X_CLIENT_SECRET
+npx wrangler secret put SESSION_SECRET   # e.g. openssl rand -base64 32
+```
+
+**Abuse controls:** scores are rejected above a per-level theoretical maximum (`worker/level-caps.json`, regenerate with `npm run caps:gen` whenever levels or `SCORE`/`TUNING` change — the unit tests fail if it is stale), and the Worker uses Cloudflare rate-limiting bindings (`RL_SCORES`: 30 writes/min per user, `RL_LOGIN`: 10/min per IP). Players can remove themselves with **Delete account** in the leaderboard (`POST /api/auth/delete`); the public privacy note is `public/privacy.html`.
+
+**Database:** `npm run db:migrate` applies `migrations/` to the remote D1 once (`--local` variant: `npm run db:migrate:local`).
+
+**Local dev:** copy `.dev.vars.example` to `.dev.vars` and fill in the three secrets, then run `npm run worker:dev` (API on :8787) alongside `npm run dev` (Vite proxies `/api` to it).
+
+## Analytics
+
+Gameplay events (`src/analytics/index.ts`) go to Google Analytics 4 when a measurement id is present at build time: `VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX npm run build` (or put it in a local `.env.production`, which is git-ignored). Without it — and always in dev builds — nothing is sent. GA is also skipped when the browser sends `DNT: 1`.
 
 ## Daily challenge
 

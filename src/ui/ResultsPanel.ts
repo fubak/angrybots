@@ -1,7 +1,13 @@
-import { iconButton } from './icons';
+import { iconButton, iconSvg } from './icons';
 import type { IconName } from './icons';
 
-export type ResultsAction = 'retry' | 'next' | 'levels' | 'skip';
+export type ResultsAction =
+  | 'retry'
+  | 'next'
+  | 'levels'
+  | 'skip'
+  | 'signin'
+  | 'leaderboard';
 
 export type ResultsShowOpts = {
   won: boolean;
@@ -19,6 +25,8 @@ export type ResultsShowOpts = {
   /** star-fill chime, pitch 1.0 / 1.12 / 1.26 */
   chime: (rate: number) => void;
   tick: () => void;
+  /** online leaderboard availability for this run (undefined = offline) */
+  online?: { signedIn: boolean; canSignIn: boolean };
 };
 
 export class ResultsPanel {
@@ -36,6 +44,7 @@ export class ResultsPanel {
       <div id="results-stars"></div>
       <div class="results-achv"></div>
       <div class="results-daily" hidden></div>
+      <div class="results-online" hidden></div>
       <div class="results-endcard" hidden>To be continued: more levels coming</div>
       <div class="results-actions"></div>
     `;
@@ -84,6 +93,28 @@ export class ResultsPanel {
       dailyEl.textContent = `Daily best ${o.daily.best.toLocaleString()} · Streak ${o.daily.streak}`;
     }
 
+    const onlineEl = this.el.querySelector<HTMLElement>('.results-online')!;
+    onlineEl.hidden = true;
+    onlineEl.replaceChildren();
+    onlineEl.textContent = '';
+    if (o.won && o.online) {
+      onlineEl.hidden = false;
+      if (o.online.signedIn) {
+        onlineEl.textContent = 'Saving to leaderboard…';
+      } else if (o.online.canSignIn) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'ui-btn results-signin';
+        b.dataset.a = 'signin';
+        b.setAttribute('aria-label', 'Sign in with X to save your score');
+        b.innerHTML = `${iconSvg('x', 18)} Sign in with X to save your score`;
+        b.addEventListener('click', () => this.onAction('signin'));
+        onlineEl.appendChild(b);
+      } else {
+        onlineEl.hidden = true;
+      }
+    }
+
     // Buttons: levels / retry / skip / next (daily runs only get Levels + Retry)
     const actions = this.el.querySelector('.results-actions')!;
     actions.replaceChildren();
@@ -98,6 +129,9 @@ export class ResultsPanel {
       actions.appendChild(mk('next', 'Skip level', 'skip', 'ui-danger'));
     }
     actions.appendChild(mk('restart', 'Retry', 'retry', o.won ? '' : 'ui-primary'));
+    if (o.won && o.online) {
+      actions.appendChild(mk('podium', 'Leaderboard', 'leaderboard'));
+    }
     if (!o.daily && o.won && !o.isFinal) {
       actions.appendChild(mk('next', 'Next', 'next', 'ui-primary'));
     }
@@ -155,6 +189,14 @@ export class ResultsPanel {
       anchor.parentElement!.appendChild(c);
       this.timers.push(window.setTimeout(() => c.remove(), 750));
     }
+  }
+
+  /** Replace the online status line after a score submit resolves. */
+  setOnlineStatus(text: string): void {
+    const el = this.el.querySelector<HTMLElement>('.results-online')!;
+    el.hidden = false;
+    el.replaceChildren();
+    el.textContent = text;
   }
 
   hide(): void {

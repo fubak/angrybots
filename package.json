@@ -7,7 +7,11 @@
     "dev": "vite --host",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm run typecheck:worker",
+    "typecheck:worker": "tsc -p worker",
+    "worker:dev": "wrangler dev --port 8787",
+    "db:migrate": "wrangler d1 migrations apply angrybots --remote",
+    "db:migrate:local": "wrangler d1 migrations apply angrybots --local",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:physics": "vitest run tests/physics",
@@ -24,10 +28,12 @@
     "level:solve:one": "tsx tools/level-solve.ts",
     "level:curve": "tsx tools/level-curve.ts",
     "level:pouch": "tsx tools/pouch-solve.ts",
-    "verify:full": "npm run verify && npm run level:curve && npm run build && npm run size && npm run test:e2e -- --workers=1"
+    "verify:full": "npm run verify && npm run level:curve && npm run build && npm run size && npm run test:e2e -- --workers=1",
+    "caps:gen": "tsx tools/level-caps.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@cloudflare/workers-types": "^5.20260919.1",
     "@fontsource/baloo-2": "^5.3.0",
     "@playwright/test": "^1.63.0",
     "@types/howler": "^2.2.13",
@@ -36,7 +42,8 @@
     "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.135.0"
   },
   "dependencies": {
     "howler": "^2.2.4",

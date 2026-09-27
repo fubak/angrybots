@@ -13,7 +13,10 @@ export type IconName =
   | 'lock'
   | 'trophy'
   | 'target'
-  | 'check';
+  | 'check'
+  | 'x'
+  | 'podium'
+  | 'crown';
 
 const S = 'stroke="#23180f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"';
 const F = 'fill="#23180f"';
@@ -34,6 +37,9 @@ const PATHS: Record<IconName, string> = {
   trophy: `<path d="M8 4h8v5a4 4 0 0 1-8 0z" ${F}/><path d="M8 5.5H4.5a3.5 3.5 0 0 0 3.7 3.5M16 5.5h3.5a3.5 3.5 0 0 1-3.7 3.5" ${S} fill="none"/><path d="M12 13v3M8.5 20h7M12 16h-2.5v4M12 16h2.5v4" ${S} fill="none"/>`,
   target: `<circle cx="12" cy="12" r="7.5" ${S} fill="none"/><circle cx="12" cy="12" r="3.4" ${S} fill="none"/><circle cx="12" cy="12" r="1.1" ${F}/>`,
   check: `<path d="M5 12.5l4.5 4.5L19 7.5" ${S} fill="none"/>`,
+  x: `<rect x="3" y="3" width="18" height="18" rx="4" ${S} fill="none"/><path d="M7.5 7.5l9 9M16.5 7.5l-9 9" ${S}/>`,
+  podium: `<rect x="3.5" y="10" width="5" height="10.5" rx="1.2" ${F}/><rect x="9.5" y="3.5" width="5" height="17" rx="1.2" ${F}/><rect x="15.5" y="13" width="5" height="7.5" rx="1.2" ${F}/>`,
+  crown: `<path d="M4 8l3.5 3L12 5.5 16.5 11 20 8l-1.5 9.5h-13z" ${F}/>`,
 };
 
 export function iconSvg(name: IconName, size = 22): string {
