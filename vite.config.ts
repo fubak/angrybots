@@ -48,12 +48,16 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin || !url.pathname.startsWith(scope.pathname)) return;
   const rel = url.pathname.slice(scope.pathname.length);
+  if (rel.startsWith('api/')) return;
   const isIndex = req.mode === 'navigate' || rel === '' || rel === 'index.html';
   if (isIndex) {
     e.respondWith(
       fetch(req)
         .then((res) => {
-          if (res.ok) caches.open(CACHE).then((c) => c.put(ROOT + 'index.html', res.clone()));
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(ROOT + 'index.html', copy));
+          }
           return res;
         })
         .catch(() => caches.match(ROOT + 'index.html'))
@@ -67,7 +71,10 @@ self.addEventListener('fetch', (e) => {
       (hit) =>
         hit ||
         fetch(req).then((res) => {
-          if (res.ok) caches.open(CACHE).then((c) => c.put(url.href, res.clone()));
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(url.href, copy));
+          }
           return res;
         })
     )
