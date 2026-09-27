@@ -329,6 +329,29 @@ export function stickerCompositeCanvas(id: string, eyeSY = 1, eyeSX = 1): HTMLCa
   return ctx.canvas;
 }
 
+const bodyImageCache = new Map<string, string>();
+
+/**
+ * Body layer only (outline + rim + body color + extras) — no eyes. For DOM
+ * sites that layer separately animated eye images on top (the title lineup);
+ * compositing eyes into the body too would double them.
+ */
+export function stickerBodyImage(id: string): string {
+  const hit = bodyImageCache.get(id);
+  if (hit !== undefined) return hit;
+  const art = stickerArt(id);
+  const ctx = makeCanvas(TEX_SIZE, (TEX_SIZE * art.vbH) / art.vbW);
+  const url = ctx
+    ? (() => {
+        ctx.scale(TEX_SIZE / art.vbW, TEX_SIZE / art.vbW);
+        paintBodyLayer(ctx, art);
+        return ctx.canvas.toDataURL();
+      })()
+    : '';
+  bodyImageCache.set(id, url);
+  return url;
+}
+
 export function stickerImage(id: string): string {
   return stickerCompositeCanvas(id)?.toDataURL() ?? '';
 }
