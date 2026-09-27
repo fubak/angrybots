@@ -1,4 +1,5 @@
 import { iconButton, iconSvg } from './icons';
+import { nextStarTarget, starBarFill } from './starBar';
 
 export class Hud {
   readonly root: HTMLElement;
@@ -7,6 +8,9 @@ export class Hud {
   private readonly targetsEl: HTMLElement;
   private readonly starFill: HTMLElement;
   private readonly starNotches: HTMLElement[] = [];
+  private readonly starNextEl: HTMLElement;
+  private readonly isReducedMotion: () => boolean;
+  private thresholds: readonly [number, number, number] = [1, 2, 3];
   private shownScore = 0;
   private targetScore = 0;
   private raf = 0;
@@ -16,7 +20,13 @@ export class Hud {
   private readonly bannerEl: HTMLElement;
   private bannerTimer = 0;
 
-  constructor(parent: HTMLElement, onPause: () => void, onMute: () => void = () => {}) {
+  constructor(
+    parent: HTMLElement,
+    onPause: () => void,
+    onMute: () => void = () => {},
+    isReducedMotion: () => boolean = () => false
+  ) {
+    this.isReducedMotion = isReducedMotion;
     this.root = document.createElement('div');
     this.root.className = 'hud-top';
     const pause = iconButton('pause', 'Pause');
@@ -25,14 +35,21 @@ export class Hud {
     this.muteBtn.setAttribute('aria-pressed', 'false');
     this.muteBtn.addEventListener('click', onMute);
     this.root.innerHTML = `
-      <div class="hud-starbar"><div class="fill"></div></div>
+      <div class="hud-starwrap" aria-hidden="true">
+        <div class="hud-starbar"><div class="fill"></div></div>
+        <div class="hud-starnext"></div>
+      </div>
       <div class="hud-cluster hud-right">
         <div class="hud-score" aria-live="polite">0</div>
         <div class="hud-best">Best: 0</div>
         <div class="hud-targets">${iconSvg('target', 18)}<span>0</span></div>
       </div>`;
-    this.root.prepend(pause);
-    this.root.prepend(this.muteBtn);
+    // Buttons grouped at the left edge so space-between can't park one in
+    // the middle now that the star bar is absolutely centered.
+    const left = document.createElement('div');
+    left.className = 'hud-cluster hud-left';
+    left.append(this.muteBtn, pause);
+    this.root.prepend(left);
     parent.appendChild(this.root);
     this.bannerEl = document.createElement('div');
     this.bannerEl.className = 'hud-banner';
@@ -42,25 +59,33 @@ export class Hud {
     this.bestEl = this.root.querySelector('.hud-best')!;
     this.targetsEl = this.root.querySelector('.hud-targets span')!;
     this.starFill = this.root.querySelector('.hud-starbar .fill')!;
+    this.starNextEl = this.root.querySelector('.hud-starnext')!;
     const bar = this.root.querySelector('.hud-starbar')!;
+    // Thin dividers split the bar into three equal segments; a star sits at
+    // the end of each, so lit stars and fill always agree by construction.
+    for (const pos of [100 / 3, 200 / 3]) {
+      const d = document.createElement('span');
+      d.className = 'divider';
+      d.style.left = `${pos}%`;
+      bar.appendChild(d);
+    }
     for (let i = 0; i < 3; i++) {
       const n = document.createElement('span');
       n.className = 'notch';
+      n.style.left = `${((i + 1) * 100) / 3}%`;
       n.innerHTML = iconSvg('star', 22);
       bar.appendChild(n);
       this.starNotches.push(n);
     }
   }
 
-  /** Star notches sit at each threshold's share of the 3-star score. */
   setStarThresholds(thresholds: [number, number, number]): void {
-    const top = Math.max(1, thresholds[2]);
-    this.starNotches.forEach((n, i) => {
-      n.style.left = `${Math.min(97, (thresholds[i]! / top) * 100)}%`;
-    });
+    this.thresholds = thresholds;
+    this.starNotches.forEach((n) => n.classList.remove('lit', 'pop'));
+    this.updateStarBar(this.targetScore);
   }
 
-  setScore(score: number, best: number, starsTop: number): void {
+  setScore(score: number, best: number): void {
     this.targetScore = score;
     if (score > this.shownScore) {
       this.scoreEl.classList.remove('bump');
@@ -69,8 +94,24 @@ export class Hud {
     }
     if (!this.raf) this.raf = requestAnimationFrame(this.step);
     this.bestEl.textContent = `Best: ${Math.max(best, score).toLocaleString()}`;
-    const top = Math.max(1, starsTop);
-    this.starFill.style.width = `${Math.min(100, (score / top) * 100)}%`;
+    this.updateStarBar(score);
+  }
+
+  /** Fill + lit stars + next-star label, all derived from the same thresholds. */
+  private updateStarBar(score: number): void {
+    this.starFill.style.width = `${starBarFill(score, this.thresholds) * 100}%`;
+    const next = nextStarTarget(score, this.thresholds);
+    this.starNextEl.textContent = next === null ? '★★★ Max!' : `Next ★ ${next.toLocaleString()}`;
+    const lit = this.thresholds.reduce((n, t) => n + (score >= t ? 1 : 0), 0);
+    this.starNotches.forEach((n, i) => {
+      const was = n.classList.contains('lit');
+      const is = i < lit;
+      n.classList.toggle('lit', is);
+      if (is && !was && !this.isReducedMotion()) {
+        n.classList.add('pop');
+        window.setTimeout(() => n.classList.remove('pop'), 350);
+      }
+    });
   }
 
   private step = (): void => {
@@ -84,10 +125,6 @@ export class Hud {
     }
     this.scoreEl.textContent = Math.round(this.shownScore).toLocaleString();
   };
-
-  setStars(stars: number): void {
-    this.starNotches.forEach((n, i) => n.classList.toggle('lit', i < stars));
-  }
 
   setTargetsLeft(n: number): void {
     this.targetsEl.textContent = String(n);

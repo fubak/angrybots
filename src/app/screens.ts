@@ -79,7 +79,8 @@ export class AppScreens {
     this.hud = new Hud(
       uiRoot,
       () => deps.togglePause(),
-      () => this.toggleMute()
+      () => this.toggleMute(),
+      () => effectiveReducedMotion(deps.save.settings.reducedMotion)
     );
     this.hud.setMuted(deps.audio.muted);
     this.pauseMenu = new PauseMenu(uiRoot, {

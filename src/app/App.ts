@@ -343,7 +343,6 @@ export class App {
     this.applyAimGuide();
     this.screens.hud.show();
     this.screens.hud.setStarThresholds(def.stars);
-    this.screens.hud.setStars(0);
     this.screens.hud.setTargetsLeft(def.pigs.length);
     const num = allLevels().findIndex((l) => l.id === id) + 1;
     this.screens.hud.banner(this.daily ? 'Daily' : `Level ${num}`, def.name);
@@ -572,8 +571,9 @@ export class App {
     );
 
     const best = this.levelId ? (this.save.levelProgress(this.levelId)?.bestScore ?? 0) : 0;
-    this.screens.hud.setScore(this.session.getScore(), best, def?.stars[2] ?? 1);
-    this.screens.hud.setStars(this.session.getStars());
+    // The star bar derives lit stars from score vs the level's thresholds;
+    // session.getStars() is win-gated and only used for the results screen.
+    this.screens.hud.setScore(this.session.getScore(), best);
     this.screens.hud.setTargetsLeft(sim?.pigsAlive() ?? 0);
   }
 
