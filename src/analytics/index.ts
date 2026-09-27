@@ -13,6 +13,9 @@ export type AnalyticsEvent =
     }
   | { name: 'level_skip'; levelId: string }
   | { name: 'achievement_unlock'; id: string }
+  | { name: 'auth_login' }
+  | { name: 'score_submit'; levelId: string; score: number; rank: number | null }
+  | { name: 'leaderboard_open'; scope: string }
   | { name: 'daily_start'; levelId: string; date: string }
   | {
       name: 'daily_end';

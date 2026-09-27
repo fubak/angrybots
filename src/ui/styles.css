@@ -812,6 +812,9 @@ body,
   .bot-card canvas { width: 88px; height: 88px; }
   .bot-card .bot-name { font-size: 22px; }
   .bot-card .bot-tip { font-size: 13px; }
+
+  .lb-name, .lb-sub, .lb-account, .lb-empty { font-size: 13px; }
+  .lb-avatar { width: 28px; height: 28px; }
 }
 
 /* Landscape level map on short screens: the wrap owns all space left under
@@ -1253,4 +1256,142 @@ body,
   .lvl-node.current {
     animation: none !important;
   }
+}
+
+/* ---- leaderboard ---- */
+
+.lb-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.lb-tab {
+  min-height: 40px;
+  font-size: 15px;
+  padding: 4px 12px;
+}
+
+.lb-account {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 15px;
+  color: #3a2414;
+}
+
+.lb-signin {
+  font-size: 16px;
+  padding: 6px 16px;
+}
+
+.lb-xbadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #fff;
+  flex: none;
+}
+
+.lb-signout {
+  min-height: 34px;
+  font-size: 13px;
+  padding: 3px 10px;
+}
+
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 52dvh;
+  overflow: auto;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  border: 3px solid transparent;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.lb-row.me {
+  background: rgba(99, 193, 50, 0.28);
+  border-color: #63c132;
+}
+
+.lb-rank {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #23180f;
+  flex: none;
+}
+
+.lb-rank.r1,
+.lb-rank.r2,
+.lb-rank.r3 {
+  border: 2px solid #23180f;
+}
+
+.lb-rank.r1 { background: #ffe066; }
+.lb-rank.r2 { background: #d9dee6; }
+.lb-rank.r3 { background: #d89a5a; }
+
+.lb-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid #23180f;
+  object-fit: cover;
+  flex: none;
+}
+
+.lb-name {
+  font-weight: 800;
+  color: #3a2414;
+}
+
+.lb-sub {
+  font-size: 12.5px;
+  line-height: 1.2;
+  color: #3a2414;
+  opacity: 0.85;
+}
+
+.lb-score {
+  font-weight: 800;
+  color: #23180f;
+}
+
+.lb-gap {
+  text-align: center;
+  font-weight: 800;
+  color: #3a2414;
+  line-height: 0.4;
+}
+
+.lb-empty {
+  text-align: center;
+  font-weight: 800;
+  color: #3a2414;
+  padding: 18px 8px;
+}
+
+.results-online {
+  font-size: 14px;
+  font-weight: 800;
+  color: #3a2414;
 }

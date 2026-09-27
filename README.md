@@ -20,8 +20,31 @@ Thirty levels across three chapters, gated by progression: clearing a level unlo
 
 ## Deploy
 
-- **angrybots.lol:** manual, from an up-to-date `main`: `npm run build && npx wrangler deploy` (Cloudflare static-assets Worker `angrybots`, config in `wrangler.jsonc`, custom domains `angrybots.lol` + `www.angrybots.lol`).
+- **angrybots.lol:** manual, from an up-to-date `main`: `npm run build && npx wrangler deploy` (Cloudflare static-assets Worker `angrybots`, config in `wrangler.jsonc`, custom domains `angrybots.lol` + `www.angrybots.lol`). D1 schema changes must be applied first with `npm run db:migrate` (remote) — run it at least once before the first deploy that ships `worker/`.
 - **GitHub Pages mirror:** deploys automatically from `main` (`GITHUB_PAGES=1` build, base `/angrybots/`).
+
+## Accounts & leaderboard
+
+Sign-in with X, per-level best scores, and global/daily/level leaderboards are served by the Worker's `/api/*` routes (`worker/`) backed by the `angrybots` D1 database. The GitHub Pages mirror has no backend, so the leaderboard button is hidden there (the client probes `api/auth/me` under the deployment base; a 404 means offline).
+
+**X developer app** ([developer.x.com](https://developer.x.com)):
+
+1. User authentication settings → enable **OAuth 2.0**, type **"Web App, Automated App or Bot"** (confidential client).
+2. Callback URIs: `https://angrybots.lol/api/auth/x/callback` and `http://127.0.0.1:5173/api/auth/x/callback` (local dev via `npm run dev`).
+3. Website URL: `https://angrybots.lol`.
+4. Scopes requested at login: `users.read tweet.read`.
+
+**Secrets** (never committed):
+
+```sh
+npx wrangler secret put X_CLIENT_ID
+npx wrangler secret put X_CLIENT_SECRET
+npx wrangler secret put SESSION_SECRET   # e.g. openssl rand -base64 32
+```
+
+**Database:** `npm run db:migrate` applies `migrations/` to the remote D1 once (`--local` variant: `npm run db:migrate:local`).
+
+**Local dev:** copy `.dev.vars.example` to `.dev.vars` and fill in the three secrets, then run `npm run worker:dev` (API on :8787) alongside `npm run dev` (Vite proxies `/api` to it).
 
 ## Daily challenge
 

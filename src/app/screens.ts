@@ -18,6 +18,9 @@ import { Settings } from '../ui/Settings';
 import { Credits } from '../ui/Credits';
 import { AchievementsScreen } from '../ui/Achievements';
 import { BotIntro } from '../ui/BotIntro';
+import { LeaderboardScreen } from '../ui/Leaderboard';
+import type { OnlineClient } from '../net/api';
+import type { LeaderboardScope } from '../net/api';
 
 export type AppPhase = 'title' | 'levelSelect' | 'play';
 
@@ -28,6 +31,10 @@ type ScreensDeps = {
   getPhase: () => AppPhase;
   setPhase: (p: AppPhase) => void;
   getLevelId: () => string | null;
+  /** level_id used for score submission: daily:<date> for daily runs. */
+  getScoreLevelId: () => string | null;
+  getLevelName: () => string | null;
+  online: OnlineClient;
   startLevel: (id: string) => void;
   startDaily: () => void;
   dailyLevelName: () => string;
@@ -71,6 +78,7 @@ export class AppScreens {
   readonly settings: Settings;
   readonly credits: Credits;
   readonly achvScreen: AchievementsScreen;
+  readonly leaderboard: LeaderboardScreen;
   readonly botIntro: BotIntro;
   private readonly uiRoot: HTMLElement;
   private readonly deps: ScreensDeps;
@@ -103,6 +111,7 @@ export class AppScreens {
         daily: () => deps.startDaily(),
         settings: () => this.openSettings(),
         achievements: () => this.openAchievements(),
+        leaderboard: () => this.openLeaderboard(),
         credits: () => this.openCredits(),
       },
       () => effectiveReducedMotion(deps.save.settings.reducedMotion),
@@ -127,6 +136,13 @@ export class AppScreens {
     this.achvScreen = new AchievementsScreen(uiRoot, () =>
       this.achvScreen.toggle(false)
     );
+    this.leaderboard = new LeaderboardScreen(uiRoot, {
+      client: deps.online,
+      onClose: () => this.leaderboard.toggle(false),
+      onSignIn: () => this.signIn(),
+      onSignOut: () =>
+        void deps.online.logout().then(() => this.leaderboard.refresh()),
+    });
     this.botIntro = new BotIntro(uiRoot);
   }
 
@@ -137,6 +153,7 @@ export class AppScreens {
       this.pauseMenu.isVisible() ||
       this.settings.isVisible() ||
       this.achvScreen.isVisible() ||
+      this.leaderboard.isVisible() ||
       this.credits.isVisible() ||
       this.botIntro.isVisible()
     );
@@ -154,6 +171,10 @@ export class AppScreens {
     }
     if (this.achvScreen.isVisible()) {
       this.achvScreen.toggle(false);
+      return;
+    }
+    if (this.leaderboard.isVisible()) {
+      this.leaderboard.toggle(false);
       return;
     }
     if (this.deps.getPhase() === 'levelSelect') {
@@ -282,7 +303,45 @@ export class AppScreens {
     this.hud.hide();
   }
 
-  onResultsAction(action: 'retry' | 'next' | 'levels' | 'skip'): void {
+  signIn(): void {
+    location.assign(
+      this.deps.online.loginUrl(location.pathname + location.search)
+    );
+  }
+
+  openLeaderboard(ctx?: {
+    levelId?: string;
+    levelName?: string;
+    defaultScope?: LeaderboardScope;
+  }): void {
+    this.leaderboard.open(ctx ?? {});
+  }
+
+  onResultsAction(
+    action: 'retry' | 'next' | 'levels' | 'skip' | 'signin' | 'leaderboard'
+  ): void {
+    if (action === 'signin') {
+      this.deps.audio.play('ui');
+      this.signIn();
+      return;
+    }
+    if (action === 'leaderboard') {
+      // Keep the results panel up — the modal stacks on top of it.
+      this.deps.audio.play('ui');
+      const id = this.deps.getScoreLevelId();
+      this.openLeaderboard(
+        id
+          ? {
+              levelId: id,
+              levelName: this.deps.getLevelName() ?? undefined,
+              defaultScope: id.startsWith('daily:')
+                ? (id as LeaderboardScope)
+                : `level:${id}`,
+            }
+          : undefined
+      );
+      return;
+    }
     this.results.hide();
     this.deps.audio.play('ui');
     const levelId = this.deps.getLevelId();

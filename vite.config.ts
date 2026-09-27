@@ -111,6 +111,10 @@ function swPlugin(): Plugin {
 
 export default defineConfig({
   base: process.env.GITHUB_PAGES === '1' ? '/angrybots/' : '/',
+  server: {
+    // `npm run dev` + `npm run worker:dev` → local API on the wrangler port.
+    proxy: { '/api': 'http://127.0.0.1:8787' },
+  },
   plugins: [swPlugin()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

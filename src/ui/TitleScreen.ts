@@ -24,6 +24,7 @@ export type TitleActions = {
   daily: () => void;
   settings: () => void;
   achievements: () => void;
+  leaderboard: () => void;
   credits: () => void;
 };
 
@@ -76,6 +77,7 @@ export class TitleScreen {
   private readonly bots: PgBot[] = [];
   private readonly starsEl: HTMLElement;
   private readonly achvLabel: HTMLElement;
+  private readonly leaderboardBtn: HTMLButtonElement;
   private readonly dailyLabel: HTMLElement;
   private readonly isReducedMotion: () => boolean;
   /** CSS-px y of the 3D grass line the bots stand on (from the renderer). */
@@ -131,9 +133,13 @@ export class TitleScreen {
     achv.addEventListener('click', actions.achievements);
     this.achvLabel = document.createElement('span');
     achv.appendChild(this.achvLabel);
+    const leaderboard = iconButton('podium', 'Leaderboard');
+    leaderboard.hidden = true; // shown once the API reports reachable
+    leaderboard.addEventListener('click', actions.leaderboard);
+    this.leaderboardBtn = leaderboard;
     const credits = iconButton('star', 'Credits');
     credits.addEventListener('click', actions.credits);
-    secondary.append(settings, achv, credits);
+    secondary.append(settings, achv, leaderboard, credits);
 
     this.starsEl = this.el.querySelector('.title-stars')!;
     this.el.append(play, daily, secondary);
@@ -322,6 +328,11 @@ export class TitleScreen {
     this.render();
     this.raf = requestAnimationFrame(this.frame);
   };
+
+  /** Hide the leaderboard button where there's no backend (GH Pages mirror). */
+  setOnline(on: boolean): void {
+    this.leaderboardBtn.hidden = !on;
+  }
 
   setDaily(levelName: string): void {
     this.dailyLabel.textContent = `Daily · ${levelName}`;
