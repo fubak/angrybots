@@ -828,15 +828,45 @@ body,
     font-size: 15px;
   }
 
-  .results-panel h2 { font-size: 24px; }
-  .results-score { font-size: 28px; }
-  #results-stars { font-size: 32px; min-height: 38px; gap: 6px; }
-  .results-pig { width: 64px; height: 64px; }
-  .results-actions .ui-btn { min-height: 44px; }
+  .results-panel { width: min(560px, calc(100vw - 20px)); gap: 4px; padding: 10px 14px; }
+  .results-actions { position: static; background: none; padding-top: 2px; }
+  .results-panel h2 { font-size: 22px; letter-spacing: 0; }
+  .results-score { font-size: 26px; }
+  #results-stars { font-size: 26px; min-height: 30px; gap: 6px; }
+  .results-ribbon { font-size: 13px; padding: 2px 12px; border-width: 2px; }
+  .results-achv, .results-daily, .results-online, .results-endcard { font-size: 12px; }
+  .results-pig { width: 56px; height: 56px; }
+  .results-actions .ui-btn { min-height: 40px; }
 
-  .bot-card canvas { width: 88px; height: 88px; }
-  .bot-card .bot-name { font-size: 22px; }
-  .bot-card .bot-tip { font-size: 13px; }
+  /* Two-column card: canvas beside name/tip so it never has to scroll. */
+  .bot-card {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    grid-template-rows: auto auto auto auto;
+    column-gap: 14px;
+    row-gap: 4px;
+    align-items: center;
+    text-align: left;
+    width: min(480px, calc(100vw - 24px));
+    padding: 12px 14px;
+  }
+  .bot-card canvas { grid-row: 1 / span 3; width: 96px; height: 96px; }
+  .bot-card .bot-name { font-size: 20px; }
+  .bot-card .bot-tip { font-size: 13px; line-height: 1.25; }
+  .bot-card .btn-row { grid-column: 1 / -1; position: static; justify-content: center; margin-top: 4px; }
+
+  /* Achievement toast parks in the corner — never over the results heading. */
+  .ui-toast.achv {
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: auto;
+    right: max(12px, env(safe-area-inset-right));
+    transform: none;
+    animation: toast-pop-corner 0.25s ease both;
+  }
+
+  .title-card .title-account .lb-signin,
+  .title-card .title-account .title-user { font-size: 13px; padding: 3px 10px; min-height: 34px; }
 
   .lb-name, .lb-sub, .lb-account, .lb-empty { font-size: 13px; }
   .lb-avatar { width: 28px; height: 28px; }
@@ -848,6 +878,30 @@ body,
   .lb-name, .lb-score { font-size: 13px; }
   .lb-sub { display: none; }
   .lb-list { gap: 3px; max-height: calc(100dvh - 200px); }
+}
+
+/* Phones in landscape with browser chrome visible — the tightest case. */
+@media (max-height: 360px) {
+  .title-card { gap: 4px; }
+  .title-card .game-logo { font-size: clamp(24px, 5vw, 34px); }
+  .title-card .tagline { display: none; }
+  .title-card .title-stars { font-size: 12px; }
+  .title-card .ui-btn.title-play { font-size: 17px; padding: 5px 28px; min-height: 36px; }
+  .title-card .title-daily { font-size: 13px; min-height: 32px; padding: 3px 10px; }
+  .title-secondary { gap: 6px; }
+  .title-secondary .ui-btn { min-width: 36px; min-height: 36px; padding: 4px 8px; }
+  .title-card .title-account .lb-signin,
+  .title-card .title-account .title-user { min-height: 30px; font-size: 12px; }
+
+  .modal-wrap .ui-panel.modal { padding: 10px 14px; gap: 8px; }
+  .panel-title { font-size: 20px; }
+
+  .results-panel h2 { font-size: 20px; }
+  .results-score { font-size: 22px; }
+  #results-stars { font-size: 22px; min-height: 26px; }
+
+  .bot-card canvas { width: 80px; height: 80px; }
+  .bot-card { grid-template-columns: 80px 1fr; }
 }
 
 /* Landscape level map on short screens: the wrap owns all space left under
@@ -1009,6 +1063,13 @@ body,
   0% { transform: translateX(-50%) scale(0.6); opacity: 0; }
   70% { transform: translateX(-50%) scale(1.06); opacity: 1; }
   100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* Corner-anchored pop — no centering translate to preserve. */
+@keyframes toast-pop-corner {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .ui-toast.hud-tip {
