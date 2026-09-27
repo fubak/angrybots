@@ -9,6 +9,7 @@ import { SESSION_TRANSITIONS } from './sessionTransitions';
 import { activate, type AbilityContext } from '../bots/abilities';
 import type { BotEntity } from '../entities/types';
 import { spawnBotAt } from '../entities/Bot';
+import { REPLAY_LIMITS, type Replay, type ReplayEvent } from './replay';
 export type { GameStateId };
 
 /** Level-intro beat length — structure close-up hold + pan to the sling. */
@@ -47,6 +48,10 @@ export class GameSession {
   // ticks, so App.tick can never observe the aim→flight edge itself.
   private shotStartScore = 0;
   private shotStartPigs = 0;
+  /** Replay trace: non-intro update() calls so far + the inputs between them. */
+  private replaySteps = 0;
+  private replayEvents: ReplayEvent[] = [];
+  private replayOverflow = false;
 
   constructor() {
     this.fsm = makeSessionFsm('intro');
@@ -81,6 +86,9 @@ export class GameSession {
     this.shotSlowTime = 0;
     this.primaryShotBotId = null;
     this.introTimer = skipIntro ? 0 : INTRO_SECONDS;
+    this.replaySteps = 0;
+    this.replayEvents = [];
+    this.replayOverflow = false;
     this.fsm = makeSessionFsm(skipIntro ? 'aim' : 'intro');
   }
 
@@ -97,6 +105,7 @@ export class GameSession {
 
   launchFromPull(vx: number, vy: number, x: number, y: number): void {
     if (this.state !== 'aim' || !this.sim || this.botQueue.length === 0) return;
+    this.recordEvent({ t: this.replaySteps, k: 'launch', vx, vy, x, y });
     const kind = this.botQueue[0]!;
     const bot = spawnBotAt(this.sim.pw.world, x, y, vx, vy, kind, `bot-${kind}-${Date.now()}`);
     this.sim.registry.add(bot);
@@ -132,6 +141,7 @@ export class GameSession {
     const bots = this.activeShotBots();
     const bot = bots[0];
     if (!bot) return;
+    this.recordEvent({ t: this.replaySteps, k: 'ability' });
     const ctx: AbilityContext = {
       level: this.sim,
       simTime: this.sim.getSimTime(),
@@ -181,6 +191,9 @@ export class GameSession {
       if (this.introTimer <= INTRO_SKIP_MS) this.transition('aim');
       return;
     }
+    // Count this processed step. Inputs recorded between ticks are stamped
+    // with this.replaySteps — the index of the next step they precede.
+    this.replaySteps++;
     if (this.state === 'flight') {
       this.flightTime += dt;
       this.sim.step();
@@ -213,6 +226,21 @@ export class GameSession {
       if (this.hopTimer <= 0) this.transition('won');
       return;
     }
+  }
+
+  private recordEvent(e: ReplayEvent): void {
+    if (this.replayOverflow) return;
+    if (this.replayEvents.length >= REPLAY_LIMITS.maxEvents) {
+      this.replayOverflow = true;
+      return;
+    }
+    this.replayEvents.push(e);
+  }
+
+  /** The run's input trace for server-side verification; null if unusable. */
+  getReplay(): Replay | null {
+    if (this.replayOverflow || this.replaySteps === 0) return null;
+    return { v: 1, steps: this.replaySteps, events: [...this.replayEvents] };
   }
 
   skipIntro(): void {
