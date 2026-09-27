@@ -9,6 +9,7 @@ import {
   yawEyeTransforms,
 } from '../render/botArt';
 import type { StickerArt } from '../render/botArt.generated';
+import { visibleViewport } from '../app/viewport';
 import {
   createPlayground,
   selectCast,
@@ -103,7 +104,7 @@ export class TitleScreen {
     parent: HTMLElement,
     actions: TitleActions,
     isReducedMotion: () => boolean = () => false,
-    groundY: () => number = () => window.innerHeight - 8
+    groundY: () => number = () => visibleViewport().h - 8
   ) {
     this.isReducedMotion = isReducedMotion;
     this.groundY = groundY;
@@ -175,6 +176,9 @@ export class TitleScreen {
     });
     parent.appendChild(this.stage);
     window.addEventListener('resize', this.onResize);
+    // visualViewport resize covers browser-chrome show/hide (plain 'resize'
+    // doesn't fire when only the visible area changes).
+    window.visualViewport?.addEventListener('resize', this.onResize);
     window.addEventListener('pointermove', this.onPointerMove, { passive: true });
     // The card resizes when fonts swap in or content changes (star counts,
     // daily label) — re-derive zones so a stale measurement can't hide the
@@ -191,7 +195,7 @@ export class TitleScreen {
   private syncGround(): void {
     const gy = this.groundY();
     if (!Number.isFinite(gy)) return;
-    const bottom = Math.max(0, window.innerHeight - gy);
+    const bottom = Math.max(0, visibleViewport().h - gy);
     if (Math.abs(bottom - this.stageBottomPx) > 0.4) {
       this.stageBottomPx = bottom;
       this.stage.style.bottom = `${bottom}px`;
@@ -201,8 +205,7 @@ export class TitleScreen {
 
   private layout(): void {
     if (this.el.style.display === 'none') return;
-    const W = window.innerWidth;
-    const H = window.innerHeight;
+    const { w: W, h: H } = visibleViewport();
     const card = this.el.getBoundingClientRect();
     // Bots stand ON the grass line (their feet = the stage's bottom edge) and
     // scale with viewport height — desktop ~64px playable, ~46px menu.

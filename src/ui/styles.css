@@ -18,8 +18,11 @@ body,
 }
 
 #ui-root {
-  position: fixed;
+  position: absolute;
   inset: 0;
+  /* Containing block for every position:fixed descendant — the shell is the
+     fixed visible-viewport box, so modals/HUD follow it, not the layout viewport. */
+  transform: translateZ(0);
   pointer-events: none;
   z-index: 10;
 }
@@ -315,7 +318,7 @@ body,
   max-width: min(520px, 100%);
   /* Never taller than the visible viewport (safe areas included); inner
      scroll handles overflow so the close control stays reachable. */
-  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height: calc(var(--vvh, 100dvh) - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -789,7 +792,7 @@ body,
     top: 50%;
     transform: translate(-50%, -50%) rotate(-2deg);
     gap: 5px;
-    max-height: calc(100dvh - 8px);
+    max-height: calc(var(--vvh, 100dvh) - 8px);
   }
   .title-card .game-logo { font-size: clamp(28px, 6.5vw, 44px); }
   .title-card .tagline { font-size: 13px; }
@@ -813,7 +816,7 @@ body,
     width: auto;
     min-width: 0;
     min-height: 0;
-    height: calc(100dvh - 118px);
+    height: calc(var(--vvh, 100dvh) - 118px);
     max-height: 240px;
   }
   .chapter-card .card-art img { width: 42px; height: 42px; }
@@ -860,7 +863,7 @@ body,
   .chapter-cards { flex-direction: column; align-items: center; gap: 10px; }
   .chapter-card {
     min-height: 0;
-    height: calc((100dvh - 150px) / 3);
+    height: calc((var(--vvh, 100dvh) - 150px) / 3);
     max-height: 190px;
     width: min(250px, 82vw);
   }
@@ -1043,7 +1046,7 @@ body,
   bottom: auto;
   transform: translate(-50%, -50%);
   width: min(440px, calc(100vw - 20px));
-  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height: calc(var(--vvh, 100dvh) - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow-y: auto;
   z-index: 35;
   align-items: center;
@@ -1241,7 +1244,7 @@ body,
   align-items: center;
   gap: 10px;
   width: min(330px, calc(100vw - 24px));
-  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height: calc(var(--vvh, 100dvh) - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow-y: auto;
   text-align: center;
   animation: ui-pop 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
@@ -1348,7 +1351,7 @@ body,
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: calc(100dvh - 300px);
+  max-height: calc(var(--vvh, 100dvh) - 300px);
   min-height: 120px;
   overflow: auto;
 }
@@ -1523,7 +1526,7 @@ body,
   .lb-avatar { width: 24px; height: 24px; }
   .lb-name, .lb-score { font-size: 13px; }
   .lb-sub { display: none; }
-  .lb-list { gap: 3px; max-height: calc(100dvh - 200px); }
+  .lb-list { gap: 3px; max-height: calc(var(--vvh, 100dvh) - 200px); }
 }
 
 @media (max-height: 360px) {

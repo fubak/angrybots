@@ -17,6 +17,7 @@ import { ShotTrail } from '../sling/ShotTrail';
 import { SoundBank } from '../audio/SoundBank';
 import { createDebugApi } from '../debug/DebugApi';
 import { effectiveReducedMotion } from './motion';
+import { installVisibleViewport } from './viewport';
 import { achievementById } from '../game/achievements';
 import { achievementBadge } from '../ui/Achievements';
 import { firstUnseenBotInQueue } from '../bots/tutorialTips';
@@ -97,7 +98,10 @@ export class App {
     root.setAttribute('data-game', 'angrybots');
     this.shell = document.createElement('div');
     this.shell.setAttribute('data-game', 'angrybots');
-    this.shell.style.cssText = 'position:relative;width:100%;height:100%;min-height:100vh';
+    // Fixed to the *visible* viewport box (--vv* vars from viewport.ts) so
+    // mobile browser chrome can't push the bottom of the game off-screen.
+    this.shell.style.cssText =
+      'position:fixed;top:var(--vvt,0px);left:var(--vvl,0px);width:var(--vvw,100%);height:var(--vvh,100%)';
     root.appendChild(this.shell);
 
     this.canvas = document.createElement('canvas');
@@ -240,8 +244,7 @@ export class App {
     ]).then(() => requestAnimationFrame(finishBoot));
     window.setTimeout(finishBoot, 3000);
 
-    this.onResize();
-    window.addEventListener('resize', () => this.onResize());
+    installVisibleViewport(() => this.onResize());
 
     const fixtures = import.meta.env.DEV;
     window.__debug = createDebugApi({
