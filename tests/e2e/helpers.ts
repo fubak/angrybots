@@ -19,6 +19,7 @@ export type DebugSnapshot = {
     hopper: { x: number; y: number; sx: number; sy: number; rot: number; t: number } | null;
   };
   camera: { cx: number; cy: number; height: number };
+  celestialReact: string | null;
 };
 
 export async function snapshot(page: Page): Promise<DebugSnapshot> {
@@ -54,7 +55,7 @@ export async function openApp(page: Page, opts?: { unlockAll?: boolean }): Promi
 export async function seedCleared(
   page: Page,
   ids: string[],
-  opts?: { stars?: number }
+  opts?: { stars?: number; reducedMotion?: boolean }
 ): Promise<void> {
   const stars = opts?.stars ?? 1;
   const levels: Record<string, { bestScore: number; stars: number; cleared: boolean }> = {};
@@ -64,7 +65,13 @@ export async function seedCleared(
   }, {
     version: 2,
     levels,
-    settings: { music: 0.8, sfx: 0.8, voice: 0.8, aimGuide: 'off', reducedMotion: true },
+    settings: {
+      music: 0.8,
+      sfx: 0.8,
+      voice: 0.8,
+      aimGuide: 'off',
+      reducedMotion: opts?.reducedMotion ?? true,
+    },
     tutorialsSeen: { grok: true, dash: true, split: true, heavy: true, blast: true },
     lastLevelId: null,
   });

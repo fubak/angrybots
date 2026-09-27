@@ -30,6 +30,8 @@ export type DebugSnapshot = {
     hopper: { x: number; y: number; sx: number; sy: number; rot: number; t: number } | null;
   };
   camera: { cx: number; cy: number; height: number };
+  /** Celestial reaction playing right now, if any ('great'|'good'|'miss'). */
+  celestialReact: string | null;
   frame: number;
   fps: { p50: number; p5Low: number };
   renderer: { calls: number; triangles: number; geometries: number; textures: number };
@@ -50,6 +52,8 @@ export type DebugApi = {
   startIntro?: (id: string) => void;
   /** Force a sun/moon shot reaction — evidence captures. */
   celestialReact?: (kind: 'great' | 'good' | 'miss' | null) => void;
+  /** Pause/resume the reaction clock mid-envelope — deterministic captures. */
+  celestialFreezeReact?: (frozen: boolean) => void;
   /** CSS-px position of the celestial disc center — evidence captures. */
   celestialScreen?: () => { x: number; y: number };
   /** Teleport a drifting cloud (layer-local x) — evidence captures. */
@@ -110,6 +114,7 @@ export function createDebugApi(opts: {
         hopper: opts.renderer.hopperPose(),
       },
       camera: { cx: view.cx, cy: view.cy, height: view.h },
+      celestialReact: opts.renderer.celestialReactKind(),
       frame: opts.renderer.frameCount,
       fps,
       renderer: info,
@@ -145,6 +150,7 @@ export function createDebugApi(opts: {
       if (levelById(id)) opts.enterLevelIntro(id);
     };
     api.celestialReact = (kind) => opts.renderer.celestialReact(kind);
+    api.celestialFreezeReact = (frozen) => opts.renderer.celestialFreezeReaction(frozen);
     api.celestialScreen = () => opts.renderer.celestialScreen();
     api.cloudJump = (i, x) => opts.renderer.setCloudX(i, x);
     api.celestialHome = () => opts.renderer.celestialHome();

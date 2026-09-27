@@ -124,6 +124,16 @@ export class Renderer {
     if (kind && !this.reducedMotion) this.scenery.react(kind);
   }
 
+  /** The celestial reaction currently playing, if any (debug/evidence read). */
+  celestialReactKind(): ShotReaction | null {
+    return this.scenery.reaction;
+  }
+
+  /** Freeze/unfreeze the celestial reaction clock (deterministic evidence). */
+  celestialFreezeReaction(frozen: boolean): void {
+    this.scenery.freezeReaction(frozen);
+  }
+
   /** Dev/evidence hook: teleport a drifting cloud to a layer-local x. */
   setCloudX(i: number, x: number): void {
     this.scenery.setCloudX(i, x);

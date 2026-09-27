@@ -47,7 +47,27 @@ async function newPage(vp, reduced) {
   }, SAVE);
   await page.goto(`${BASE}?unlockAll=1`);
   await page.waitForFunction(() => window.__debug, null, { timeout: 15000 });
+  // Wait for boot to finish BEFORE entering a level — finishBoot used to
+  // re-show the title card over live gameplay when a level started early,
+  // which is exactly what tainted the first round of these captures.
+  await page.waitForSelector('.title-card', { state: 'visible', timeout: 20000 });
   return page;
+}
+
+/** Real UI path into a level: Play → chapter cards → level node. */
+async function playInto(page, levelId) {
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  for (const card of await page.locator('.chapter-card').all()) {
+    await card.click();
+    const node = page.locator(`button[data-level-id="${levelId}"]`);
+    if (await node.count()) {
+      await node.click();
+      return;
+    }
+    const back = page.locator('.map-back');
+    if (await back.count()) await back.click();
+  }
+  throw new Error(`level ${levelId} not found`);
 }
 
 const snap = (page) => page.evaluate(() => window.__debug.snapshot());
@@ -123,7 +143,10 @@ async function cropBox(page, rect, outPath, mul = 2) {
 for (const lvl of LEVELS) {
   for (const vp of AIM_SIZES) {
     const page = await newPage(vp, true);
-    await page.evaluate((id) => window.__debug.loadLevel(id), lvl);
+    // Drive the real UI for level 1 (the reviewed evidence); the level-30 set
+    // uses the debug entry but now runs after boot, so no title can overlay.
+    if (lvl === 'first-flight') await playInto(page, lvl);
+    else await page.evaluate((id) => window.__debug.loadLevel(id), lvl);
     await waitAim(page);
     await settled(page);
     await page.screenshot({ path: `${OUT}/aim-${lvl}-${vp.n}.png` });
@@ -136,8 +159,13 @@ for (const lvl of LEVELS) {
 for (const lvl of LEVELS) {
   for (const vp of [AIM_SIZES[0], AIM_SIZES[2]]) {
     const page = await newPage(vp, false);
-    await page.evaluate((id) => window.__debug.startIntro(id), lvl);
-    await page.waitForTimeout(350); // intro hold on the castle
+    if (lvl === 'first-flight') {
+      await playInto(page, lvl); // real UI: node click starts the intro
+      await page.waitForTimeout(350); // intro hold on the castle
+    } else {
+      await page.evaluate((id) => window.__debug.startIntro(id), lvl);
+      await page.waitForTimeout(350);
+    }
     await page.screenshot({ path: `${OUT}/intro-t0-${lvl}-${vp.n}.png` });
     console.log(`intro-t0-${lvl}-${vp.n}`);
     await page.context().close();
@@ -205,16 +233,33 @@ for (const lvl of LEVELS) {
   await cropCelestial(page, `${OUT}/sun-gaze-impact-3x.png`);
   await page.waitForTimeout(2500);
 
-  // forced reactions, each captured mid-animation at 3x
+  // Forced reactions — captured on RENDERED frames, not wall clock: the
+  // reaction advances inside Renderer.render (frameDt), and under SwiftShader
+  // a page.screenshot can take longer than the whole ~1.4 s reaction, so the
+  // envelope is frozen mid-peak (reactFrozen) while the shots are taken.
+  const waitFrames = async (n) => {
+    const f0 = (await snap(page)).frame;
+    await page.waitForFunction(
+      (f) => window.__debug.snapshot().frame >= f,
+      f0 + n,
+      { timeout: 20000, polling: 50 }
+    );
+  };
   await page.evaluate(() => window.__debug.loadLevel('first-flight'));
   await waitAim(page);
   await settled(page);
   for (const kind of ['great', 'good', 'miss']) {
     await page.evaluate((k) => window.__debug.celestialReact(k), kind);
-    await page.waitForTimeout(550);
+    await waitFrames(3); // mid-envelope (~0.4–0.5 s in)
+    await page.evaluate(() => window.__debug.celestialFreezeReact(true));
     await page.screenshot({ path: `${OUT}/sun-react-${kind}.png` });
     await cropCelestial(page, `${OUT}/sun-react-${kind}-3x.png`);
-    await page.waitForTimeout(1200);
+    await page.evaluate(() => window.__debug.celestialFreezeReact(false));
+    await page.waitForFunction(
+      () => window.__debug.snapshot().celestialReact === null,
+      null,
+      { timeout: 20000, polling: 100 }
+    );
   }
   console.log('sun gaze + reactions');
 
@@ -237,10 +282,17 @@ for (const lvl of LEVELS) {
   await page.evaluate(() => window.__debug.loadLevel('last-stand'));
   await waitAim(page);
   await settled(page);
+  const mf0 = (await snap(page)).frame;
   await page.evaluate(() => window.__debug.celestialReact('great'));
-  await page.waitForTimeout(550);
+  await page.waitForFunction(
+    (f) => window.__debug.snapshot().frame >= f,
+    mf0 + 3,
+    { timeout: 20000, polling: 50 }
+  );
+  await page.evaluate(() => window.__debug.celestialFreezeReact(true));
   await page.screenshot({ path: `${OUT}/moon-react-great.png` });
   await cropCelestial(page, `${OUT}/moon-react-great-3x.png`);
+  await page.evaluate(() => window.__debug.celestialFreezeReact(false));
   console.log('moon reaction');
   await page.context().close();
 }

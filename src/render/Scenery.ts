@@ -138,6 +138,7 @@ export class Scenery {
   private blinkAt = 3;
   private reactKind: 'great' | 'good' | 'miss' | null = null;
   private reactT = 0;
+  private reactFrozen = false;
   private celestialScale = 1;
   /** Layer-local home the disc returns to after reactions; clamped per view. */
   private celestialHome = { x: -6, y: 7.2 };
@@ -408,6 +409,16 @@ export class Scenery {
     this.applyReaction(dt);
   }
 
+  /** The one-shot reaction currently playing, if any (debug/evidence read). */
+  get reaction(): 'great' | 'good' | 'miss' | null {
+    return this.reactKind;
+  }
+
+  /** Freeze/unfreeze the reaction clock — evidence captures pause mid-envelope. */
+  freezeReaction(frozen: boolean): void {
+    this.reactFrozen = frozen;
+  }
+
   /** Play a one-shot reaction to how a shot landed; ~1.2–1.5 s then normal gaze resumes. */
   react(kind: 'great' | 'good' | 'miss'): void {
     this.endReaction();
@@ -433,7 +444,7 @@ export class Scenery {
 
   private applyReaction(dt: number): void {
     if (!this.reactKind) return;
-    this.reactT += dt;
+    if (!this.reactFrozen) this.reactT += dt;
     const dur = this.reactKind === 'great' ? 1.45 : 1.3;
     const p = Math.min(1, this.reactT / dur);
     const e = Math.sin(p * Math.PI); // 0→1→0 envelope
