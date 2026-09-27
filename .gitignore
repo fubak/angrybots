@@ -34,3 +34,8 @@ dist-ssr
 .wrangler/
 
 .dev.vars
+
+# local env (VITE_GA_MEASUREMENT_ID etc.)
+.env
+.env.*
+!.env.example
