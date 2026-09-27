@@ -6,7 +6,7 @@
 //   playground-{bump,leapfrog,nap,chase}.png  behavior close-ups
 //   playground-750x342.png / playground-390x664.png  small-viewport frames
 //   playground.webm           ~10s recording (kept only if <3MB)
-import { mkdirSync, copyFileSync, statSync, readdirSync } from 'node:fs';
+import { mkdirSync, copyFileSync, statSync, readdirSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { chromium } from 'playwright';
 
@@ -17,7 +17,14 @@ const VID = '/tmp/title-video';
 
 mkdirSync(OUT, { recursive: true });
 mkdirSync(TMP, { recursive: true });
+// Stale recordings must never be picked up — wipe the dir before recording.
+rmSync(VID, { recursive: true, force: true });
 mkdirSync(VID, { recursive: true });
+
+// ONLY=sheet,closeups,small,webm limits a re-run to the named sections.
+const ONLY = new Set(
+  (process.env.ONLY ?? 'sheet,closeups,small,webm').split(',').map((s) => s.trim())
+);
 
 const SAVE = JSON.stringify({
   version: 2,
@@ -92,7 +99,7 @@ async function metrics(page, tag) {
 }
 
 // ---------- 1. Contact sheet: 12 frames ~1.4s apart, bottom 300px ----------
-{
+if (ONLY.has('sheet')) {
   const { ctx, page } = await titlePage({ width: 1280, height: 720 });
   const files = [];
   for (let i = 0; i < 12; i++) {
@@ -119,27 +126,92 @@ async function metrics(page, tag) {
 }
 
 // ---------- 2. Behavior close-ups ----------
-{
+if (ONLY.has('closeups')) {
   const { ctx, page } = await titlePage({ width: 1280, height: 720 });
-  const want = ['bump', 'leapfrog', 'nap', 'chase'];
+  const want = (process.env.CLOSEUPS ?? 'bump,leapfrog,nap,chase').split(',');
   const shot = async (rect, name) => {
     const cx = rect.x + rect.w / 2;
     const cy = rect.y + rect.h / 2;
-    const size = 260;
+    // Pad so an airborne leaper isn't clipped by the crop edge, and clamp to
+    // the viewport — the stage sits at the bottom edge of the screen.
+    const size = 300;
+    const x = Math.max(0, Math.min(cx - size / 2, 1280 - size));
+    const y = Math.max(0, Math.min(cy - size / 2, 720 - size));
     await page.screenshot({
       path: `${OUT}/playground-${name}.png`,
-      clip: {
-        x: Math.max(0, cx - size / 2),
-        y: Math.max(0, cy - size / 2),
-        width: size,
-        height: size,
-      },
+      clip: { x, y, width: size, height: size },
     });
-    console.log(`-> playground-${name}.png`);
+    console.log(
+      `-> playground-${name}.png clip ${JSON.stringify({ x, y })}`
+    );
+    return { x, y };
   };
 
   for (const k of want) {
     try {
+      if (k === 'leapfrog') {
+        // Detection→screenshot latency (~150–300ms) can outlive the ~0.6s
+        // flight: shoot fast, then re-read altitude and retry if it landed.
+        let captured = false;
+        const deadline = Date.now() + 90000;
+        while (!captured && Date.now() < deadline) {
+          const box = await page.waitForFunction(
+            () => {
+              const vis = (b) => b.checkVisibility();
+              const air = [...document.querySelectorAll('.pg-bot[data-behavior="leapfrog"]')]
+                .filter(vis)
+                .map((b) => {
+                  const m = /translate\(([-0-9.]+)px, ([-0-9.]+)px\)/.exec(b.style.transform || '');
+                  return { b, y: m ? -parseFloat(m[2]) : 0 };
+                })
+                .filter((e) => e.y > 20);
+              if (!air.length) return false;
+              const leaper = air[0].b.getBoundingClientRect();
+              const ducks = [...document.querySelectorAll('.pg-bot[data-behavior="duck"]')]
+                .filter(vis)
+                .map((b) => b.getBoundingClientRect());
+              ducks.sort(
+                (d1, d2) =>
+                  Math.abs(d1.x + d1.width / 2 - (leaper.x + leaper.width / 2)) -
+                  Math.abs(d2.x + d2.width / 2 - (leaper.x + leaper.width / 2))
+              );
+              const rs = ducks.length ? [leaper, ducks[0]] : [leaper];
+              return {
+                x: Math.min(...rs.map((r) => r.x)),
+                y: Math.min(...rs.map((r) => r.y)),
+                w: Math.max(...rs.map((r) => r.x + r.width)) - Math.min(...rs.map((r) => r.x)),
+                h: Math.max(...rs.map((r) => r.y + r.height)) - Math.min(...rs.map((r) => r.y)),
+                clear: Math.round(air[0].y),
+                leaper: { x: leaper.x, y: leaper.y, w: leaper.width, h: leaper.height },
+                duck: ducks.length
+                  ? { x: ducks[0].x, y: ducks[0].y, w: ducks[0].width, h: ducks[0].height }
+                  : null,
+              };
+            },
+            null,
+            { timeout: Math.max(1000, deadline - Date.now()), polling: 25 }
+          );
+          const rect = await box.jsonValue();
+          const clip = await shot(rect, 'leapfrog');
+          console.log(
+            `   leaper ${JSON.stringify(rect.leaper)} duck ${JSON.stringify(rect.duck)}`
+          );
+          const still = await page.evaluate(
+            () =>
+              [...document.querySelectorAll('.pg-bot[data-behavior="leapfrog"]')]
+                .filter((b) => b.checkVisibility())
+                .map((b) => {
+                  const m = /translate\(([-0-9.]+)px, ([-0-9.]+)px\)/.exec(b.style.transform || '');
+                  return m ? -parseFloat(m[2]) : 0;
+                })[0] ?? -1
+          );
+          console.log(`   leapfrog attempt: ${rect.clear}px at detect, ${Math.round(still)}px after shot`);
+          captured = still > 15;
+        }
+        if (!captured) console.log('!! leapfrog: no confirmed-airborne frame');
+        continue;
+      }
+
       // Detect the behavior AND measure the actors' union rect in a single
       // eval — bump lasts ~0.5s, so a second roundtrip would lose the pose.
       const box = await page.waitForFunction(
@@ -149,14 +221,6 @@ async function metrics(page, tag) {
             [...document.querySelectorAll(sel)].filter(vis);
           let els = bots(`.pg-bot[data-behavior="${kind}"]`);
           if (!els.length) return false;
-          if (kind === 'leapfrog') {
-            // Only count it once the jumper is actually airborne — the tag
-            // persists through takeoff and landing.
-            const g = window.__debug?.groundScreenY?.() ?? innerHeight;
-            els = els.filter((b) => b.getBoundingClientRect().bottom < g - 12);
-            if (!els.length) return false;
-            els.push(...bots('.pg-bot[data-behavior="duck"]'));
-          }
           if (kind === 'chase') els.push(...bots('.pg-bot[data-behavior="flee"]'));
           if (kind === 'nap') {
             const zUp = [...document.querySelectorAll('.pg-z')].some(
@@ -175,7 +239,8 @@ async function metrics(page, tag) {
         k,
         { timeout: 90000, polling: 30 }
       );
-      await shot(await box.jsonValue(), k);
+      const rect = await box.jsonValue();
+      await shot(rect, k);
     } catch (e) {
       console.log(`!! ${k} not captured: ${String(e.message ?? e).split('\n')[0]}`);
     }
@@ -184,6 +249,7 @@ async function metrics(page, tag) {
 }
 
 // ---------- 3. Small-viewport frames + no-bot-on-button assertion ----------
+if (ONLY.has('small'))
 for (const [w, h, tag] of [
   [750, 342, '750x342'],
   [390, 664, '390x664'],
@@ -207,7 +273,7 @@ for (const [w, h, tag] of [
 }
 
 // ---------- 4. ~10s webm ----------
-{
+if (ONLY.has('webm')) {
   const ctx = await browser.newContext({
     viewport: { width: 1280, height: 720 },
     reducedMotion: 'no-preference',
