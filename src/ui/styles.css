@@ -194,7 +194,9 @@ body,
   align-items: center;
   justify-content: center;
   z-index: 100;
-  pointer-events: auto;
+  /* Informational only — taps pass through so the HUD (e.g. pause) stays
+     reachable in portrait. */
+  pointer-events: none;
 }
 
 #rotate-prompt.visible {
@@ -301,11 +303,31 @@ body,
 .modal-wrap .ui-panel.modal {
   position: relative;
   max-width: min(520px, 100%);
-  max-height: calc(100dvh - 24px);
+  /* Never taller than the visible viewport (safe areas included); inner
+     scroll handles overflow so the close control stays reachable. */
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Sticky top-right: stays pinned while the panel scrolls. */
+.ui-panel.modal .modal-close {
+  position: sticky;
+  top: 0;
+  align-self: flex-end;
+  margin-bottom: -48px;
+  z-index: 3;
+  flex: none;
+}
+
+/* Keep the trailing action row (Back etc.) pinned while a modal scrolls. */
+.ui-panel.modal > .btn-row:last-child {
+  position: sticky;
+  bottom: -4px;
+  padding-top: 4px;
+  background: linear-gradient(transparent, #e7c27a 30%);
 }
 
 .panel-title {
@@ -646,7 +668,9 @@ body,
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Top-aligned so the gate text never lands on the chapter name, which sits
+     in .card-body at the bottom of the card. */
+  justify-content: flex-start;
   gap: 6px;
   background: rgba(20, 14, 6, 0.55);
   color: #fff;
@@ -654,7 +678,11 @@ body,
   font-weight: 800;
   text-shadow: 1px 1px 0 #23180f;
   text-align: center;
-  padding: 8px;
+  padding: 10px 12px;
+}
+
+.chapter-card .card-lock span {
+  max-width: 60%; /* keep clear of the top-right art */
 }
 
 .path-wrap {
@@ -715,17 +743,43 @@ body,
   outline-offset: 2px;
 }
 
+/* Pinned header on the scrollable map screen — back + title never scroll away. */
+.map-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  align-self: stretch;
+  flex: none;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 2px 0 6px;
+  background: linear-gradient(rgba(20, 30, 45, 0.55), rgba(20, 30, 45, 0));
+}
+
+.map-head .map-title {
+  margin: 0;
+}
+
 .map-back {
   align-self: flex-start;
 }
 
 /* Short landscape screens (phones) — shrink nodes/panels so nothing overlaps or overflows. */
 @media (max-height: 500px) {
-  .title-card { top: 3%; gap: 7px; }
-  .title-card .game-logo { font-size: clamp(36px, 8vw, 56px); }
-  .title-card .tagline { font-size: 15px; }
-  .title-card .title-stars { font-size: 15px; }
-  .title-card .ui-btn.title-play { font-size: 22px; padding: 10px 40px; border-radius: 14px; margin-top: 0; }
+  .title-card {
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(-2deg);
+    gap: 5px;
+    max-height: calc(100dvh - 8px);
+  }
+  .title-card .game-logo { font-size: clamp(28px, 6.5vw, 44px); }
+  .title-card .tagline { font-size: 13px; }
+  .title-card .title-stars { font-size: 13px; }
+  .title-card .ui-btn.title-play { font-size: 19px; padding: 8px 34px; border-radius: 14px; margin-top: 0; min-height: 40px; }
+  .title-card .title-daily { font-size: 14px; min-height: 38px; padding: 4px 12px; }
+  .title-secondary { gap: 8px; }
+  .title-secondary .ui-btn { min-width: 40px; min-height: 40px; }
 
   /* Park the lineup in the right margin so it stays clear of the title card
      and its buttons (card is centered; lineup sits at z-5, under the card). */
@@ -734,6 +788,25 @@ body,
   .lineup-row.back .lineup-bot { height: 20px; }
   .lineup-row.back { margin-bottom: -6px; gap: 3px; }
   .lineup-row.front { gap: 5px; }
+
+  .map-screen { padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); }
+  .map-head .map-title { font-size: 20px; }
+  .map-back { min-height: 36px; font-size: 14px; }
+
+  /* One row of chapter cards sized to the viewport, no page scroll. */
+  .chapter-cards { flex-wrap: nowrap; gap: 10px; width: 100%; }
+  .chapter-card {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    min-height: 0;
+    height: calc(100dvh - 118px);
+    max-height: 240px;
+  }
+  .chapter-card .card-art img { width: 42px; height: 42px; }
+  .chapter-card .card-body { padding: 6px 10px; }
+  .chapter-card .card-name { font-size: 16px; }
+  .chapter-card .card-stars { font-size: 12px; }
 
   .lvl-node {
     width: 44px;
@@ -747,6 +820,35 @@ body,
   #results-stars { font-size: 32px; min-height: 38px; gap: 6px; }
   .results-pig { width: 64px; height: 64px; }
   .results-actions .ui-btn { min-height: 44px; }
+
+  .bot-card canvas { width: 88px; height: 88px; }
+  .bot-card .bot-name { font-size: 22px; }
+  .bot-card .bot-tip { font-size: 13px; }
+}
+
+/* Landscape level map on short screens: the wrap owns all space left under
+   the header and the path runs horizontally (see LevelSelect.renderPath). */
+@media (max-height: 500px) and (orientation: landscape) {
+  .path-wrap { width: min(96vw, 860px); height: auto; min-height: 0; }
+}
+
+/* Extremely short viewports: the lineup can't clear the centered card's
+   buttons horizontally — drop it rather than overlap. */
+@media (max-height: 400px) {
+  .title-lineup { display: none; }
+}
+
+/* Narrow portrait phones: three stacked cards must fit without page scroll. */
+@media (max-width: 480px) {
+  .chapter-cards { flex-direction: column; align-items: center; gap: 10px; }
+  .chapter-card {
+    min-height: 0;
+    height: calc((100dvh - 150px) / 3);
+    max-height: 190px;
+    width: min(250px, 82vw);
+  }
+  .chapter-card .card-art img { width: 56px; height: 56px; }
+  .map-title { font-size: 26px; }
 }
 
 /* ---- HUD rework ---- */
@@ -876,7 +978,7 @@ body,
   bottom: auto;
   transform: translate(-50%, -50%);
   width: min(440px, calc(100vw - 20px));
-  max-height: calc(100dvh - 24px);
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow-y: auto;
   z-index: 35;
   align-items: center;
@@ -894,6 +996,13 @@ body,
 .results-panel.open {
   display: flex;
   animation: results-pop 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.results-actions {
+  position: sticky;
+  bottom: -6px;
+  padding-top: 4px;
+  background: linear-gradient(transparent, #e7c27a 30%);
 }
 
 .results-panel h2 {
@@ -1067,8 +1176,15 @@ body,
   align-items: center;
   gap: 10px;
   width: min(330px, calc(100vw - 24px));
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
   text-align: center;
   animation: ui-pop 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.bot-card .btn-row {
+  position: sticky;
+  bottom: -4px;
 }
 
 .bot-card canvas {

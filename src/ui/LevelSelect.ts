@@ -21,6 +21,12 @@ export class LevelSelect {
   private api: LevelSelectApi | null = null;
   private screen: 'chapters' | 'path' = 'chapters';
   private chapterId: string | null = null;
+  /* Matches the CSS landscape map rule — a short landscape viewport can't fit
+     the vertical zigzag, so nodes run horizontally instead. */
+  private readonly landscapeMq =
+    typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(orientation: landscape) and (max-height: 500px)')
+      : null;
 
   constructor(parent: HTMLElement, onPick: (id: string) => void, onBack: () => void) {
     this.el = document.createElement('div');
@@ -28,6 +34,9 @@ export class LevelSelect {
     this.onPick = onPick;
     this.onBack = onBack;
     parent.appendChild(this.el);
+    this.landscapeMq?.addEventListener?.('change', () => {
+      if (this.el.classList.contains('open')) this.render();
+    });
   }
 
   populate(levels: readonly LevelV2[], api: LevelSelectApi): void {
@@ -94,21 +103,31 @@ export class LevelSelect {
       }
       cards.appendChild(card);
     }
-    this.el.append(back, title, cards);
+    this.el.append(this.head(back, title), cards);
   }
 
-  /** Node positions (percent) along a zigzag path, bottom to top.
-   *  Adjacent nodes always differ by ≥26% horizontally so they can't overlap
-   *  on short screens. */
-  private pathPoints(n: number): { x: number; y: number }[] {
+  /** Back button + title pinned at the top of the scrollable map screen. */
+  private head(back: HTMLElement, title: HTMLElement): HTMLElement {
+    const head = document.createElement('div');
+    head.className = 'map-head';
+    head.append(back, title);
+    return head;
+  }
+
+  /** Node positions (percent) along a zigzag path.
+   *  Portrait/tall: bottom to top, adjacent nodes ≥26% apart horizontally.
+   *  Short landscape: left to right — a 10-node vertical path can't fit under
+   *  the header on a ~340 px-tall phone screen. */
+  private pathPoints(n: number, landscape: boolean): { x: number; y: number }[] {
     const pts: { x: number; y: number }[] = [];
     const zig = [24, 50, 76, 50];
     for (let i = 0; i < n; i++) {
       const t = n <= 1 ? 0 : i / (n - 1);
-      pts.push({
-        x: zig[i % zig.length]!,
-        y: 90 - t * 78,
-      });
+      pts.push(
+        landscape
+          ? { x: 8 + t * 84, y: zig[i % zig.length]! }
+          : { x: zig[i % zig.length]!, y: 90 - t * 78 }
+      );
     }
     return pts;
   }
@@ -125,15 +144,17 @@ export class LevelSelect {
 
     const wrap = document.createElement('div');
     wrap.className = 'path-wrap';
-    const pts = this.pathPoints(group.length);
-    const d = pts
-      .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x * 5.6} ${p.y * 6.4}`)
-      .join(' ');
+    const pts = this.pathPoints(group.length, !!this.landscapeMq?.matches);
+    /* viewBox 0–100 with preserveAspectRatio="none" keeps the dotted path glued
+       to the %-positioned nodes at any wrap aspect (the old fixed 560×640 box
+       letterboxed on narrower/wider wraps, so the dots drifted off the nodes). */
+    const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 560 640');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('preserveAspectRatio', 'none');
     svg.setAttribute('class', 'path-svg');
     svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML = `<path d="${d}" fill="none" stroke="#8a5a24" stroke-width="10" stroke-linecap="round" stroke-dasharray="1 26"/>`;
+    svg.innerHTML = `<path d="${d}" fill="none" stroke="#8a5a24" stroke-width="9" stroke-linecap="round" stroke-dasharray="0.1 10" vector-effect="non-scaling-stroke"/>`;
     wrap.appendChild(svg);
 
     const currentId = api.currentId();
@@ -164,7 +185,7 @@ export class LevelSelect {
       if (open) node.addEventListener('click', () => this.onPick(l.id));
       wrap.appendChild(node);
     });
-    this.el.append(back, title, wrap);
+    this.el.append(this.head(back, title), wrap);
   }
 
   show(): void {

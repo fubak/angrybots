@@ -381,7 +381,11 @@ export class App {
 
   /** Orientation recovery must run even while simulation is paused. */
   private syncSimulationPause(): void {
-    const rotate = this.rotate.update(this.phase === 'play');
+    // Menus and modals stay usable in portrait — the prompt only covers live
+    // gameplay.
+    const rotate = this.rotate.update(
+      this.phase === 'play' && !this.screens.anyModalVisible()
+    );
     this.loop.paused =
       this.paused ||
       this.backgrounded ||
