@@ -31,6 +31,7 @@ import { AppScreens, botImage, pigImage, tipFor, type AppPhase } from './screens
 import { track } from '../analytics';
 import { currentStreak, localDateString, pickDailyLevel } from '../game/daily';
 import { OnlineClient } from '../net/api';
+import type { Replay } from '../game/replay';
 
 /** Pixel height of the top HUD strip reserved by the camera framing. */
 const HUD_TOP_PX = 56;
@@ -70,6 +71,7 @@ export class App {
     newBest: boolean;
     canSkip: boolean;
     daily?: { best: number; streak: number };
+    replay: Replay | null;
   } | null = null;
   private nextBotT: number | null = null;
   private bonusT: number | null = null;
@@ -277,7 +279,6 @@ export class App {
       })
     );
     void this.online.init().then(() => {
-      if (this.online.user) this.syncLocalBests();
       const params = new URLSearchParams(location.search);
       const auth = params.get('auth');
       if (auth === 'ok') {
@@ -301,35 +302,6 @@ export class App {
 
     this.loop.start();
     track('app_open', {});
-  }
-
-  /** Push local bests once per user-session after sign-in. */
-  private syncLocalBests(): void {
-    const uid = this.online.user?.id;
-    if (!uid) return;
-    const flag = `ab-synced-${uid}`;
-    if (sessionStorage.getItem(flag)) return;
-    const entries: { levelId: string; score: number; stars: number }[] = [];
-    for (const [levelId, p] of Object.entries(this.save.levels)) {
-      if (p.cleared && p.bestScore > 0) {
-        entries.push({ levelId, score: p.bestScore, stars: p.stars });
-      }
-    }
-    // Only the win we can prove syncs — bestByDate also holds loss scores.
-    const winDate = this.save.daily.lastWinDate;
-    if (winDate) {
-      const score = this.save.daily.bestByDate[winDate] ?? 0;
-      if (score > 0) {
-        entries.push({ levelId: `daily:${winDate}`, score, stars: 0 });
-      }
-    }
-    if (!entries.length) {
-      sessionStorage.setItem(flag, '1');
-      return;
-    }
-    void this.online.syncBests(entries).then((ok) => {
-      if (ok) sessionStorage.setItem(flag, '1');
-    });
   }
 
   private levelRefs(): readonly { id: string; chapter: string }[] {
@@ -484,6 +456,9 @@ export class App {
       newBest: rec.newBest,
       canSkip: rec.canSkip,
       daily: dailyResult,
+      // Captured now — a restart before the results card shows must not
+      // hand the server a replay from the wrong run.
+      replay: this.session.getReplay(),
     };
     this.runUnlocks = rec.unlockIds;
     const durationMs = Math.round(performance.now() - this.levelStartT);
@@ -593,10 +568,10 @@ export class App {
         const scoreLevelId = this.daily
           ? `daily:${this.daily.date}`
           : this.levelId;
-        if (pending.won && this.online.user && scoreLevelId) {
+        if (pending.won && this.online.user && scoreLevelId && pending.replay) {
           const seq = ++this.runSeq;
           void this.online
-            .submitScore(scoreLevelId, pending.score, pending.stars)
+            .submitScore(scoreLevelId, pending.score, pending.stars, pending.replay)
             .then((r) => {
               track('score_submit', {
                 levelId: scoreLevelId,

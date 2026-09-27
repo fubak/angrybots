@@ -49,11 +49,10 @@ export function capForLevel(level: LevelV2): number {
 export function computeCaps(): LevelCaps {
   const dataDir = join(import.meta.dirname, '../src/levels/data');
   const files = readdirSync(dataDir).filter((f) => f.endsWith('.json')).sort();
-  const levels: LevelV2[] = files.map((file) =>
-    loadLevelFromJson(
-      JSON.parse(readFileSync(join(dataDir, file), 'utf8')) as unknown
-    )
+  const raws = files.map((file) =>
+    JSON.parse(readFileSync(join(dataDir, file), 'utf8')) as unknown
   );
+  const levels: LevelV2[] = raws.map((raw) => loadLevelFromJson(raw));
   const sorted = [...levels].sort(
     (a, b) => chapterOrder(a.chapter) - chapterOrder(b.chapter) || a.order - b.order
   );
@@ -70,8 +69,26 @@ const isMain =
   process.argv[1] !== undefined &&
   import.meta.url.endsWith(process.argv[1].replaceAll('\\', '/'));
 
+/**
+ * Raw level definitions keyed by id — lets the worker resolve a levelId into
+ * a LevelV2 without src/levels/registry.ts (its import.meta.glob doesn't
+ * bundle under wrangler).
+ */
+export function computeLevelsBundle(): Record<string, unknown> {
+  const dataDir = join(import.meta.dirname, '../src/levels/data');
+  const out: Record<string, unknown> = {};
+  for (const file of readdirSync(dataDir).filter((f) => f.endsWith('.json')).sort()) {
+    const raw = JSON.parse(readFileSync(join(dataDir, file), 'utf8')) as unknown;
+    out[loadLevelFromJson(raw).id] = raw;
+  }
+  return out;
+}
+
 if (isMain) {
   const out = join(import.meta.dirname, '../worker/level-caps.json');
   writeFileSync(out, `${JSON.stringify(computeCaps(), null, 2)}\n`);
+  const lv = join(import.meta.dirname, '../worker/levels.json');
+  writeFileSync(lv, `${JSON.stringify(computeLevelsBundle(), null, 2)}\n`);
   console.log(`wrote ${out}`);
+  console.log(`wrote ${lv}`);
 }
