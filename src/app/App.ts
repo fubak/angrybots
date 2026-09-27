@@ -22,6 +22,7 @@ import { achievementBadge } from '../ui/Achievements';
 import { firstUnseenBotInQueue } from '../bots/tutorialTips';
 import { botStickerCanvas } from '../render/botArt';
 import { RotatePrompt } from '../ui/RotatePrompt';
+import { shotReaction } from '../render/celestialMood';
 import { Splash } from '../ui/Splash';
 import { type View } from '../camera/fitRect';
 import type { BotKind } from '../levels/schema';
@@ -52,6 +53,9 @@ export class App {
   private levelId: string | null = null;
   private daily: { date: string; levelId: string } | null = null;
   private introElapsed = 0;
+  /** Score/pigs snapshot at launch — the shot's result is judged against it. */
+  private shotStartScore = 0;
+  private shotStartPigs = 0;
   private currentView: View = { cx: 0, cy: 5, h: 12 };
   private paused = false;
   private backgrounded = false;
@@ -429,6 +433,31 @@ export class App {
     if (prev === 'intro') this.introElapsed += dt;
     this.session.update(dt);
     const state = this.session.getState();
+
+    // Shot bookkeeping for the sun/moon: snapshot score + pigs at launch,
+    // then judge the shot when it resolves so they can react.
+    if (state === 'flight' && prev !== 'flight') {
+      this.shotStartScore = this.session.getScore();
+      this.shotStartPigs = this.session.getSim()?.pigsAlive() ?? 0;
+    }
+    if (
+      (prev === 'flight' || prev === 'resolve') &&
+      (state === 'nextBot' || state === 'bonus' || state === 'won' || state === 'lost')
+    ) {
+      const simNow = this.session.getSim();
+      this.renderer.celestialReact(
+        shotReaction({
+          kills: this.shotStartPigs - (simNow?.pigsAlive() ?? this.shotStartPigs),
+          shotScore: this.session.getScore() - this.shotStartScore,
+          won: state === 'won' || state === 'bonus',
+        })
+      );
+    }
+    // While a shot is live the eyes track the flying bot until it connects,
+    // then stay on the impact point while the castle crumbles.
+    this.renderer.setImpactFocus(
+      state === 'flight' || state === 'resolve' ? this.fx.impactCenter : null
+    );
 
     if (state === 'nextBot') {
       this.nextBotT = (prev === 'nextBot' ? (this.nextBotT ?? 0) : 0) + dt;

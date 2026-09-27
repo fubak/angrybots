@@ -129,10 +129,18 @@ export class Scenery {
   private readonly shafts: THREE.Mesh[] = [];
   private readonly pupils: THREE.Object3D[] = [];
   private readonly lids: THREE.Object3D[] = [];
+  /** Upturned "happy" arcs swapped in for the pills during a great reaction. */
+  private readonly happyEyes: THREE.Object3D[] = [];
   private readonly face = new THREE.Group();
   private readonly gaze = new THREE.Vector2();
   private readonly gazeTarget = new THREE.Vector2();
+  private readonly tmpWorld = new THREE.Vector3();
   private blinkAt = 3;
+  private reactKind: 'great' | 'good' | 'miss' | null = null;
+  private reactT = 0;
+  private celestialScale = 1;
+  /** Layer-local home the disc returns to after reactions; clamped per view. */
+  private celestialHome = { x: -6, y: 7.2 };
   private parallaxRef: { cx: number; cy: number; h: number } | null = null;
 
   constructor(scene: THREE.Scene) {
@@ -266,11 +274,29 @@ export class Scenery {
 
   /**
    * Anchor parallax to a known view instead of the next rendered frame —
-   * level load calls this with the intro start view so the reference can't
-   * race the camera snap (a mid-transition capture offsets every layer).
+   * level load calls this with the aim view so the reference can't race the
+   * camera snap (a mid-transition capture offsets every layer). Also clamps
+   * the celestial into the view (the layer sits at the anchor when the camera
+   * is there) so the disc + eyes are fully on screen at every aspect.
    */
-  setParallaxAnchor(anchor: { cx: number; cy: number; h: number }): void {
+  setParallaxAnchor(anchor: { cx: number; cy: number; h: number }, aspect = 16 / 9): void {
     this.parallaxRef = { cx: anchor.cx, cy: anchor.cy, h: anchor.h };
+    const halfW = (anchor.h * aspect) / 2;
+    const halfH = anchor.h / 2;
+    const m = 2.1 * this.celestialScale + 0.5; // disc radius + breathing room
+    const x = THREE.MathUtils.clamp(
+      this.celestialHome.x,
+      anchor.cx - halfW + m,
+      anchor.cx + halfW - m
+    );
+    const y = THREE.MathUtils.clamp(
+      this.celestialHome.y,
+      anchor.cy - halfH + m,
+      anchor.cy + halfH - m
+    );
+    this.celestialHome = { x, y };
+    this.celestial.position.x = x;
+    this.celestial.position.y = y;
   }
 
   /** Layers offset by (cam - ref) * factor and scaled by viewH relative to ref. */
@@ -319,9 +345,13 @@ export class Scenery {
     const treeTint = chapter === 'citadel' ? '#9aab9a' : chapter === 'workshop' ? '#e7d2a4' : '#ffffff';
     for (const mat of this.treeMats) mat.color.set(treeTint);
     const moon = chapter === 'citadel';
-    if (moon) this.celestial.position.set(-5, 8.6, DEPTH.hillsFar - 4);
-    else this.celestial.position.set(-6, chapter === 'workshop' ? 6.4 : 7.2, DEPTH.hillsFar - 4);
+    const homeX = moon ? -5 : -6;
+    const homeY = moon ? 8.6 : chapter === 'workshop' ? 6.4 : 7.2;
+    this.celestial.position.set(homeX, homeY, DEPTH.hillsFar - 4);
+    this.celestialHome = { x: homeX, y: homeY };
     const size = moon ? 0.62 : 1;
+    this.celestialScale = size;
+    this.endReaction();
     this.sun.scale.setScalar(size);
     this.haloMat.color.set(moon ? '#b9c8ff' : '#ffe7a8');
     this.haloMat.opacity = moon ? 0.12 : 0.16;
@@ -339,28 +369,97 @@ export class Scenery {
 
   /** Point the sun/moon eyes at a world-space spot; called every frame with the action focus. */
   lookAt(x: number, y: number, dt: number): void {
-    const dx = x - this.celestial.position.x;
-    const dy = y - this.celestial.position.y;
+    // The celestial rides a parallax layer, so its local position isn't world
+    // space — take the real world position or the gaze points wrong.
+    this.celestial.updateWorldMatrix(true, false);
+    const wp = this.celestial.getWorldPosition(this.tmpWorld);
+    const dx = x - wp.x;
+    const dy = y - wp.y;
     const dist = Math.hypot(dx, dy) || 1;
-    const reach = Math.min(1, dist / 14);
+    // Gaze saturates at ~10 world units: anything farther is "far away".
+    const reach = Math.min(1, dist / 10);
     this.gazeTarget.set((dx / dist) * reach, (dy / dist) * reach);
-    const k = 1 - Math.exp(-dt * 6);
+    const k = 1 - Math.exp(-dt * 8);
     this.gaze.lerp(this.gazeTarget, k);
     // Same look-around math as the bot stickers: the pill pair slides as one
     // group ∝ gaze, spacing compresses a little, the far eye narrows mildly —
     // the eyes never merge or slide off the disc.
     const poses = yawEyeTransforms(CELESTIAL_EYES, this.gaze.x * 0.42);
+    const eyeY = THREE.MathUtils.clamp(this.gaze.y * 0.45, -0.35, 0.35);
     for (let i = 0; i < this.pupils.length; i++) {
       const p = this.pupils[i]!;
       const pose = poses[i];
       p.position.x = (p.userData.homeX as number) + (pose?.dx ?? 0);
-      p.position.y = (p.userData.homeY as number) + this.gaze.y * 0.2;
+      p.position.y = (p.userData.homeY as number) + eyeY;
       p.scale.x = Math.max(0.05, pose?.sx ?? 1);
     }
     this.blinkAt -= dt;
     if (this.blinkAt < -0.14) this.blinkAt = 2.5 + Math.random() * 3;
-    const closed = this.blinkAt < 0 ? 1 - Math.abs(this.blinkAt + 0.07) / 0.07 : 0;
+    // Reactions own the eye scale while they run — no blink fighting them.
+    const closed =
+      !this.reactKind && this.blinkAt < 0 ? 1 - Math.abs(this.blinkAt + 0.07) / 0.07 : 0;
     for (const lid of this.lids) lid.scale.y = Math.max(0.05, 1 - closed);
+    this.applyReaction(dt);
+  }
+
+  /** Play a one-shot reaction to how a shot landed; ~1.2–1.5 s then normal gaze resumes. */
+  react(kind: 'great' | 'good' | 'miss'): void {
+    this.endReaction();
+    this.reactKind = kind;
+    this.reactT = 0;
+  }
+
+  private endReaction(): void {
+    if (!this.reactKind) return;
+    this.reactKind = null;
+    this.reactT = 0;
+    for (const p of this.pupils) {
+      p.visible = true;
+      p.scale.y = 1;
+      p.position.y = p.userData.homeY as number;
+    }
+    for (const a of this.happyEyes) a.visible = false;
+    this.celestial.scale.setScalar(1);
+    this.celestial.rotation.z = 0;
+    this.celestial.position.y = this.celestialHome.y;
+    this.face.position.x = 0;
+  }
+
+  private applyReaction(dt: number): void {
+    if (!this.reactKind) return;
+    this.reactT += dt;
+    const dur = this.reactKind === 'great' ? 1.45 : 1.3;
+    const p = Math.min(1, this.reactT / dur);
+    const e = Math.sin(p * Math.PI); // 0→1→0 envelope
+    if (this.reactKind === 'great') {
+      // Swap pills for happy upturned arcs — exactly one eye mesh visible per
+      // side at any time so nothing ghosts. Disc bounces twice with a wiggle.
+      const arcs = p < 0.92;
+      for (let i = 0; i < this.pupils.length; i++) {
+        const pill = this.pupils[i]!;
+        pill.visible = !arcs;
+        const arc = this.happyEyes[i]!;
+        arc.visible = arcs;
+        arc.position.x = pill.position.x;
+        arc.position.y = pill.position.y + 0.06;
+        arc.rotation.z = pill.rotation.z;
+      }
+      const s = 1 + 0.12 * Math.abs(Math.sin(p * Math.PI * 2));
+      this.celestial.scale.setScalar(s);
+      this.celestial.rotation.z = 0.07 * Math.sin(p * Math.PI * 4);
+    } else if (this.reactKind === 'good') {
+      this.celestial.scale.setScalar(1 + 0.07 * e);
+      for (const p_ of this.pupils) p_.scale.y = Math.max(0.05, 1 - 0.65 * e);
+    } else {
+      // miss: eyes drop, half-lidded, a slow head shake, the disc sinks
+      for (const p_ of this.pupils) {
+        p_.position.y = (p_.userData.homeY as number) - 0.22 * e;
+        p_.scale.y = Math.max(0.05, 1 - 0.5 * e);
+      }
+      this.face.position.x = 0.15 * Math.sin(p * Math.PI * 3) * (1 - p * 0.5);
+      this.celestial.position.y = this.celestialHome.y - 0.15 * e;
+    }
+    if (this.reactT >= dur) this.endReaction();
   }
 
   /** One flat capsule shape per eye — a single mesh, so nothing can smear. */
@@ -375,6 +474,19 @@ export class Scenery {
     return new THREE.ShapeGeometry(shape, 16);
   }
 
+  /** Upturned ∩ arc — the happy-eye swap during a "great" reaction. */
+  private static happyArc(): THREE.ShapeGeometry {
+    const w = SUN_EYE_W * 1.5;
+    const h = SUN_EYE_H * 0.55;
+    const t = 0.16;
+    const s = new THREE.Shape();
+    s.moveTo(-w / 2, 0);
+    s.quadraticCurveTo(0, h, w / 2, 0);
+    s.quadraticCurveTo(0, h - 2.4 * t, -w / 2, 0);
+    s.closePath();
+    return new THREE.ShapeGeometry(s, 12);
+  }
+
   private addEyes(): void {
     const face = this.face;
     // Above the light shafts (they sit at z=5) so a translucent ray band can
@@ -385,6 +497,7 @@ export class Scenery {
     // (e.g. the white cloud), with a slight inward tilt.
     const pill = new THREE.MeshBasicMaterial({ color: '#1d2433', fog: false });
     const geo = Scenery.eyeCapsule(SUN_EYE_W, SUN_EYE_H);
+    const arcGeo = Scenery.happyArc();
     for (const side of [-1, 1]) {
       const eye = new THREE.Mesh(geo, pill);
       eye.position.set(side * SUN_EYE_X, SUN_EYE_Y, 0);
@@ -394,6 +507,12 @@ export class Scenery {
       face.add(eye);
       this.pupils.push(eye);
       this.lids.push(eye);
+      const happy = new THREE.Mesh(arcGeo, pill);
+      happy.position.set(side * SUN_EYE_X, SUN_EYE_Y + 0.06, 0.01);
+      happy.rotation.z = side * SUN_EYE_TILT;
+      happy.visible = false;
+      face.add(happy);
+      this.happyEyes.push(happy);
     }
   }
 

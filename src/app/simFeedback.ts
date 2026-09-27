@@ -74,6 +74,9 @@ export class SimFeedback {
     this.shotDestroyed = 0;
     this.shotTnt = 0;
     this.destroyedTimes.length = 0;
+    // Per-shot: a stale strike from the previous shot must not steer the
+    // camera nudge or the celestial gaze during the next flight.
+    this.impactCenter = null;
   }
 
   /**

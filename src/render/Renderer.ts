@@ -9,6 +9,7 @@ import { Juice } from './Juice';
 import { BlobShadows, type ShadowCaster } from './BlobShadows';
 import { disposeObject } from './dispose';
 import { popScale } from './slingAnim';
+import type { ShotReaction } from './celestialMood';
 import { blockMaterial, decorateBlock, makeBotCharacter, makePigCharacter, tickBot, tickFace } from './characters';
 import { ILL } from './illustrations';
 import { TEX, damagedBlockTexture, type DamageableMaterial, type DamageStage } from './textures';
@@ -59,6 +60,8 @@ export class Renderer {
   private readonly scenery: Scenery;
   /** World point the sun/moon eyes follow: flying bot or pulled pouch, else the targets. */
   private readonly focus = new THREE.Vector2(12, 2);
+  /** Once a shot connects, the eyes keep watching the castle crumble there. */
+  private impactFocus: { x: number; y: number } | null = null;
   private readonly blobShadows: BlobShadows;
   private readonly terrain = new THREE.Group();
   private readonly casters: ShadowCaster[] = [];
@@ -103,8 +106,22 @@ export class Renderer {
   }
 
   /** Deterministic parallax reference — pass the view the camera will start at. */
-  anchorParallax(view: View): void {
-    this.scenery.setParallaxAnchor(view);
+  anchorParallax(view: View, aspect: number): void {
+    this.scenery.setParallaxAnchor(view, aspect);
+  }
+
+  /**
+   * Celestial focus override: App sets this to the shot's impact center while
+   * a shot is in flight/resolve (null otherwise) so the sun/moon watches the
+   * castle crumble instead of the sky.
+   */
+  setImpactFocus(p: { x: number; y: number } | null): void {
+    this.impactFocus = p;
+  }
+
+  /** One-shot face reaction to a finished shot; reduced motion stays static. */
+  celestialReact(kind: ShotReaction | null): void {
+    if (kind && !this.reducedMotion) this.scenery.react(kind);
   }
 
   setTerrain(pieces: LevelV2['terrain']): void {
@@ -230,13 +247,18 @@ export class Renderer {
     this.blobShadows.update([]);
   }
 
-  /** Position the targets should watch: the flying bot, else the loaded sling bot. */
+  /**
+   * What the sun/moon watch: the flying bot until it connects, then the
+   * impact point while the castle crumbles, then the loaded sling bot, and
+   * finally the pig centroid (handled by the caller's fallback).
+   */
   private watchTarget(level: Level | null): { x: number; y: number } | null {
     const flying = level?.shotBots().find((b) => b.alive && b.body);
-    if (flying?.body) {
+    if (flying?.body && !this.impactFocus) {
       const p = flying.body.getPosition();
       return { x: p.x, y: p.y };
     }
+    if (this.impactFocus) return this.impactFocus;
     return this.slingView.loadedPos();
   }
 
