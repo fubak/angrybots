@@ -79,6 +79,7 @@ export class App {
   private runUnlocks: string[] = [];
   private pendingBotCard: BotKind | null = null;
   private seenTips = new Set<string>();
+  private runSeq = 0;
   private readonly unlockAll =
     UNLOCK_ALL_LEVELS ||
     (import.meta.env.DEV && new URLSearchParams(location.search).get('unlockAll') === '1');
@@ -308,17 +309,27 @@ export class App {
     if (!uid) return;
     const flag = `ab-synced-${uid}`;
     if (sessionStorage.getItem(flag)) return;
-    sessionStorage.setItem(flag, '1');
     const entries: { levelId: string; score: number; stars: number }[] = [];
     for (const [levelId, p] of Object.entries(this.save.levels)) {
-      if (p.bestScore > 0) {
+      if (p.cleared && p.bestScore > 0) {
         entries.push({ levelId, score: p.bestScore, stars: p.stars });
       }
     }
-    for (const [date, score] of Object.entries(this.save.daily.bestByDate)) {
-      if (score > 0) entries.push({ levelId: `daily:${date}`, score, stars: 0 });
+    // Only the win we can prove syncs — bestByDate also holds loss scores.
+    const winDate = this.save.daily.lastWinDate;
+    if (winDate) {
+      const score = this.save.daily.bestByDate[winDate] ?? 0;
+      if (score > 0) {
+        entries.push({ levelId: `daily:${winDate}`, score, stars: 0 });
+      }
     }
-    if (entries.length) void this.online.syncBests(entries);
+    if (!entries.length) {
+      sessionStorage.setItem(flag, '1');
+      return;
+    }
+    void this.online.syncBests(entries).then((ok) => {
+      if (ok) sessionStorage.setItem(flag, '1');
+    });
   }
 
   private levelRefs(): readonly { id: string; chapter: string }[] {
@@ -364,6 +375,7 @@ export class App {
     const def = levelById(id);
     if (!def) return;
     this.leavePlay();
+    this.runSeq += 1;
     this.daily = dailyDate ? { date: dailyDate, levelId: id } : null;
     this.levelId = id;
     this.phase = 'play';
@@ -582,6 +594,7 @@ export class App {
           ? `daily:${this.daily.date}`
           : this.levelId;
         if (pending.won && this.online.user && scoreLevelId) {
+          const seq = ++this.runSeq;
           void this.online
             .submitScore(scoreLevelId, pending.score, pending.stars)
             .then((r) => {
@@ -590,6 +603,7 @@ export class App {
                 score: pending.score,
                 rank: r?.rank ?? null,
               });
+              if (seq !== this.runSeq) return; // a newer run superseded this submit
               this.screens.results.setOnlineStatus(
                 r
                   ? r.rank
