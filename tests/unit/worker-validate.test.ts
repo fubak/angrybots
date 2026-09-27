@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  fnv1a,
   isLevelId,
   isScore,
   isStars,
   safeReturnPath,
   withinCap,
+  type LevelCaps,
 } from '../../worker/validate';
+import { fnv1a as gameFnv1a } from '../../src/game/daily';
 
 describe('worker/validate', () => {
   it('isLevelId accepts campaign ids and daily ids', () => {
@@ -53,12 +56,33 @@ describe('worker/validate', () => {
     expect(safeReturnPath('')).toBe('/');
   });
 
-  it('withinCap enforces per-level caps and _max for daily', () => {
-    const caps = { 'first-flight': 52262, _max: 178299 };
-    expect(withinCap('first-flight', 52262, caps)).toBe(true);
-    expect(withinCap('first-flight', 52263, caps)).toBe(false);
+  it('worker fnv1a matches the game daily fnv1a', () => {
+    for (const s of ['2026-09-27', '2024-02-29', 'x', '']) {
+      expect(fnv1a(s)).toBe(gameFnv1a(s));
+    }
+  });
+
+  it('withinCap enforces per-level caps and daily picks that date\u2019s level', () => {
+    const caps: LevelCaps = {
+      levels: { a: 100, b: 200 },
+      dailyOrder: ['a', 'b'],
+    };
+    expect(withinCap('a', 100, caps)).toBe(true);
+    expect(withinCap('a', 101, caps)).toBe(false);
     expect(withinCap('no-such-level', 1, caps)).toBe(false);
-    expect(withinCap('daily:2026-09-27', 178299, caps)).toBe(true);
-    expect(withinCap('daily:2026-09-27', 178300, caps)).toBe(false);
+    // Find dates that pick each order index and verify each cap applies.
+    const dateFor = (idx: number): string => {
+      for (let m = 0; m < 1000; m++) {
+        const d = `2026-01-${String(m + 1).padStart(2, '0')}`;
+        if (fnv1a(d) % 2 === idx) return d;
+      }
+      throw new Error('no date found');
+    };
+    const dayA = dateFor(0);
+    const dayB = dateFor(1);
+    expect(withinCap(`daily:${dayA}`, 100, caps)).toBe(true);
+    expect(withinCap(`daily:${dayA}`, 101, caps)).toBe(false);
+    expect(withinCap(`daily:${dayB}`, 200, caps)).toBe(true);
+    expect(withinCap(`daily:${dayB}`, 201, caps)).toBe(false);
   });
 });

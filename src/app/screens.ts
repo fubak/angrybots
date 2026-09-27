@@ -144,9 +144,9 @@ export class AppScreens {
       onSignOut: () =>
         void deps.online.logout().then(() => this.leaderboard.refresh()),
       onDeleteAccount: () =>
-        void deps.online.deleteAccount().then(() => {
+        void deps.online.deleteAccount().then((ok) => {
           this.leaderboard.refresh();
-          this.toast('Account deleted');
+          this.toast(ok ? 'Account deleted' : "Couldn't delete account");
         }),
     });
     this.botIntro = new BotIntro(uiRoot);

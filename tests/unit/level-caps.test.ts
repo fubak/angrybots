@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { computeCaps } from '../../tools/level-caps';
+import { computeCaps, type LevelCaps } from '../../tools/level-caps';
 import { loadLevelFromJson } from '../../src/levels/load';
+import { allLevels } from '../../src/levels/registry';
 
 const committed = JSON.parse(
   readFileSync(join(__dirname, '../../worker/level-caps.json'), 'utf8')
-) as Record<string, number>;
+) as LevelCaps;
 
 describe('level score caps', () => {
   it('committed worker/level-caps.json matches regenerated caps', () => {
@@ -21,10 +22,13 @@ describe('level score caps', () => {
         JSON.parse(readFileSync(join(dataDir, file), 'utf8')) as unknown
       );
       expect(
-        caps[level.id]!,
-        `${level.id}: cap ${caps[level.id]} < 3★ ${level.stars[2]}`
+        caps.levels[level.id]!,
+        `${level.id}: cap ${caps.levels[level.id]} < 3★ ${level.stars[2]}`
       ).toBeGreaterThanOrEqual(level.stars[2]);
     }
-    expect(caps._max).toBe(Math.max(...Object.values(caps)));
+  });
+
+  it('dailyOrder matches allLevels() order', () => {
+    expect(computeCaps().dailyOrder).toEqual(allLevels().map((l) => l.id));
   });
 });

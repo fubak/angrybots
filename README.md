@@ -42,11 +42,11 @@ npx wrangler secret put X_CLIENT_SECRET
 npx wrangler secret put SESSION_SECRET   # e.g. openssl rand -base64 32
 ```
 
-**Abuse controls:** scores are rejected above a per-level theoretical maximum (`worker/level-caps.json`, regenerate with `npm run caps:gen` whenever levels or `SCORE`/`TUNING` change — the unit tests fail if it is stale), and the Worker uses Cloudflare rate-limiting bindings (`RL_SCORES`: 30 writes/min per user, `RL_LOGIN`: 10/min per IP). Players can remove themselves with **Delete account** in the leaderboard (`POST /api/auth/delete`); the public privacy note is `public/privacy.html`.
+**Abuse controls:** scores are rejected above a per-level theoretical maximum (`worker/level-caps.json` — `daily:<date>` submissions are capped by that date's actual daily level via the same FNV-1a pick the client uses; regenerate with `npm run caps:gen` whenever levels or `SCORE`/`TUNING` change — the unit tests fail if it is stale), and the Worker uses Cloudflare rate-limiting bindings (`RL_SCORES`: 30 writes/min per user, `RL_LOGIN`: 10/min per IP). Players can remove themselves with **Delete account** in the leaderboard (`POST /api/auth/delete`); the public privacy note is `public/privacy.html`.
 
 **Database:** `npm run db:migrate` applies `migrations/` to the remote D1 once (`--local` variant: `npm run db:migrate:local`).
 
-**Local dev:** copy `.dev.vars.example` to `.dev.vars` and fill in the three secrets, then run `npm run worker:dev` (API on :8787) alongside `npm run dev` (Vite proxies `/api` to it).
+**Local dev:** copy `.dev.vars.example` to `.dev.vars` and fill in the three secrets (leave `PUBLIC_ORIGIN=http://127.0.0.1:5173` so the OAuth redirect points back at the Vite server), then run `npm run worker:dev` (API on :8787) alongside `npm run dev` (Vite proxies `/api` to it).
 
 ## Analytics
 

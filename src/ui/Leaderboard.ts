@@ -231,10 +231,11 @@ export class LeaderboardScreen {
     }
     if (this.rankEl) this.rankEl.textContent = '';
     empty('Loading…');
+    const scope = this.scope;
     const data: LeaderboardData | null = await this.deps.client.leaderboard(
-      this.scope
+      scope
     );
-    if (!this.visible) return;
+    if (scope !== this.scope || !this.visible) return;
     if (!data) {
       empty("Couldn't load leaderboard");
       return;
