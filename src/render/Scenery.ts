@@ -314,6 +314,12 @@ export class Scenery {
     }
   }
 
+  /** Dev/evidence hook: teleport a drifting cloud (layer-local x). */
+  setCloudX(i: number, x: number): void {
+    const c = this.clouds[i];
+    if (c) c.position.x = x;
+  }
+
   /** Slow cloud drift, wrapping across the sky. */
   update(dt: number): void {
     for (const c of this.clouds) {

@@ -124,6 +124,28 @@ export class Renderer {
     if (kind && !this.reducedMotion) this.scenery.react(kind);
   }
 
+  /** Dev/evidence hook: teleport a drifting cloud to a layer-local x. */
+  setCloudX(i: number, x: number): void {
+    this.scenery.setCloudX(i, x);
+  }
+
+  /** Celestial's layer-local position — used by evidence captures. */
+  celestialHome(): { x: number; y: number } {
+    return { x: this.scenery.celestial.position.x, y: this.scenery.celestial.position.y };
+  }
+
+  /** CSS-px position of the celestial disc center — used by evidence captures. */
+  celestialScreen(): { x: number; y: number } {
+    const v = new THREE.Vector3();
+    this.scenery.celestial.getWorldPosition(v);
+    v.project(this.camera);
+    const r = this.domElement.getBoundingClientRect();
+    return {
+      x: r.left + ((v.x + 1) / 2) * r.width,
+      y: r.top + ((1 - v.y) / 2) * r.height,
+    };
+  }
+
   setTerrain(pieces: LevelV2['terrain']): void {
     this.blobShadows.setTerrain(pieces);
     this.scenery.resetParallax();

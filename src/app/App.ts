@@ -248,6 +248,7 @@ export class App {
         this.startLevel(id);
         this.session.skipIntro();
       },
+      enterLevelIntro: (id) => this.startLevel(id),
     });
     if (window.__debug.freezeTime) {
       const setFreeze = window.__debug.freezeTime;
