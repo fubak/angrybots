@@ -7,10 +7,10 @@ import {
 } from './session';
 import { isLevelId, isScore, isStars, safeReturnPath, withinCap, fnv1a } from './validate';
 import caps from './level-caps.json';
-import levelsData from './levels.json';
+import { levelsById } from './levels.gen';
 import { isReplay } from '../src/game/replay';
 import { replayRun } from '../src/game/replayRun';
-import { loadLevelFromJson } from '../src/levels/load';
+import type { LevelV2 } from '../src/levels/schema';
 
 export interface Env {
   DB: D1Database;
@@ -242,14 +242,14 @@ function upsertStmt(db: D1Database, uid: string, row: ScoreRow): D1PreparedState
     .bind(uid, row.levelId, row.score, row.stars, Math.floor(Date.now() / 1000));
 }
 
-/** levelId (or daily:<date>) → raw level def, via the generated bundle. */
-function resolveLevelDef(levelId: string): unknown | null {
+/** levelId (or daily:<date>) → level def, via the generated module. */
+function resolveLevelDef(levelId: string): LevelV2 | null {
   let id = levelId;
   if (levelId.startsWith('daily:')) {
     const date = levelId.slice(6);
     id = caps.dailyOrder[fnv1a(date) % caps.dailyOrder.length]!;
   }
-  return (levelsData as Record<string, unknown>)[id] ?? null;
+  return levelsById[id] ?? null;
 }
 
 async function handleSubmitScore(req: Request, env: Env): Promise<Response> {
@@ -273,10 +273,9 @@ async function handleSubmitScore(req: Request, env: Env): Promise<Response> {
   ) {
     return json({ error: 'invalid' }, 400);
   }
-  const raw = resolveLevelDef(body.levelId);
-  if (!raw) return json({ error: 'invalid' }, 400);
+  const def = resolveLevelDef(body.levelId);
+  if (!def) return json({ error: 'invalid' }, 400);
   // Server-authoritative: re-simulate the run, ignore the client numbers.
-  const def = loadLevelFromJson(raw);
   const sim = replayRun(def, body.replay);
   if (sim.state !== 'won' && sim.state !== 'bonus') {
     return json({ error: 'unverified' }, 400);
