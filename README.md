@@ -20,7 +20,7 @@ Thirty levels across three chapters, gated by progression: clearing a level unlo
 
 ## Deploy
 
-- **angrybots.lol:** manual, from an up-to-date `main`: `npm run build && npx wrangler deploy` (Cloudflare static-assets Worker `angrybots`, config in `wrangler.jsonc`, custom domains `angrybots.lol` + `www.angrybots.lol`). D1 schema changes must be applied first with `npm run db:migrate` (remote) — run it at least once before the first deploy that ships `worker/`.
+- **angrybots.lol:** `.github/workflows/deploy.yml` runs on every push to `main`: build → `wrangler d1 migrations apply --remote` → `wrangler deploy` (Cloudflare static-assets Worker `angrybots`, config in `wrangler.jsonc`, custom domains `angrybots.lol` + `www.angrybots.lol`). It needs the repo secret `CLOUDFLARE_API_TOKEN` (permissions: Workers Scripts:Edit, D1:Edit, Workers Routes:Edit on the `angrybots.lol` zone — without the zone permission the custom-domain step fails) and, optionally, the repo variable `GA_MEASUREMENT_ID`. Manual fallback: `npm run build && npm run db:migrate && npx wrangler deploy`.
 - **GitHub Pages mirror:** deploys automatically from `main` (`GITHUB_PAGES=1` build, base `/angrybots/`).
 
 ## Accounts & leaderboard
@@ -41,6 +41,8 @@ npx wrangler secret put X_CLIENT_ID
 npx wrangler secret put X_CLIENT_SECRET
 npx wrangler secret put SESSION_SECRET   # e.g. openssl rand -base64 32
 ```
+
+**Abuse controls:** scores are rejected above a per-level theoretical maximum (`worker/level-caps.json`, regenerate with `npm run caps:gen` whenever levels or `SCORE`/`TUNING` change — the unit tests fail if it is stale), and the Worker uses Cloudflare rate-limiting bindings (`RL_SCORES`: 30 writes/min per user, `RL_LOGIN`: 10/min per IP). Players can remove themselves with **Delete account** in the leaderboard (`POST /api/auth/delete`); the public privacy note is `public/privacy.html`.
 
 **Database:** `npm run db:migrate` applies `migrations/` to the remote D1 once (`--local` variant: `npm run db:migrate:local`).
 
