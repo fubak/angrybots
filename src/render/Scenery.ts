@@ -468,7 +468,10 @@ export class Scenery {
         fog: false,
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 0.48), mat);
-      mesh.position.set(x, y, DEPTH.hillsFar + 8);
+      // Behind the whole celestial group (disc at hillsFar-4, halo, shafts,
+      // face) so a drifting cloud can never wash over the sun/moon's eyes —
+      // still in front of the sky plane and the far hills read over them.
+      mesh.position.set(x, y, DEPTH.hillsFar - 6);
       this.layer(PARALLAX.clouds).add(mesh);
       this.clouds.push(mesh);
       this.cloudMats.push(mat);
