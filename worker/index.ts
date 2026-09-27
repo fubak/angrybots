@@ -16,6 +16,8 @@ export interface Env {
   SESSION_SECRET: string;
   RL_SCORES?: RateLimit;
   RL_LOGIN?: RateLimit;
+  /** Canonical public origin for OAuth redirect_uri + post-login redirect. */
+  PUBLIC_ORIGIN?: string;
 }
 
 const SESSION_COOKIE = 'ab_session';
@@ -108,6 +110,7 @@ async function handleLogin(req: Request, env: Env): Promise<Response> {
     return json({ error: 'rate_limited' }, 429);
   }
   const ret = safeReturnPath(url.searchParams.get('return'));
+  const origin = env.PUBLIC_ORIGIN ?? url.origin;
   const blob = await signSession<OAuthPayload>(
     { state, verifier, ret, exp: Math.floor(Date.now() / 1000) + OAUTH_TTL },
     env.SESSION_SECRET
@@ -117,7 +120,7 @@ async function handleLogin(req: Request, env: Env): Promise<Response> {
   authorize.search = new URLSearchParams({
     response_type: 'code',
     client_id: env.X_CLIENT_ID,
-    redirect_uri: `${url.origin}/api/auth/x/callback`,
+    redirect_uri: `${origin}/api/auth/x/callback`,
     scope: 'users.read tweet.read',
     state,
     code_challenge: challenge,
@@ -151,10 +154,11 @@ async function handleCallback(req: Request, env: Env): Promise<Response> {
     const pending = await verifySession<OAuthPayload>(blob, env.SESSION_SECRET);
     if (!pending || pending.state !== state) return fail('state mismatch');
 
+    const origin = env.PUBLIC_ORIGIN ?? url.origin;
     const body = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      redirect_uri: `${url.origin}/api/auth/x/callback`,
+      redirect_uri: `${origin}/api/auth/x/callback`,
       code_verifier: pending.verifier,
       client_id: env.X_CLIENT_ID,
     });
@@ -202,7 +206,7 @@ async function handleCallback(req: Request, env: Env): Promise<Response> {
     return new Response(null, {
       status: 302,
       headers: [
-        ['location', `${pending.ret}${sep}auth=ok`],
+        ['location', `${origin}${pending.ret}${sep}auth=ok`],
         [
           'set-cookie',
           cookie(SESSION_COOKIE, session, {
@@ -297,6 +301,17 @@ async function handleSyncScores(req: Request, env: Env): Promise<Response> {
   return json({ ok: true, count: rows.length });
 }
 
+/** Competition ranking ("1224"): same score → same rank. */
+function ranked<T extends { score: number }>(rows: T[]): (T & { rank: number })[] {
+  let rank = 0;
+  let prevScore = Number.NaN;
+  return rows.map((r, i) => {
+    rank = r.score === prevScore ? rank : i + 1;
+    prevScore = r.score;
+    return { ...r, rank };
+  });
+}
+
 type LbRow = {
   id: string;
   handle: string;
@@ -329,7 +344,7 @@ async function handleLeaderboard(req: Request, env: Env): Promise<Response> {
         .bind(id, limit)
         .all<LbRow>()
     ).results;
-    const entries = rows.map((r, i) => ({ rank: i + 1, ...r }));
+    const entries = ranked(rows);
     let me: { rank: number; score: number } | null = null;
     if (uid) {
       const mine = await env.DB.prepare(
@@ -372,7 +387,7 @@ async function handleLeaderboard(req: Request, env: Env): Promise<Response> {
       .bind(limit)
       .all<LbRow>()
   ).results;
-  const entries = rows.map((r, i) => ({ rank: i + 1, ...r }));
+  const entries = ranked(rows);
   let me: { rank: number; score: number } | null = null;
   if (uid) {
     const mine = await env.DB.prepare(
