@@ -468,65 +468,52 @@ body,
   animation: ui-pop 0.3s 0.62s both;
 }
 
-/* Sticker lineup on the title screen — all 12 official bots, playable in front. */
-.title-lineup {
+/* Title-screen playground: the 12 stickers roam the ground strip. The stage
+   ignores pointers so it can never cover buttons; each bot is tappable. */
+.title-stage {
   position: fixed;
-  left: 50%;
-  bottom: max(3.5%, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  left: 0;
+  right: 0;
+  bottom: max(8px, env(safe-area-inset-bottom));
   z-index: 5;
   pointer-events: none;
-  animation: ui-pop 0.4s 0.7s both;
+  overflow: visible;
+  /* Hidden until layout() has sized and placed every bot — otherwise the
+     unsized stickers render at intrinsic size over the title card. */
+  display: none;
 }
 
-.lineup-row {
-  display: flex;
-  align-items: flex-end;
+/* No entrance animation here — the playground writes transform every frame. */
+.pg-bot {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
-.lineup-row.back {
-  gap: 6px;
-  margin-bottom: -16px;
-}
-
-.lineup-row.front {
-  gap: 14px;
-}
-
-.lineup-bot {
-  position: relative;
-  height: 64px;
-  animation: lineup-bob 2.6s ease-in-out calc(var(--i) * 0.17s) infinite;
-}
-
-.lineup-bot > img.body {
+.pg-bot > img.body {
   height: 100%;
   display: block;
-  transform-origin: 50% 90%;
+  transform-origin: 50% 100%;
 }
 
-.lineup-bot > img.eye {
+.pg-bot > img.eye {
   position: absolute;
   height: auto;
   transform: translate(-50%, -50%);
   transform-origin: 50% 50%;
 }
 
-.lineup-row.back .lineup-bot {
-  height: 44px;
-}
-
-@keyframes lineup-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
+.pg-z {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  font-weight: 800;
+  font-size: 18px;
+  color: #fff;
+  text-shadow: 1px 1px 0 #23180f;
+  pointer-events: none;
 }
 
 .hud-banner {
@@ -787,13 +774,8 @@ body,
   .title-secondary { gap: 8px; }
   .title-secondary .ui-btn { min-width: 40px; min-height: 40px; }
 
-  /* Park the lineup in the right margin so it stays clear of the title card
-     and its buttons (card is centered; lineup sits at z-5, under the card). */
-  .title-lineup { left: auto; right: 6px; bottom: 5px; transform: none; }
-  .lineup-bot { height: 30px; }
-  .lineup-row.back .lineup-bot { height: 20px; }
-  .lineup-row.back { margin-bottom: -6px; gap: 3px; }
-  .lineup-row.front { gap: 5px; }
+  /* The playground handles short viewports itself: bots shrink and split
+     into the gutters beside the card (see TitleScreen.layout). */
 
   .map-screen { padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); }
   .map-head .map-title { font-size: 20px; }
@@ -836,12 +818,6 @@ body,
    the header and the path runs horizontally (see LevelSelect.renderPath). */
 @media (max-height: 500px) and (orientation: landscape) {
   .path-wrap { width: min(96vw, 860px); height: auto; min-height: 0; }
-}
-
-/* Extremely short viewports: the lineup can't clear the centered card's
-   buttons horizontally — drop it rather than overlap. */
-@media (max-height: 400px) {
-  .title-lineup { display: none; }
 }
 
 /* Narrow portrait phones: three stacked cards must fit without page scroll. */
@@ -1267,8 +1243,6 @@ body,
   .title-card .tagline,
   .title-card .ui-btn.title-play,
   .title-secondary,
-  .title-lineup,
-  .lineup-bot,
   .ui-toast,
   .results-ribbon,
   .star.on {
