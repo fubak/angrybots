@@ -7,6 +7,7 @@ import {
   structureRect,
 } from '../../src/camera/CameraDirector';
 import { Scenery } from '../../src/render/Scenery';
+import { SLING } from '../../src/sling/launch';
 
 // The whole level — sling, full queue, structure, terrain — must stay inside
 // the aim frame at every browser size, with the HUD strip reserved and only a
@@ -53,6 +54,19 @@ describe('camera framing', () => {
         expect(
           r.y0 >= vis.y0 - EPS && r.y1 <= vis.y1 + EPS,
           `${level.id} y: [${r.y0.toFixed(1)},${r.y1.toFixed(1)}] vs view [${vis.y0.toFixed(1)},${vis.y1.toFixed(1)}]`
+        ).toBe(true);
+        // Full pull reach — pouch dragged to maxPull in any direction —
+        // stays on screen, with a little finger margin.
+        const pull = {
+          x0: SLING.anchor.x - SLING.maxPull - 0.4,
+          x1: SLING.anchor.x + 0.4,
+          y0: SLING.anchor.y - SLING.maxPull - 0.4,
+          y1: SLING.anchor.y + 0.4,
+        };
+        expect(
+          pull.x0 >= vis.x0 - EPS && pull.x1 <= vis.x1 + EPS &&
+            pull.y0 >= vis.y0 - EPS && pull.y1 <= vis.y1 + EPS,
+          `${level.id} pull reach [${pull.x0.toFixed(1)}..${pull.x1.toFixed(1)},${pull.y0.toFixed(1)}..${pull.y1.toFixed(1)}] vs view`
         ).toBe(true);
         // Ground line sits in the bottom 15% of the screen — no dirt ocean.
         const groundFrac = (0 - vis.y0) / v.h;

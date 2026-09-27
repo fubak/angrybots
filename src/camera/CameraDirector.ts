@@ -33,7 +33,7 @@ const LAMBDA = {
 const INTRO_HOLD = 1.2;
 const INTRO_PAN = 1.4;
 /** Dirt strip below ground level — enough to read as ground, not a third of the screen. */
-export const GROUND_STRIP = 0.7;
+export const GROUND_STRIP = 1.0;
 /** Intro structure shot fills at most ~70% of the visible region so nothing crops. */
 const STRUCTURE_FILL = 0.7;
 
@@ -58,7 +58,7 @@ function terrainRect(t: TerrainV2): Rect {
 export function contentRect(level: LevelV2): Rect {
   const sx = level.sling.x;
   let r: Rect = {
-    x0: sx - SLING_FORK - 0.35,
+    x0: Math.min(sx - SLING_FORK - 0.35, SLING.anchor.x - SLING.maxPull - 0.6),
     x1: sx + SLING_FORK + 0.35,
     y0: 0,
     y1: Math.max(SLING_TIP_Y + 0.25, SLING.anchor.y + 0.85),
