@@ -5,7 +5,8 @@ import {
   signSession,
   verifySession,
 } from './session';
-import { isLevelId, isScore, isStars, safeReturnPath } from './validate';
+import { isLevelId, isScore, isStars, safeReturnPath, withinCap } from './validate';
+import caps from './level-caps.json';
 
 export interface Env {
   DB: D1Database;
@@ -13,6 +14,8 @@ export interface Env {
   X_CLIENT_ID: string;
   X_CLIENT_SECRET: string;
   SESSION_SECRET: string;
+  RL_SCORES?: RateLimit;
+  RL_LOGIN?: RateLimit;
 }
 
 const SESSION_COOKIE = 'ab_session';
@@ -82,12 +85,28 @@ function originOk(req: Request): boolean {
   return origin !== null && origin === new URL(req.url).origin;
 }
 
+/** true = request is over the rate limit. Absent binding → never limited. */
+async function limited(rl: RateLimit | undefined, key: string): Promise<boolean> {
+  if (!rl) return false;
+  try {
+    const { success } = await rl.limit({ key });
+    return !success;
+  } catch {
+    return false;
+  }
+}
+
 async function handleLogin(req: Request, env: Env): Promise<Response> {
   if (!env.X_CLIENT_ID) return json({ error: 'oauth_not_configured' }, 503);
   const url = new URL(req.url);
   const state = randomToken(16);
   const verifier = randomToken(32);
   const challenge = await sha256Base64Url(verifier);
+  if (
+    await limited(env.RL_LOGIN, req.headers.get('cf-connecting-ip') ?? 'anon')
+  ) {
+    return json({ error: 'rate_limited' }, 429);
+  }
   const ret = safeReturnPath(url.searchParams.get('return'));
   const blob = await signSession<OAuthPayload>(
     { state, verifier, ret, exp: Math.floor(Date.now() / 1000) + OAUTH_TTL },
@@ -218,6 +237,9 @@ function upsertStmt(db: D1Database, uid: string, row: ScoreRow): D1PreparedState
 async function handleSubmitScore(req: Request, env: Env): Promise<Response> {
   const uid = await sessionUser(req, env);
   if (!uid) return json({ error: 'unauthorized' }, 401);
+  if (await limited(env.RL_SCORES, uid)) {
+    return json({ error: 'rate_limited' }, 429);
+  }
   const body = (await req.json().catch(() => null)) as {
     levelId?: unknown;
     score?: unknown;
@@ -227,7 +249,8 @@ async function handleSubmitScore(req: Request, env: Env): Promise<Response> {
     !body ||
     !isLevelId(body.levelId) ||
     !isScore(body.score) ||
-    !isStars(body.stars)
+    !isStars(body.stars) ||
+    !withinCap(body.levelId, body.score, caps)
   ) {
     return json({ error: 'invalid' }, 400);
   }
@@ -249,6 +272,9 @@ async function handleSubmitScore(req: Request, env: Env): Promise<Response> {
 async function handleSyncScores(req: Request, env: Env): Promise<Response> {
   const uid = await sessionUser(req, env);
   if (!uid) return json({ error: 'unauthorized' }, 401);
+  if (await limited(env.RL_SCORES, uid)) {
+    return json({ error: 'rate_limited' }, 429);
+  }
   const body = (await req.json().catch(() => null)) as {
     scores?: unknown;
   } | null;
@@ -256,7 +282,12 @@ async function handleSyncScores(req: Request, env: Env): Promise<Response> {
   const rows: ScoreRow[] = [];
   for (const raw of body.scores.slice(0, 200)) {
     const r = raw as { levelId?: unknown; score?: unknown; stars?: unknown };
-    if (isLevelId(r.levelId) && isScore(r.score) && isStars(r.stars)) {
+    if (
+      isLevelId(r.levelId) &&
+      isScore(r.score) &&
+      isStars(r.stars) &&
+      withinCap(r.levelId, r.score, caps)
+    ) {
       rows.push({ levelId: r.levelId, score: r.score, stars: r.stars });
     }
   }
@@ -281,7 +312,7 @@ async function handleLeaderboard(req: Request, env: Env): Promise<Response> {
   const scope = url.searchParams.get('scope') ?? 'global';
   const limit = Math.min(
     100,
-    Math.max(1, parseInt(url.searchParams.get('limit') ?? '50', 10) || 50)
+    Math.max(1, parseInt(url.searchParams.get('limit') ?? '10', 10) || 10)
   );
   const uid = await sessionUser(req, env);
   const global = scope === 'global';
@@ -300,7 +331,7 @@ async function handleLeaderboard(req: Request, env: Env): Promise<Response> {
     ).results;
     const entries = rows.map((r, i) => ({ rank: i + 1, ...r }));
     let me: { rank: number; score: number } | null = null;
-    if (uid && !entries.some((e) => e.id === uid)) {
+    if (uid) {
       const mine = await env.DB.prepare(
         `SELECT score FROM scores WHERE user_id = ? AND level_id = ?`
       )
@@ -343,7 +374,7 @@ async function handleLeaderboard(req: Request, env: Env): Promise<Response> {
   ).results;
   const entries = rows.map((r, i) => ({ rank: i + 1, ...r }));
   let me: { rank: number; score: number } | null = null;
-  if (uid && !entries.some((e) => e.id === uid)) {
+  if (uid) {
     const mine = await env.DB.prepare(
       `SELECT SUM(score) AS score FROM scores
        WHERE user_id = ? AND level_id NOT LIKE 'daily:%'`
@@ -426,6 +457,20 @@ export default {
             {
               'set-cookie': clearCookie(SESSION_COOKIE, '/', secure),
             }
+          );
+        }
+        case 'POST /api/auth/delete': {
+          const uid = await sessionUser(req, env);
+          if (!uid) return json({ error: 'unauthorized' }, 401);
+          await env.DB.batch([
+            env.DB.prepare(`DELETE FROM scores WHERE user_id = ?`).bind(uid),
+            env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(uid),
+          ]);
+          const secure = url.protocol === 'https:';
+          return json(
+            { ok: true },
+            200,
+            { 'set-cookie': clearCookie(SESSION_COOKIE, '/', secure) }
           );
         }
         case 'POST /api/scores':
