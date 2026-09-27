@@ -5,8 +5,12 @@ import {
   signSession,
   verifySession,
 } from './session';
-import { isLevelId, isScore, isStars, safeReturnPath, withinCap } from './validate';
+import { isLevelId, isScore, isStars, safeReturnPath, withinCap, fnv1a } from './validate';
 import caps from './level-caps.json';
+import { levelsById } from './levels.gen';
+import { isReplay } from '../src/game/replay';
+import { replayRun } from '../src/game/replayRun';
+import type { LevelV2 } from '../src/levels/schema';
 
 export interface Env {
   DB: D1Database;
@@ -238,6 +242,16 @@ function upsertStmt(db: D1Database, uid: string, row: ScoreRow): D1PreparedState
     .bind(uid, row.levelId, row.score, row.stars, Math.floor(Date.now() / 1000));
 }
 
+/** levelId (or daily:<date>) → level def, via the generated module. */
+function resolveLevelDef(levelId: string): LevelV2 | null {
+  let id = levelId;
+  if (levelId.startsWith('daily:')) {
+    const date = levelId.slice(6);
+    id = caps.dailyOrder[fnv1a(date) % caps.dailyOrder.length]!;
+  }
+  return levelsById[id] ?? null;
+}
+
 async function handleSubmitScore(req: Request, env: Env): Promise<Response> {
   const uid = await sessionUser(req, env);
   if (!uid) return json({ error: 'unauthorized' }, 401);
@@ -248,20 +262,47 @@ async function handleSubmitScore(req: Request, env: Env): Promise<Response> {
     levelId?: unknown;
     score?: unknown;
     stars?: unknown;
+    replay?: unknown;
   } | null;
   if (
     !body ||
     !isLevelId(body.levelId) ||
     !isScore(body.score) ||
     !isStars(body.stars) ||
-    !withinCap(body.levelId, body.score, caps)
+    !isReplay(body.replay)
   ) {
     return json({ error: 'invalid' }, 400);
   }
+  const def = resolveLevelDef(body.levelId);
+  if (!def) return json({ error: 'invalid' }, 400);
+  // Server-authoritative: re-simulate the run, ignore the client numbers.
+  const sim = replayRun(def, body.replay);
+  if (sim.state !== 'won' && sim.state !== 'bonus') {
+    return json({ error: 'unverified' }, 400);
+  }
+  const score = sim.score;
+  const stars = sim.stars;
+  if (!withinCap(def.id, score, caps)) {
+    console.log(
+      JSON.stringify({ evt: 'replay_over_cap', uid, levelId: body.levelId, score })
+    );
+    return json({ error: 'invalid' }, 400);
+  }
+  if (body.score !== score) {
+    console.log(
+      JSON.stringify({
+        evt: 'replay_mismatch',
+        uid,
+        levelId: body.levelId,
+        client: body.score,
+        server: score,
+      })
+    );
+  }
   await upsertStmt(env.DB, uid, {
     levelId: body.levelId,
-    score: body.score,
-    stars: body.stars,
+    score,
+    stars,
   }).run();
   const row = await env.DB.prepare(
     `SELECT score, (SELECT COUNT(*) FROM scores s2
@@ -270,35 +311,13 @@ async function handleSubmitScore(req: Request, env: Env): Promise<Response> {
   )
     .bind(uid, body.levelId)
     .first<{ score: number; rank: number }>();
-  return json({ best: row?.score ?? body.score, rank: row?.rank ?? null });
-}
-
-async function handleSyncScores(req: Request, env: Env): Promise<Response> {
-  const uid = await sessionUser(req, env);
-  if (!uid) return json({ error: 'unauthorized' }, 401);
-  if (await limited(env.RL_SCORES, uid)) {
-    return json({ error: 'rate_limited' }, 429);
-  }
-  const body = (await req.json().catch(() => null)) as {
-    scores?: unknown;
-  } | null;
-  if (!Array.isArray(body?.scores)) return json({ error: 'invalid' }, 400);
-  const rows: ScoreRow[] = [];
-  for (const raw of body.scores.slice(0, 200)) {
-    const r = raw as { levelId?: unknown; score?: unknown; stars?: unknown };
-    if (
-      isLevelId(r.levelId) &&
-      isScore(r.score) &&
-      isStars(r.stars) &&
-      withinCap(r.levelId, r.score, caps)
-    ) {
-      rows.push({ levelId: r.levelId, score: r.score, stars: r.stars });
-    }
-  }
-  if (rows.length) {
-    await env.DB.batch(rows.map((r) => upsertStmt(env.DB, uid, r)));
-  }
-  return json({ ok: true, count: rows.length });
+  return json({
+    best: row?.score ?? score,
+    rank: row?.rank ?? null,
+    score,
+    stars,
+    verified: true,
+  });
 }
 
 /** Competition ranking ("1224"): same score → same rank. */
@@ -490,8 +509,6 @@ export default {
         }
         case 'POST /api/scores':
           return await handleSubmitScore(req, env);
-        case 'POST /api/scores/sync':
-          return await handleSyncScores(req, env);
         case 'GET /api/leaderboard':
           return await handleLeaderboard(req, env);
         default:

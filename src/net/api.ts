@@ -4,6 +4,7 @@
  * the game never breaks when the backend is unreachable (e.g. the GH Pages
  * mirror, which has no /api at all).
  */
+import type { Replay } from '../game/replay';
 
 export type User = {
   id: string;
@@ -32,6 +33,14 @@ export type LeaderboardData = {
   scope: string;
   entries: LeaderboardEntry[];
   me: { rank: number; score: number } | null;
+};
+
+export type ScoreSubmitResult = {
+  best: number;
+  rank: number | null;
+  score?: number;
+  stars?: number;
+  verified?: boolean;
 };
 
 const BASE = import.meta.env.BASE_URL;
@@ -114,30 +123,19 @@ export class OnlineClient {
   async submitScore(
     levelId: string,
     score: number,
-    stars: number
-  ): Promise<{ best: number; rank: number | null } | null> {
+    stars: number,
+    replay: Replay
+  ): Promise<ScoreSubmitResult | null> {
     try {
       const r = (await this.postJson('api/scores', {
         levelId,
         score,
         stars,
-      })) as { best?: number; rank?: number | null };
-      return typeof r.best === 'number'
-        ? { best: r.best, rank: r.rank ?? null }
-        : null;
+        replay,
+      })) as ScoreSubmitResult;
+      return typeof r.best === 'number' ? r : null;
     } catch {
       return null;
-    }
-  }
-
-  async syncBests(
-    entries: { levelId: string; score: number; stars: number }[]
-  ): Promise<boolean> {
-    try {
-      await this.postJson('api/scores/sync', { scores: entries });
-      return true;
-    } catch {
-      return false;
     }
   }
 
