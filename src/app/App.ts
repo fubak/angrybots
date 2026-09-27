@@ -5,6 +5,7 @@ import { PALETTE } from '../config/render';
 import { TUNING } from '../config/tuning';
 import type { GameEvents } from '../game/events';
 import { GameSession, INTRO_SECONDS } from '../game/GameSession';
+import { UNLOCK_ALL_LEVELS } from '../game/progression';
 import { SaveStore } from '../game/SaveStore';
 import { allLevels, levelById, nextLevel } from '../levels/registry';
 import { CameraDirector } from '../camera/CameraDirector';
@@ -73,7 +74,8 @@ export class App {
   private pendingBotCard: BotKind | null = null;
   private seenTips = new Set<string>();
   private readonly unlockAll =
-    import.meta.env.DEV && new URLSearchParams(location.search).get('unlockAll') === '1';
+    UNLOCK_ALL_LEVELS ||
+    (import.meta.env.DEV && new URLSearchParams(location.search).get('unlockAll') === '1');
 
   private gestures: CameraGestures;
 
