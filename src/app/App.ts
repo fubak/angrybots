@@ -268,8 +268,14 @@ export class App {
       };
     }
 
+    this.online.onChange(() =>
+      this.screens.title.setOnline({
+        online: this.online.status === 'online',
+        oauth: this.online.oauth,
+        user: this.online.user,
+      })
+    );
     void this.online.init().then(() => {
-      this.screens.title.setOnline(this.online.status === 'online');
       if (this.online.user) this.syncLocalBests();
       const params = new URLSearchParams(location.search);
       const auth = params.get('auth');

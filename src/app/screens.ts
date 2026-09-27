@@ -112,6 +112,7 @@ export class AppScreens {
         settings: () => this.openSettings(),
         achievements: () => this.openAchievements(),
         leaderboard: () => this.openLeaderboard(),
+        signIn: () => this.signIn(),
         credits: () => this.openCredits(),
       },
       () => effectiveReducedMotion(deps.save.settings.reducedMotion),

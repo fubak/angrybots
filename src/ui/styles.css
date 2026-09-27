@@ -468,6 +468,27 @@ body,
   animation: ui-pop 0.3s 0.62s both;
 }
 
+.title-account {
+  display: flex;
+  animation: ui-pop 0.3s 0.7s both;
+}
+
+.title-account .lb-signin {
+  font-size: 15px;
+  padding: 5px 14px;
+}
+
+.title-account .title-user {
+  font-size: 15px;
+  padding: 5px 14px 5px 8px;
+  gap: 8px;
+}
+
+.title-account .lb-avatar {
+  width: 28px;
+  height: 28px;
+}
+
 /* Title-screen playground: the 12 stickers roam the ground strip. The stage
    ignores pointers so it can never cover buttons; each bot is tappable. */
 .title-stage {

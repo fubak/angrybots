@@ -5,6 +5,7 @@ import {
   stickerArt,
   stickerBodyImage,
   stickerEyeImage,
+  stickerImage,
   yawEyeTransforms,
 } from '../render/botArt';
 import type { StickerArt } from '../render/botArt.generated';
@@ -25,6 +26,7 @@ export type TitleActions = {
   settings: () => void;
   achievements: () => void;
   leaderboard: () => void;
+  signIn: () => void;
   credits: () => void;
 };
 
@@ -78,6 +80,8 @@ export class TitleScreen {
   private readonly starsEl: HTMLElement;
   private readonly achvLabel: HTMLElement;
   private readonly leaderboardBtn: HTMLButtonElement;
+  private readonly accountEl: HTMLElement;
+  private readonly actions: TitleActions;
   private readonly dailyLabel: HTMLElement;
   private readonly isReducedMotion: () => boolean;
   /** CSS-px y of the 3D grass line the bots stand on (from the renderer). */
@@ -103,6 +107,7 @@ export class TitleScreen {
   ) {
     this.isReducedMotion = isReducedMotion;
     this.groundY = groundY;
+    this.actions = actions;
     this.el = document.createElement('div');
     this.el.className = 'ui-panel title-card';
     this.el.innerHTML = `
@@ -141,8 +146,12 @@ export class TitleScreen {
     credits.addEventListener('click', actions.credits);
     secondary.append(settings, achv, leaderboard, credits);
 
+    this.accountEl = document.createElement('div');
+    this.accountEl.className = 'title-account';
+    this.accountEl.hidden = true;
+
     this.starsEl = this.el.querySelector('.title-stars')!;
-    this.el.append(play, daily, secondary);
+    this.el.append(play, daily, secondary, this.accountEl);
     parent.appendChild(this.el);
 
     // Playground stage: the 12 stickers roam the ground strip below/around
@@ -329,9 +338,42 @@ export class TitleScreen {
     this.raf = requestAnimationFrame(this.frame);
   };
 
-  /** Hide the leaderboard button where there's no backend (GH Pages mirror). */
-  setOnline(on: boolean): void {
-    this.leaderboardBtn.hidden = !on;
+  /**
+   * Hide the leaderboard button where there's no backend (GH Pages mirror);
+   * show Sign in with X / the signed-in account row when there is one.
+   */
+  setOnline(state: {
+    online: boolean;
+    oauth: boolean;
+    user: { handle: string; avatarUrl: string | null } | null;
+  }): void {
+    this.leaderboardBtn.hidden = !state.online;
+    this.accountEl.replaceChildren();
+    this.accountEl.hidden = !state.online || (!state.user && !state.oauth);
+    if (this.accountEl.hidden) return;
+    if (state.user) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ui-btn title-user';
+      btn.setAttribute('aria-label', `Signed in as @${state.user.handle} — leaderboard`);
+      const img = document.createElement('img');
+      img.className = 'lb-avatar';
+      img.alt = '';
+      img.src = state.user.avatarUrl ?? stickerImage('01');
+      const handle = document.createElement('span');
+      handle.textContent = `@${state.user.handle}`;
+      btn.append(img, handle);
+      btn.addEventListener('click', this.actions.leaderboard);
+      this.accountEl.appendChild(btn);
+      return;
+    }
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ui-btn lb-signin';
+    btn.setAttribute('aria-label', 'Sign in with X');
+    btn.innerHTML = `<span class="lb-xbadge">${iconSvg('x', 20)}</span> Sign in with X`;
+    btn.addEventListener('click', this.actions.signIn);
+    this.accountEl.appendChild(btn);
   }
 
   setDaily(levelName: string): void {
