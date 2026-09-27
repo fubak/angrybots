@@ -15,6 +15,18 @@ export function isStars(n: unknown): n is number {
   return Number.isInteger(n) && (n as number) >= 0 && (n as number) <= 3;
 }
 
+/** Reject submissions above a level's score cap; daily ids share `_max`. */
+export function withinCap(
+  levelId: string,
+  score: number,
+  caps: Record<string, number>
+): boolean {
+  if (levelId.startsWith('daily:')) return score <= caps._max!;
+  const cap = caps[levelId];
+  if (cap === undefined) return false;
+  return score <= cap;
+}
+
 /** Only same-origin paths; protocol-relative `//evil.com` collapses to "/". */
 export function safeReturnPath(s: unknown): string {
   return typeof s === 'string' && /^\/(?![/\\])/.test(s) ? s : '/';

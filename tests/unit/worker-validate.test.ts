@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { isLevelId, isScore, isStars, safeReturnPath } from '../../worker/validate';
+import {
+  isLevelId,
+  isScore,
+  isStars,
+  safeReturnPath,
+  withinCap,
+} from '../../worker/validate';
 
 describe('worker/validate', () => {
   it('isLevelId accepts campaign ids and daily ids', () => {
@@ -45,5 +51,14 @@ describe('worker/validate', () => {
     expect(safeReturnPath('relative')).toBe('/');
     expect(safeReturnPath(null)).toBe('/');
     expect(safeReturnPath('')).toBe('/');
+  });
+
+  it('withinCap enforces per-level caps and _max for daily', () => {
+    const caps = { 'first-flight': 52262, _max: 178299 };
+    expect(withinCap('first-flight', 52262, caps)).toBe(true);
+    expect(withinCap('first-flight', 52263, caps)).toBe(false);
+    expect(withinCap('no-such-level', 1, caps)).toBe(false);
+    expect(withinCap('daily:2026-09-27', 178299, caps)).toBe(true);
+    expect(withinCap('daily:2026-09-27', 178300, caps)).toBe(false);
   });
 });

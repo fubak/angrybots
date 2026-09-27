@@ -4,11 +4,18 @@
     "target": "es2022",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": ["@cloudflare/workers-types"],
-    "lib": ["ES2022"],
+    "types": [
+      "@cloudflare/workers-types"
+    ],
+    "lib": [
+      "ES2022"
+    ],
     "skipLibCheck": true,
     "noEmit": true,
-    "moduleDetection": "force"
+    "moduleDetection": "force",
+    "resolveJsonModule": true
   },
-  "include": ["*.ts"]
+  "include": [
+    "*.ts"
+  ]
 }
