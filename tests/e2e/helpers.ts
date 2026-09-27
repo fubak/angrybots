@@ -182,65 +182,18 @@ export async function launchSolution(
 ): Promise<void> {
   await waitForAim(page);
   const pouch = pouchForLaunch(angleDeg, speed);
-  const desired = Math.hypot(pouch.pull.x, pouch.pull.y);
   const from = await screenOf(page, SLING.anchor.x, SLING.anchor.y);
   let to = await screenOf(page, pouch.x, pouch.y);
   const type = opts?.pointerType ?? 'mouse';
   const hold = opts?.holdMs ?? 700;
-  if (type === 'touch') {
-    await page.evaluate(
-      ({ a, wait }) => {
+
+  const touchFire = (name: string, p: { x: number; y: number }) =>
+    page.evaluate(
+      ({ n, b }) => {
         const c = document.querySelector('canvas[data-engine]');
         if (!c) throw new Error('no canvas');
         c.dispatchEvent(
-          new PointerEvent('pointerdown', {
-            pointerId: 7,
-            pointerType: 'touch',
-            clientX: a.x,
-            clientY: a.y,
-            bubbles: true,
-            cancelable: true,
-          })
-        );
-        return new Promise<void>((resolve) => setTimeout(resolve, wait));
-      },
-      { a: from, wait: hold }
-    );
-    let cur = to;
-    for (let i = 0; i < 8; i++) {
-      await page.evaluate(
-        ({ b }) => {
-          const c = document.querySelector('canvas[data-engine]');
-          if (!c) throw new Error('no canvas');
-          c.dispatchEvent(
-            new PointerEvent('pointermove', {
-              pointerId: 7,
-              pointerType: 'touch',
-              clientX: b.x,
-              clientY: b.y,
-              bubbles: true,
-              cancelable: true,
-            })
-          );
-        },
-        { b: cur }
-      );
-      const s = await snapshot(page);
-      const got = Math.hypot(s.pullX, s.pullY);
-      if (s.slingPhase !== 'dragging') break;
-      if (Math.abs(got - desired) < 0.12) break;
-      const scale = desired / Math.max(got, 0.12);
-      cur = {
-        x: from.x + (cur.x - from.x) * scale,
-        y: from.y + (cur.y - from.y) * scale,
-      };
-    }
-    await page.evaluate(
-      ({ b }) => {
-        const c = document.querySelector('canvas[data-engine]');
-        if (!c) throw new Error('no canvas');
-        c.dispatchEvent(
-          new PointerEvent('pointerup', {
+          new PointerEvent(n, {
             pointerId: 7,
             pointerType: 'touch',
             clientX: b.x,
@@ -250,27 +203,47 @@ export async function launchSolution(
           })
         );
       },
-      { b: cur }
+      { n: name, b: p }
     );
-    return;
-  }
-  await page.mouse.move(from.x, from.y);
-  await page.mouse.down();
-  await holdMs(page, hold);
-  await page.mouse.move(to.x, to.y, { steps: 12 });
-  for (let i = 0; i < 6; i++) {
+
+  /* The camera keeps easing while a pull is held (tension widen), so the
+     screen-space drag target drifts mid-gesture. Correct additively in WORLD
+     space — pull = anchor − pointerWorld — each iteration, with a beat for the
+     camera to settle, instead of rescaling the stale target (that overshoots
+     and oscillates on wide phone frames). */
+  const correct = async () => {
     const s = await snapshot(page);
-    const got = Math.hypot(s.pullX, s.pullY);
-    if (s.slingPhase !== 'dragging') break;
-    if (Math.abs(got - desired) < 0.12) break;
-    const scale = desired / Math.max(got, 0.12);
-    to = {
-      x: from.x + (to.x - from.x) * scale,
-      y: from.y + (to.y - from.y) * scale,
-    };
-    await page.mouse.move(to.x, to.y, { steps: 5 });
+    if (s.slingPhase !== 'dragging') return false;
+    const errX = pouch.pull.x - s.pullX;
+    const errY = pouch.pull.y - s.pullY;
+    if (Math.hypot(errX, errY) < 0.06) return false;
+    const box = await canvasBox(page);
+    const pxW = box.width / (s.camera.height * (box.width / box.height));
+    const pxH = box.height / s.camera.height;
+    to = { x: to.x - errX * pxW, y: to.y + errY * pxH };
+    return true;
+  };
+  const moveTo = async (p: { x: number; y: number }) => {
+    if (type === 'touch') await touchFire('pointermove', p);
+    else await page.mouse.move(p.x, p.y, { steps: 5 });
+  };
+
+  if (type === 'touch') {
+    await touchFire('pointerdown', from);
+    await holdMs(page, hold);
+  } else {
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await holdMs(page, hold);
   }
-  await page.mouse.up();
+  await moveTo(to);
+  for (let i = 0; i < 10; i++) {
+    await holdMs(page, 120);
+    if (!(await correct())) break;
+    await moveTo(to);
+  }
+  if (type === 'touch') await touchFire('pointerup', to);
+  else await page.mouse.up();
 }
 
 export async function tapPlayfield(page: Page): Promise<void> {
