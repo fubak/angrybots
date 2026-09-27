@@ -2,8 +2,8 @@
   "found": {
     "first-flight": [
       {
-        "angleDeg": 22,
-        "speed": 23
+        "angleDeg": 26,
+        "speed": 20
       }
     ],
     "powder-row": [
@@ -49,8 +49,8 @@
     ],
     "glass-alley": [
       {
-        "angleDeg": 22,
-        "speed": 22
+        "angleDeg": 60,
+        "speed": 20
       }
     ],
     "tnt-porch": [
@@ -61,8 +61,8 @@
     ],
     "split-lesson": [
       {
-        "angleDeg": 26,
-        "speed": 22,
+        "angleDeg": 28,
+        "speed": 21,
         "abilityAt": 0.8
       }
     ],
@@ -80,18 +80,18 @@
     ],
     "ledge-nest": [
       {
-        "angleDeg": 46,
-        "speed": 23
-      },
-      {
-        "angleDeg": 58,
-        "speed": 23
+        "angleDeg": 52,
+        "speed": 22
       }
     ],
     "powder-stack": [
       {
-        "angleDeg": 50,
-        "speed": 21
+        "angleDeg": 54,
+        "speed": 19
+      },
+      {
+        "angleDeg": 40,
+        "speed": 22
       }
     ],
     "glass-stack": [
@@ -127,12 +127,12 @@
     ],
     "mixed-yard": [
       {
-        "angleDeg": 28,
-        "speed": 23
+        "angleDeg": 40,
+        "speed": 21
       },
       {
-        "angleDeg": 42,
-        "speed": 23
+        "angleDeg": 26,
+        "speed": 22
       }
     ],
     "king-court": [
@@ -150,16 +150,13 @@
     ],
     "blast-vault": [
       {
-        "angleDeg": 38,
-        "speed": 22
-      },
-      {
-        "angleDeg": 60,
-        "speed": 22
+        "angleDeg": 22,
+        "speed": 23,
+        "abilityAt": 0.8
       },
       {
         "angleDeg": 24,
-        "speed": 21
+        "speed": 23
       }
     ],
     "helmet-keep": [
@@ -170,30 +167,32 @@
     ],
     "four-roles": [
       {
-        "angleDeg": 60,
+        "angleDeg": 56,
         "speed": 23
       },
       {
-        "angleDeg": 48,
+        "angleDeg": 20,
+        "speed": 20,
+        "abilityAt": 0.45
+      },
+      {
+        "angleDeg": 46,
+        "speed": 21,
+        "abilityAt": 0.8
+      },
+      {
+        "angleDeg": 62,
         "speed": 23
-      },
-      {
-        "angleDeg": 22,
-        "speed": 21
-      },
-      {
-        "angleDeg": 42,
-        "speed": 21
       }
     ],
     "wheel-yard": [
       {
-        "angleDeg": 42,
+        "angleDeg": 40,
         "speed": 20
       },
       {
-        "angleDeg": 66,
-        "speed": 22
+        "angleDeg": 30,
+        "speed": 21
       }
     ],
     "hat-row": [
@@ -216,8 +215,8 @@
     ],
     "triple-keep": [
       {
-        "angleDeg": 32,
-        "speed": 23
+        "angleDeg": 36,
+        "speed": 22
       }
     ],
     "fuse-line": [
@@ -244,12 +243,17 @@
     ],
     "last-stand": [
       {
-        "angleDeg": 32,
-        "speed": 23
+        "angleDeg": 60,
+        "speed": 22
       },
       {
-        "angleDeg": 36,
-        "speed": 21,
+        "angleDeg": 24,
+        "speed": 22,
+        "abilityAt": 0.45
+      },
+      {
+        "angleDeg": 38,
+        "speed": 23,
         "abilityAt": 0.8
       }
     ],
