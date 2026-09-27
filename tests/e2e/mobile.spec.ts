@@ -1,5 +1,5 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
-import { openApp, dismissBotCard } from './helpers';
+import { openApp, pickLevel, waitForAim } from './helpers';
 
 /*
  * Mobile usability regression: players on phones couldn't reach the menus —
@@ -11,7 +11,7 @@ import { openApp, dismissBotCard } from './helpers';
  * matches like a real phone. Runs under the 'desktop' project only — the
  * phone-landscape project is redundant because we own the contexts.
  */
-test.skip(({ isMobile }) => !!isMobile, 'spec drives its own mobile contexts');
+test.skip(({ isMobile }) => !!isMobile, 'spec drives its own mobile contexts'); // ISSUE-06
 
 const SIZES = [
   { name: 'portrait 390x664', width: 390, height: 664 },
@@ -150,8 +150,11 @@ for (const size of SIZES) {
 test('portrait gameplay still shows the rotate prompt', async ({ browser }) => {
   const page = await mobilePage(browser, SIZES[0]!);
   await openApp(page);
-  await page.evaluate(() => window.__debug!.loadLevel!('first-flight'));
-  await dismissBotCard(page);
+  // Real UI path: Play → chapter card → level node — also proves the portrait
+  // level map's nodes are actually tappable, not just visible.
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await pickLevel(page, 'first-flight');
+  await waitForAim(page);
   await expect.poll(() => rotateVisible(page)).toBe(true);
   // The prompt doesn't eat taps: the pause HUD button still works under it.
   await page.getByRole('button', { name: 'Pause' }).click();

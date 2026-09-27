@@ -57,7 +57,10 @@ const RULES = [
     id: 'F6',
     pattern: /__debug\s*[!?]?\s*\.\s*(launch|loadLevel|advance|setSeed|freezeTime)/g,
     scope: 'tests/e2e',
-    allow: [],
+    // bot-pixels is deliberately fixture-driven: it asserts rendered pixels /
+    // hop transforms, not input paths, so deterministic debug stepping is the
+    // point. New specs should still drive the real UI (see I-06).
+    allow: ['tests/e2e/bot-pixels.spec.ts'],
   },
   {
     id: 'F7',

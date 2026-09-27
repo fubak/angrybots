@@ -113,7 +113,7 @@ export class CameraDirector {
 
   /**
    * Aim frame: the whole level — queue, sling, structure, terrain — fit to the
-   * real canvas aspect with the HUD strip reserved, ground-anchored so surplus
+   * real canvas aspect with the HUD strip reserved, ground-pinned so surplus
    * height is sky. Widens slightly with pull tension.
    */
   slingView(
@@ -156,7 +156,7 @@ export class CameraDirector {
   }
 
   /**
-   * Level-open close-up on the structure. Ground-anchored like the aim frame,
+   * Level-open close-up on the structure. Ground-pinned like the aim frame,
    * but the castle occupies at most ~70% of the visible width/height below the
    * HUD so it never crops edge to edge.
    */
