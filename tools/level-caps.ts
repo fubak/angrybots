@@ -3,7 +3,14 @@ import { join } from 'node:path';
 import { TUNING } from '../src/config/tuning';
 import { SCORE } from '../src/game/Scoring';
 import { loadLevelFromJson } from '../src/levels/load';
+import { chapterOrder } from '../src/levels/chapters';
 import type { LevelV2 } from '../src/levels/schema';
+
+export type LevelCaps = {
+  levels: Record<string, number>;
+  /** Level ids in allLevels() order — daily selection indexes into this. */
+  dailyOrder: string[];
+};
 
 const HELMET_MULT: Record<string, number> = {
   helmet: TUNING.pig.helmetMultiplier,
@@ -34,23 +41,28 @@ export function capForLevel(level: LevelV2): number {
   return Math.ceil((pigs + blocks + bots + combo) * 1.1);
 }
 
-/** levelId → cap for every campaign level, plus `_max` for daily scopes. */
-export function computeCaps(): Record<string, number> {
+/**
+ * levelId → cap for every campaign level, plus `dailyOrder`: ids sorted by
+ * chapter then level order — the same order `allLevels()` returns, so
+ * `dailyOrder[fnv1a(date) % len]` is that date's daily level cap.
+ */
+export function computeCaps(): LevelCaps {
   const dataDir = join(import.meta.dirname, '../src/levels/data');
   const files = readdirSync(dataDir).filter((f) => f.endsWith('.json')).sort();
-  const caps: Record<string, number> = {};
-  let max = 0;
-  for (const file of files) {
-    const level = loadLevelFromJson(
+  const levels: LevelV2[] = files.map((file) =>
+    loadLevelFromJson(
       JSON.parse(readFileSync(join(dataDir, file), 'utf8')) as unknown
-    );
-    caps[level.id] = capForLevel(level);
-    max = Math.max(max, caps[level.id]!);
-  }
-  caps._max = max;
-  return Object.fromEntries(
-    Object.entries(caps).sort(([a], [b]) => a.localeCompare(b))
+    )
   );
+  const sorted = [...levels].sort(
+    (a, b) => chapterOrder(a.chapter) - chapterOrder(b.chapter) || a.order - b.order
+  );
+  const caps = Object.fromEntries(
+    levels
+      .map((l) => [l.id, capForLevel(l)] as const)
+      .sort(([a], [b]) => a.localeCompare(b))
+  );
+  return { levels: caps, dailyOrder: sorted.map((l) => l.id) };
 }
 
 const isMain =

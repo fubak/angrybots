@@ -15,14 +15,38 @@ export function isStars(n: unknown): n is number {
   return Number.isInteger(n) && (n as number) >= 0 && (n as number) <= 3;
 }
 
-/** Reject submissions above a level's score cap; daily ids share `_max`. */
+export type LevelCaps = {
+  levels: Record<string, number>;
+  dailyOrder: string[];
+};
+
+/** FNV-1a 32-bit — keep in sync with src/game/daily.ts (daily level pick). */
+export function fnv1a(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+/**
+ * Reject submissions above a level's score cap. `daily:<date>` maps to that
+ * date's daily level via the same FNV-1a pick the client uses.
+ */
 export function withinCap(
   levelId: string,
   score: number,
-  caps: Record<string, number>
+  caps: LevelCaps
 ): boolean {
-  if (levelId.startsWith('daily:')) return score <= caps._max!;
-  const cap = caps[levelId];
+  let cap: number | undefined;
+  if (levelId.startsWith('daily:')) {
+    const date = levelId.slice(6);
+    const id = caps.dailyOrder[fnv1a(date) % caps.dailyOrder.length];
+    cap = id === undefined ? undefined : caps.levels[id];
+  } else {
+    cap = caps.levels[levelId];
+  }
   if (cap === undefined) return false;
   return score <= cap;
 }
