@@ -10,8 +10,8 @@ import {
 import type { StickerArt } from '../render/botArt.generated';
 import {
   createPlayground,
+  selectCast,
   setPointer,
-  setZones,
   step,
   tapBot,
   type BotSpec,
@@ -33,13 +33,15 @@ type PgBot = {
   eyes: HTMLImageElement[];
   art: StickerArt;
   spec: BotSpec;
+  /** Playable bots render bigger than menu stickers. */
+  big: boolean;
   i: number;
 };
 
 const EYE_PAD = 0.08; // matches stickerEyeImage's canvas padding
 const STEP = 1 / 60;
 
-function pgBot(id: string, i: number): PgBot {
+function pgBot(id: string, i: number, big: boolean): PgBot {
   const art = stickerArt(id);
   const b = document.createElement('div');
   b.className = 'pg-bot';
@@ -60,7 +62,7 @@ function pgBot(id: string, i: number): PgBot {
     b.appendChild(img);
     eyes.push(img);
   });
-  return { el: b, body, eyes, art, spec: { id, w: 64 }, i };
+  return { el: b, body, eyes, art, spec: { id, w: 64 }, big, i };
 }
 
 /** Neutral gaze for the static (reduced-motion) lineup. */
@@ -76,6 +78,9 @@ export class TitleScreen {
   private readonly achvLabel: HTMLElement;
   private readonly dailyLabel: HTMLElement;
   private readonly isReducedMotion: () => boolean;
+  /** CSS-px y of the 3D grass line the bots stand on (from the renderer). */
+  private readonly groundY: () => number;
+  private stageBottomPx = -1;
   private readonly onResize = (): void => this.layout();
   private readonly onPointerMove = (e: PointerEvent): void => {
     if (!this.pg || !this.stageRect) return;
@@ -88,8 +93,14 @@ export class TitleScreen {
   private lastMs = 0;
   private acc = 0;
 
-  constructor(parent: HTMLElement, actions: TitleActions, isReducedMotion: () => boolean = () => false) {
+  constructor(
+    parent: HTMLElement,
+    actions: TitleActions,
+    isReducedMotion: () => boolean = () => false,
+    groundY: () => number = () => window.innerHeight - 8
+  ) {
     this.isReducedMotion = isReducedMotion;
+    this.groundY = groundY;
     this.el = document.createElement('div');
     this.el.className = 'ui-panel title-card';
     this.el.innerHTML = `
@@ -133,18 +144,27 @@ export class TitleScreen {
     this.stage = document.createElement('div');
     this.stage.className = 'title-stage';
     this.stage.setAttribute('aria-hidden', 'true');
-    MENU_STICKERS.forEach((id) => this.bots.push(pgBot(id, this.bots.length)));
-    Object.values(BOT_STICKER).forEach((id) => this.bots.push(pgBot(id, this.bots.length)));
-    this.bots.forEach((b, i) => {
+    MENU_STICKERS.forEach((id) => this.bots.push(pgBot(id, this.bots.length, false)));
+    Object.values(BOT_STICKER).forEach((id) => this.bots.push(pgBot(id, this.bots.length, true)));
+    this.bots.forEach((b) => {
+      b.el.dataset.bot = b.spec.id;
+      this.stage.appendChild(b.el);
+    });
+    // Tap uses the sim index, which is only known once the cast is picked —
+    // resolve it per click so re-casting on resize can't misroute taps.
+    this.bots.forEach((b) => {
       b.el.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        if (this.pg && !this.isReducedMotion()) tapBot(this.pg, i);
+        if (this.pg && !this.isReducedMotion() && b.i >= 0) tapBot(this.pg, b.i);
       });
-      this.stage.appendChild(b.el);
     });
     parent.appendChild(this.stage);
     window.addEventListener('resize', this.onResize);
     window.addEventListener('pointermove', this.onPointerMove, { passive: true });
+    // The card resizes when fonts swap in or content changes (star counts,
+    // daily label) — re-derive zones so a stale measurement can't hide the
+    // stage or leave bots under the buttons.
+    new ResizeObserver(() => this.layout()).observe(this.el);
   }
 
   /**
@@ -152,23 +172,45 @@ export class TitleScreen {
    * there's room, otherwise the left/right gutters beside it. Both too
    * narrow → no playground at all.
    */
+  /** Keep the stage's bottom edge pinned to the rendered grass line. */
+  private syncGround(): void {
+    const gy = this.groundY();
+    if (!Number.isFinite(gy)) return;
+    const bottom = Math.max(0, window.innerHeight - gy);
+    if (Math.abs(bottom - this.stageBottomPx) > 0.4) {
+      this.stageBottomPx = bottom;
+      this.stage.style.bottom = `${bottom}px`;
+      this.stageRect = this.stage.getBoundingClientRect();
+    }
+  }
+
   private layout(): void {
     if (this.el.style.display === 'none') return;
-    const W = this.stage.clientWidth || window.innerWidth;
+    const W = window.innerWidth;
     const H = window.innerHeight;
     const card = this.el.getBoundingClientRect();
-    const playableH = Math.round(Math.min(64, Math.max(30, (H - card.bottom) * 0.3)));
+    // Bots stand ON the grass line (their feet = the stage's bottom edge) and
+    // scale with viewport height — desktop ~64px playable, ~46px menu.
+    const playableH = Math.round(Math.min(64, Math.max(26, H * 0.089)));
     const menuH = Math.round(playableH * 0.72);
-    const stageH = Math.min(160, Math.max(64, playableH + 60));
-    this.stage.style.height = `${stageH}px`;
+    let u = playableH / 64; // hop/gravity scale for the sim
+    const ground = Number.isFinite(this.groundY()) ? this.groundY() : H;
 
-    // Gutter mode needs room for at least the small bots.
-    const minGutter = menuH * 1.6;
+    // The full-width strip works whenever the band between card bottom and
+    // grass can hold a standing bot with headroom to hop. When the band is
+    // tighter than a full leap, cap the sim scale so the leap apex still
+    // stays below the card — a bot must never pass behind its buttons.
+    const LEAP_APEX = 104; // px at u=1 (leapfrog is the tallest hop)
+    const stripRoom = ground - card.bottom;
     let zones: Zone[];
-    if (card.bottom <= H - stageH + 10) {
+    if (stripRoom >= playableH * 1.35) {
+      const maxU = (stripRoom - playableH - 4) / LEAP_APEX;
+      u = Math.max(0.3, Math.min(u, maxU));
       zones = [{ x0: 8, x1: W - 8 }];
     } else {
       zones = [];
+      // Gutter mode needs room for at least the small bots.
+      const minGutter = menuH * 1.6;
       if (card.left - 14 >= minGutter) zones.push({ x0: 8, x1: card.left - 14 });
       if (W - card.right - 14 >= minGutter) zones.push({ x0: card.right + 14, x1: W - 8 });
       if (zones.length === 0) {
@@ -177,20 +219,43 @@ export class TitleScreen {
         return;
       }
     }
+    this.stage.style.height = `${playableH + Math.ceil(LEAP_APEX * u)}px`;
     for (const b of this.bots) {
-      const h = b.spec.id.length <= 2 ? menuH : playableH;
+      const h = b.big ? playableH : menuH;
       const w = h * (b.art.vbW / b.art.vbH);
       b.spec.w = w;
       b.el.style.height = `${h}px`;
       b.el.style.width = `${w}px`;
     }
-    if (!this.pg) {
-      this.pg = createPlayground(1234, zones, this.bots.map((b) => b.spec));
-    } else {
-      setZones(this.pg, zones);
+    // Only as many bots as fit with room to roam (≤55% body-width coverage
+    // per zone) — playable five first, then the menu stickers.
+    const ordered = [...this.bots].sort((a, b) => Number(b.big) - Number(a.big));
+    const cast = selectCast(
+      ordered.map((b) => b.spec),
+      zones
+    );
+    if (cast.length === 0) {
+      this.stage.style.display = 'none';
+      this.pg = null;
+      return;
     }
+    const castIndex = new Map(cast.map((c, i) => [c.spec, i]));
+    for (const b of this.bots) {
+      const i = castIndex.get(b.spec);
+      b.el.style.display = i === undefined ? 'none' : '';
+      b.i = i ?? -1;
+    }
+    // Rebuild the sim on every layout — cast membership changes on resize,
+    // so reusing a stale playground would misalign sim indices.
+    this.pg = createPlayground(
+      1234,
+      zones,
+      cast.map((c) => c.spec),
+      u
+    );
     // Reveal only after sizes and positions exist — render one frame now so
     // the bots never flash un-positioned at the stage corner.
+    this.syncGround();
     this.stage.style.display = 'block';
     this.render();
     this.stageRect = this.stage.getBoundingClientRect();
@@ -200,7 +265,9 @@ export class TitleScreen {
   private render(): void {
     const pg = this.pg;
     if (!pg) return;
+    this.syncGround();
     for (const b of this.bots) {
+      if (b.el.style.display === 'none') continue;
       const s = pg.bots[b.i]!;
       const pose = this.isReducedMotion() ? neutralPose() : s;
       b.el.dataset.behavior = s.kind;

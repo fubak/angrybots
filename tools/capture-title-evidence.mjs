@@ -39,18 +39,57 @@ async function titlePage(viewport, extra = {}) {
   await page.addInitScript((s) => localStorage.setItem('angrybots-save-v2', s), SAVE);
   await page.goto(BASE);
   await page.waitForFunction(() => window.__debug, null, { timeout: 15000 });
-  await page.waitForSelector('.pg-bot');
+  await page.waitForSelector('.pg-bot', { state: 'attached' });
+  // The stage reveals after the first layout pass; on the smallest gutters a
+  // card resize can re-hide it, so wait for at least one visible bot.
+  await page.waitForFunction(
+    () => [...document.querySelectorAll('.pg-bot')].some((b) => b.checkVisibility()),
+    null,
+    { timeout: 15000 }
+  );
   return { ctx, page };
 }
 
 // Bot states straight from the DOM the renderer writes.
 const states = (page) =>
   page.evaluate(() =>
-    [...document.querySelectorAll('.pg-bot')].map((b) => {
-      const r = b.getBoundingClientRect();
-      return { k: b.dataset.behavior, x: r.x, y: r.y, w: r.width, h: r.height };
-    })
+    [...document.querySelectorAll('.pg-bot')]
+      .filter((b) => b.checkVisibility())
+      .map((b) => {
+        const r = b.getBoundingClientRect();
+        return { k: b.dataset.behavior, x: r.x, y: r.y, w: r.width, h: r.height };
+      })
   );
+
+// Feet-on-grass metrics: every grounded bot's bottom edge vs the rendered
+// grass line (hopping bots are excluded by sampling a few frames and keeping
+// each bot's LOWEST bottom offset — a hop only moves feet upward).
+async function metrics(page, tag) {
+  let rows = [];
+  for (let i = 0; i < 8; i++) {
+    const sample = await page.evaluate(() => {
+      const g = window.__debug?.groundScreenY?.() ?? innerHeight;
+      return [...document.querySelectorAll('.pg-bot')]
+        .filter((b) => b.checkVisibility())
+        .map((b) => {
+          const r = b.getBoundingClientRect();
+          return { id: b.dataset.bot, h: r.height, off: r.bottom - g };
+        });
+    });
+    for (const s of sample) {
+      const prev = rows.find((r) => r.id === s.id);
+      if (!prev) rows.push({ ...s, off: s.off });
+      else prev.off = Math.max(prev.off, s.off); // closest to the grass wins
+    }
+    await page.waitForTimeout(150);
+  }
+  const worst = Math.max(...rows.map((r) => Math.abs(r.off)), 0);
+  const hs = rows.map((r) => r.h);
+  console.log(
+    `   ${tag}: ${rows.length} bots, heights ${Math.min(...hs).toFixed(0)}–${Math.max(...hs).toFixed(0)}px, worst grass error ${worst.toFixed(1)}px`
+  );
+  if (worst > 3.5) console.log(`   !! ${tag} grass error exceeds ±3px: ${JSON.stringify(rows)}`);
+}
 
 // ---------- 1. Contact sheet: 12 frames ~1.4s apart, bottom 300px ----------
 {
@@ -75,6 +114,7 @@ const states = (page) =>
     `magick ${TMP}/row-0.png ${TMP}/row-1.png ${TMP}/row-2.png -background '#0b1020' -gravity center -append ${OUT}/playground-sheet.png`
   );
   console.log('-> playground-sheet.png');
+  await metrics(page, '1280x720');
   await ctx.close();
 }
 
@@ -82,7 +122,6 @@ const states = (page) =>
 {
   const { ctx, page } = await titlePage({ width: 1280, height: 720 });
   const want = ['bump', 'leapfrog', 'nap', 'chase'];
-  const names = { bump: 'bump', leapfrog: 'leapfrog', nap: 'nap', chase: 'chase' };
   const shot = async (rect, name) => {
     const cx = rect.x + rect.w / 2;
     const cy = rect.y + rect.h / 2;
@@ -100,39 +139,45 @@ const states = (page) =>
   };
 
   for (const k of want) {
-    // nap: also wait for a z puff so the crop shows it.
-    const sel =
-      k === 'nap'
-        ? `.pg-bot[data-behavior="nap"]:has(~ .pg-z:not([style*="display: none"]))`
-        : `.pg-bot[data-behavior="${k}"]`;
     try {
-      await page.waitForSelector(`.pg-bot[data-behavior="${k}"]`, { timeout: 90000 });
-      if (k === 'nap') {
-        // a z appears a beat into the nap
-        await page
-          .waitForSelector('.pg-z:not([style*="display"])', { timeout: 8000 })
-          .catch(() => {});
-      }
-      // For chase/jump crop around actor + partner (widest span of both).
-      const rects = await states(page);
-      const actors = rects.filter(
-        (r) => r.k === k || (k === 'leapfrog' && r.k === 'duck')
-      );
-      const box = actors.length
-        ? {
-            x: Math.min(...actors.map((r) => r.x)),
-            y: Math.min(...actors.map((r) => r.y)),
-            w:
-              Math.max(...actors.map((r) => r.x + r.w)) -
-              Math.min(...actors.map((r) => r.x)),
-            h:
-              Math.max(...actors.map((r) => r.y + r.h)) -
-              Math.min(...actors.map((r) => r.y)),
+      // Detect the behavior AND measure the actors' union rect in a single
+      // eval — bump lasts ~0.5s, so a second roundtrip would lose the pose.
+      const box = await page.waitForFunction(
+        (kind) => {
+          const vis = (b) => b.checkVisibility();
+          const bots = (sel) =>
+            [...document.querySelectorAll(sel)].filter(vis);
+          let els = bots(`.pg-bot[data-behavior="${kind}"]`);
+          if (!els.length) return false;
+          if (kind === 'leapfrog') {
+            // Only count it once the jumper is actually airborne — the tag
+            // persists through takeoff and landing.
+            const g = window.__debug?.groundScreenY?.() ?? innerHeight;
+            els = els.filter((b) => b.getBoundingClientRect().bottom < g - 12);
+            if (!els.length) return false;
+            els.push(...bots('.pg-bot[data-behavior="duck"]'));
           }
-        : rects.find((r) => r.k === k);
-      await shot(box, names[k]);
-    } catch {
-      console.log(`!! ${names[k]} not seen within 90s — skipped`);
+          if (kind === 'chase') els.push(...bots('.pg-bot[data-behavior="flee"]'));
+          if (kind === 'nap') {
+            const zUp = [...document.querySelectorAll('.pg-z')].some(
+              (z) => parseFloat(z.style.opacity || '0') > 0.15
+            );
+            if (!zUp) return false;
+          }
+          const rs = els.map((b) => b.getBoundingClientRect());
+          return {
+            x: Math.min(...rs.map((r) => r.x)),
+            y: Math.min(...rs.map((r) => r.y)),
+            w: Math.max(...rs.map((r) => r.x + r.width)) - Math.min(...rs.map((r) => r.x)),
+            h: Math.max(...rs.map((r) => r.y + r.height)) - Math.min(...rs.map((r) => r.y)),
+          };
+        },
+        k,
+        { timeout: 90000, polling: 30 }
+      );
+      await shot(await box.jsonValue(), k);
+    } catch (e) {
+      console.log(`!! ${k} not captured: ${String(e.message ?? e).split('\n')[0]}`);
     }
   }
   await ctx.close();
@@ -146,6 +191,7 @@ for (const [w, h, tag] of [
   const { ctx, page } = await titlePage({ width: w, height: h });
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `${OUT}/playground-${tag}.png` });
+  await metrics(page, tag);
   const overlap = await page.evaluate(() =>
     [...document.querySelectorAll('.pg-bot')].some((bot) => {
       if (!bot.checkVisibility()) return false;

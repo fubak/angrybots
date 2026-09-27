@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createPlayground,
+  selectCast,
   setZones,
   step,
   tapBot,
@@ -115,6 +116,94 @@ describe('titlePlayground sim', () => {
     expect(pg.bots[0]!.vy).toBeGreaterThan(300);
     run(pg, 2);
     expect(pg.counts.surprise).toBe(1);
+  });
+
+  // Why: the playground is ambient entertainment — it fails its job if it
+  // looks sleepy (several bots napping, long still stretches) or crowded
+  // (bots shoulder to shoulder with nowhere to go). These pin the liveliness
+  // contract: at most one napper, every bot moving most of the time, an
+  // interaction starting at least every few seconds, and full-stage roaming.
+  it('never has more than one napper and keeps every bot moving ≥60% of the time', () => {
+    const pg = createPlayground(11, [{ x0: 0, x1: 1280 }], SPECS);
+    const moving = new Array<number>(pg.bots.length).fill(0);
+    let maxNappers = 0;
+    run(pg, 120, () => {
+      maxNappers = Math.max(
+        maxNappers,
+        pg.bots.filter((b) => b.kind === 'nap').length
+      );
+      pg.bots.forEach((b, i) => {
+        if (!['idle', 'nap', 'duck', 'watch'].includes(b.kind)) moving[i]! += DT;
+      });
+    });
+    expect(maxNappers, 'more than one bot napping at once').toBeLessThanOrEqual(1);
+    pg.bots.forEach((b, i) => {
+      expect(
+        moving[i]! / 120,
+        `bot ${b.id} only moved ${((moving[i]! / 120) * 100).toFixed(0)}% of the time`
+      ).toBeGreaterThanOrEqual(0.6);
+    });
+  });
+
+  it('starts an interaction at least every ~4 s and roams the whole zone', () => {
+    const pg = createPlayground(13, [{ x0: 0, x1: 1280 }], SPECS);
+    const interactions: number[] = [];
+    const prev = pg.bots.map(() => 'idle' as Behavior);
+    const span = pg.bots.map(() => ({ lo: Infinity, hi: -Infinity }));
+    run(pg, 120, () => {
+      pg.bots.forEach((b, i) => {
+        const k = b.kind;
+        if (k !== prev[i] && (k === 'bump' || k === 'chase' || k === 'leapfrog')) {
+          interactions.push(pg.time);
+        }
+        prev[i] = k;
+        span[i]!.lo = Math.min(span[i]!.lo, b.x);
+        span[i]!.hi = Math.max(span[i]!.hi, b.x);
+      });
+    });
+    expect(interactions.length).toBeGreaterThan(10);
+    for (let i = 1; i < interactions.length; i++) {
+      expect(
+        interactions[i]! - interactions[i - 1]!,
+        `interaction gap ${(interactions[i]! - interactions[i - 1]!).toFixed(2)}s`
+      ).toBeLessThanOrEqual(4);
+    }
+    const z = pg.zones[0]!;
+    pg.bots.forEach((b, i) => {
+      const covered = (span[i]!.hi - span[i]!.lo) / (z.x1 - z.x0);
+      expect(covered, `bot ${b.id} only roamed ${(covered * 100).toFixed(0)}% of its zone`).toBeGreaterThanOrEqual(
+        0.5
+      );
+    });
+  });
+
+  it('selectCast keeps total body width ≤55% of each zone, playable first', () => {
+    const zones: Zone[] = [{ x0: 0, x1: 200 }];
+    // Specs ordered playable-first like TitleScreen passes them.
+    const cast = selectCast(SPECS.slice(7).concat(SPECS.slice(0, 7)), zones);
+    expect(cast.length).toBeGreaterThan(0);
+    const used = cast.reduce((n, c) => n + c.spec.w, 0);
+    expect(used).toBeLessThanOrEqual(200 * 0.55);
+    // Playable bots claim the budget first: at least one playable leads, and
+    // no playable is skipped while a menu bot made the cut.
+    expect(cast[0]!.spec.id.length).toBeGreaterThan(2);
+    const firstMenu = cast.findIndex((c) => c.spec.id.length <= 2);
+    expect(cast.slice(0, firstMenu === -1 ? undefined : firstMenu).every((c) => c.spec.id.length > 2)).toBe(true);
+
+    // Two gutters: bots spread across both, neither over budget.
+    const gutters: Zone[] = [
+      { x0: 0, x1: 150 },
+      { x0: 1130, x1: 1280 },
+    ];
+    const cast2 = selectCast(
+      SPECS.slice(7).concat(SPECS.slice(0, 7)).map((s) => ({ ...s })),
+      gutters
+    );
+    for (let z = 0; z < 2; z++) {
+      const w = cast2.filter((c) => c.zone === z).reduce((n, c) => n + c.spec.w, 0);
+      expect(w).toBeLessThanOrEqual(150 * 0.55 + 0.001);
+    }
+    expect(cast2.some((c) => c.zone === 1)).toBe(true);
   });
 
   it('re-zones bots when the stage geometry changes', () => {

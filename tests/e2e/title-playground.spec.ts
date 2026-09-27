@@ -27,10 +27,36 @@ const buttonsHittable = (page: import('@playwright/test').Page) =>
     })
   );
 
-test('bots roam the stage and buttons stay tappable while they wander', async ({ page }) => {
+test('bots roam the stage and buttons stay tappable while they wander', async ({ page }, testInfo) => {
   await seedCleared(page, [], { reducedMotion: false });
   await openApp(page);
-  await expect(page.locator('.pg-bot')).toHaveCount(12);
+  // The cast is width-budgeted (≤55% of each zone): the full-width desktop
+  // strip fits all 12; the phone-landscape gutters fit a smaller cast.
+  const visible = page.locator('.pg-bot:visible');
+  if (testInfo.project.name === 'desktop') {
+    await expect(visible).toHaveCount(12);
+  } else {
+    await expect.poll(() => visible.count()).toBeGreaterThanOrEqual(3);
+  }
+
+  // Feet on the grass line, not in the dirt: every grounded bot's bottom edge
+  // must sit within 3px of the rendered grass top.
+  const grassErr = await page.evaluate(() => {
+    const gy = window.__debug!.groundScreenY!();
+    return [...document.querySelectorAll('.pg-bot')]
+      .filter((b) => (b as HTMLElement).checkVisibility())
+      .map((b) => {
+        const r = b.getBoundingClientRect();
+        const ty = /translate\([^,]+, ([-0-9.]+)px\)/.exec(
+          (b as HTMLElement).style.transform
+        );
+        return Math.abs(parseFloat(ty?.[1] ?? '0')) < 1 ? Math.abs(r.bottom - gy) : null;
+      })
+      .filter((d): d is number => d !== null);
+  });
+  for (const d of grassErr) {
+    expect(d, `grounded bot ${d.toFixed(1)}px off the grass line`).toBeLessThanOrEqual(3);
+  }
 
   const before = await botXs(page);
   await expect
@@ -54,7 +80,8 @@ test('tapping a bot makes it do the surprised jump', async ({ page }) => {
   await openApp(page);
   await expect(page.locator('.pg-bot')).toHaveCount(12);
   await page.waitForTimeout(400);
-  const bot = page.locator('.pg-bot').nth(3);
+  // On small stages the cast is trimmed — tap a bot that's actually visible.
+  const bot = page.locator('.pg-bot:visible').first();
   // dispatchEvent skips Playwright's stability check — the target moves.
   await bot.dispatchEvent('pointerdown');
   await expect

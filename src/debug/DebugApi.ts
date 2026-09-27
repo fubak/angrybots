@@ -60,6 +60,8 @@ export type DebugApi = {
   cloudJump?: (i: number, x: number) => void;
   /** Celestial layer-local home position — evidence captures. */
   celestialHome?: () => { x: number; y: number };
+  /** CSS-px y of the grass top under the current camera — stage anchoring. */
+  groundScreenY?: () => number;
 };
 
 export function createDebugApi(opts: {
@@ -154,6 +156,7 @@ export function createDebugApi(opts: {
     api.celestialScreen = () => opts.renderer.celestialScreen();
     api.cloudJump = (i, x) => opts.renderer.setCloudX(i, x);
     api.celestialHome = () => opts.renderer.celestialHome();
+    api.groundScreenY = () => opts.renderer.groundScreenY();
   }
 
   return api;

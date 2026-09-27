@@ -174,7 +174,16 @@ test('playground bots roam and leave every button tappable at portrait 390x664',
   });
   const page = await ctx.newPage();
   await openApp(page);
-  await expect(page.locator('.pg-bot')).toHaveCount(12);
+  // The cast is width-budgeted — at 390px portrait only a handful of bots fit
+  // at ≤55% stage coverage; that's the point (they'd otherwise cram). The
+  // stage reveals after the first layout pass, so poll for it.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => [...document.querySelectorAll('.pg-bot')].filter((b) => b.checkVisibility()).length
+      )
+    )
+    .toBeGreaterThanOrEqual(3);
 
   const xs = () =>
     page.evaluate(() =>

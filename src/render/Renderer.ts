@@ -156,6 +156,14 @@ export class Renderer {
     };
   }
 
+  /** CSS-px y of the world ground line (grass top, world y=0) on screen. */
+  groundScreenY(): number {
+    const v = new THREE.Vector3(0, 0, DEPTH.ground);
+    v.project(this.camera);
+    const r = this.domElement.getBoundingClientRect();
+    return r.top + ((1 - v.y) / 2) * r.height;
+  }
+
   setTerrain(pieces: LevelV2['terrain']): void {
     this.blobShadows.setTerrain(pieces);
     this.scenery.resetParallax();

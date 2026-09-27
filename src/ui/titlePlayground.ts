@@ -14,7 +14,7 @@
 
 export type Zone = { x0: number; x1: number };
 
-export type BotSpec = { id: string; w: number };
+export type BotSpec = { id: string; w: number; /** Pre-assigned zone index (cast selection). */ zone?: number };
 
 export type Behavior =
   | 'idle'
@@ -80,6 +80,12 @@ export type Playground = {
   seed: number;
   zs: ZPuff[];
   pointerX: number | null;
+  /** World scale: speeds, hops and gravity multiply by this so small stages
+   *  get proportionally smaller jumps (1 at ~64px bots). */
+  scale: number;
+  /** Sim time of the last multi-bot interaction (bump/chase/leapfrog/paired
+   *  dance) — feeds the liveliness watchdog in pickBehavior. */
+  lastInteraction: number;
   /** How many times each behavior has been entered — test observability. */
   counts: Partial<Record<Behavior, number>>;
 };
@@ -108,12 +114,19 @@ function enter(pg: Playground, b: SimBot, kind: Behavior, dur: number, target = 
   b.dur = dur;
   b.target = target;
   pg.counts[kind] = (pg.counts[kind] ?? 0) + 1;
+  if (kind === 'bump' || kind === 'chase' || kind === 'leapfrog') {
+    pg.lastInteraction = pg.time;
+  }
 }
 
 function pickSpot(pg: Playground, b: SimBot): number {
   const z = pg.zones[b.zone]!;
   const pad = b.w / 2 + 4;
-  return randRange(pg, z.x0 + pad, z.x1 - pad);
+  // Two draws, keep the farther — bots roam across the whole zone instead
+  // of pacing the neighborhood where they spawned.
+  const a = randRange(pg, z.x0 + pad, z.x1 - pad);
+  const c = randRange(pg, z.x0 + pad, z.x1 - pad);
+  return Math.abs(a - b.x) >= Math.abs(c - b.x) ? a : c;
 }
 
 function zoneIndex(pg: Playground, x: number): number {
@@ -141,7 +154,12 @@ function clampToZone(pg: Playground, b: SimBot): void {
   }
 }
 
-export function createPlayground(seed: number, zones: Zone[], specs: BotSpec[]): Playground {
+export function createPlayground(
+  seed: number,
+  zones: Zone[],
+  specs: BotSpec[],
+  scale = 1
+): Playground {
   const pg: Playground = {
     bots: [],
     zones,
@@ -149,10 +167,12 @@ export function createPlayground(seed: number, zones: Zone[], specs: BotSpec[]):
     seed: seed >>> 0 || 1,
     zs: [],
     pointerX: null,
+    scale,
+    lastInteraction: 0,
     counts: {},
   };
   specs.forEach((s, i) => {
-    const zone = i % Math.max(1, zones.length);
+    const zone = s.zone ?? i % Math.max(1, zones.length);
     const z = zones[zone] ?? zones[0]!;
     const b: SimBot = {
       id: s.id,
@@ -216,12 +236,44 @@ export function setPointer(pg: Playground, x: number | null): void {
   pg.pointerX = x;
 }
 
+/**
+ * Pick the cast that fits the stage: a zone may host bots whose body widths
+ * sum to at most 55% of its width. Specs are taken in order — callers list
+ * the five playable bots first so they always lead the cast. Bots are dealt
+ * to the roomiest fitting zone so gutters fill evenly.
+ */
+export function selectCast(
+  specs: BotSpec[],
+  zones: Zone[]
+): { spec: BotSpec; zone: number }[] {
+  const cap = zones.map((z) => (z.x1 - z.x0) * 0.55);
+  const used = zones.map(() => 0);
+  const out: { spec: BotSpec; zone: number }[] = [];
+  for (const s of specs) {
+    let best = -1;
+    let bestRoom = -1;
+    for (let z = 0; z < zones.length; z++) {
+      if (used[z]! + s.w > cap[z]!) continue;
+      const room = (cap[z]! - used[z]!) / cap[z]!;
+      if (room > bestRoom) {
+        bestRoom = room;
+        best = z;
+      }
+    }
+    if (best < 0) continue;
+    used[best]! += s.w;
+    s.zone = best;
+    out.push({ spec: s, zone: best });
+  }
+  return out;
+}
+
 /** Tap/click: the bot does a surprised spin-jump; neighbors look at it. */
 export function tapBot(pg: Playground, i: number): void {
   const b = pg.bots[i];
   if (!b) return;
   enter(pg, b, 'surprise', 1.1);
-  b.vy = SURPRISE_V;
+  b.vy = SURPRISE_V * pg.scale;
   b.squashT = -1;
   for (let j = 0; j < pg.bots.length; j++) {
     const o = pg.bots[j]!;
@@ -230,6 +282,18 @@ export function tapBot(pg: Playground, i: number): void {
       enter(pg, o, 'watch', 1.5, i);
     }
   }
+}
+
+/** A bot hops over its neighbor — also the way bots cross a crowded stage. */
+function startLeap(pg: Playground, i: number, j: number): void {
+  const b = pg.bots[i]!;
+  const o = pg.bots[j]!;
+  enter(pg, b, 'leapfrog', 1.4, j);
+  b.dir = o.x >= b.x ? 1 : -1;
+  // Carry past the neighbor's body, not just to it, so the jumper clears it.
+  b.vx = b.dir * Math.max(150, (b.w + o.w) * 1.8) * pg.scale;
+  b.vy = LEAP_V * pg.scale;
+  enter(pg, o, 'duck', 0.9);
 }
 
 function pickBehavior(pg: Playground, b: SimBot): void {
@@ -249,16 +313,9 @@ function pickBehavior(pg: Playground, b: SimBot): void {
   const canChase = nearest >= 0;
   const canLeap = nearest >= 0 && nearestD < (b.w + pg.bots[nearest]!.w) * 1.6;
   const r = rand(pg);
-  if (canLeap && r < 0.16) {
-    const o = pg.bots[nearest]!;
-    enter(pg, b, 'leapfrog', 1.4, nearest);
-    b.dir = o.x >= b.x ? 1 : -1;
-    b.vx = b.dir * Math.min(160, (Math.abs(o.x - b.x) + b.w * 0.8) * 1.6);
-    b.vy = LEAP_V;
-    enter(pg, o, 'duck', 0.9);
-    return;
-  }
-  if (canChase && r < 0.3) {
+
+  const leap = (): void => startLeap(pg, pg.bots.indexOf(b), nearest);
+  const chase = (): void => {
     enter(pg, b, 'chase', randRange(pg, 2.2, 4), nearest);
     const o = pg.bots[nearest]!;
     if (o.kind === 'idle' || o.kind === 'walk' || o.kind === 'nap') {
@@ -266,34 +323,74 @@ function pickBehavior(pg: Playground, b: SimBot): void {
       o.target = pg.bots.indexOf(b);
       o.dir = Math.sign(o.x - b.x) >= 0 ? 1 : -1;
     }
+  };
+
+  // Liveliness watchdog: if nothing interactive happened for ~2 s, this bot
+  // starts one — guarantees a bump/chase/leapfrog every few seconds.
+  if (canChase && pg.time - pg.lastInteraction >= 1.8) {
+    if (canLeap && rand(pg) < 0.4) leap();
+    else chase();
     return;
   }
-  if (r < 0.48) {
+
+  if (canLeap && r < 0.1) {
+    leap();
+    return;
+  }
+  if (canChase && r < 0.26) {
+    chase();
+    return;
+  }
+  if (r < 0.4) {
     enter(pg, b, 'bounce', 3.5);
     b.hops = 2 + Math.floor(rand(pg) * 3); // 2–4 hops
-    b.vy = BIG_HOP_V * randRange(pg, 0.75, 1);
+    b.vy = BIG_HOP_V * pg.scale * randRange(pg, 0.75, 1);
     return;
   }
-  if (r < 0.62) {
-    enter(pg, b, 'nap', randRange(pg, 3, 6));
+  // At most one napper on stage — more reads as a broken lineup, not a vibe.
+  if (r < 0.44 && !pg.bots.some((o) => o !== b && o.kind === 'nap')) {
+    enter(pg, b, 'nap', randRange(pg, 3, 5));
     b.zIn = 0.5;
     return;
   }
-  if (r < 0.76) {
+  if (r < 0.56) {
     enter(pg, b, 'dance', randRange(pg, 1.2, 1.8));
-    // Occasionally a nearby idle bot joins in.
+    // Occasionally a nearby idle bot joins in — counts as an interaction.
     if (nearest >= 0 && rand(pg) < 0.3 && pg.bots[nearest]!.kind === 'idle' && nearestD < b.w * 3) {
       enter(pg, pg.bots[nearest]!, 'dance', b.dur);
+      pg.lastInteraction = pg.time;
     }
     return;
   }
-  if (r < 0.94) {
+  if (r < 0.97) {
     enter(pg, b, 'walk', 8);
-    b.spotX = pickSpot(pg, b);
+    const z = pg.zones[b.zone]!;
+    const pad = b.w / 2 + 4;
+    // Every few walks are a full crossing — that's what actually gets a bot
+    // to the far side of a crowded stage instead of milling in the middle.
+    if (rand(pg) < 0.4) {
+      b.spotX = b.x < (z.x0 + z.x1) / 2 ? z.x1 - pad : z.x0 + pad;
+    } else {
+      b.spotX = pickSpot(pg, b);
+    }
     b.dir = b.spotX >= b.x ? 1 : -1;
     return;
   }
-  enter(pg, b, 'idle', randRange(pg, 1.5, 5));
+  enter(pg, b, 'idle', randRange(pg, 0.5, 1.4));
+}
+
+/** End of a bout: resume an unfinished trek, linger briefly, or act. */
+function settleOrAct(pg: Playground, b: SimBot): void {
+  const z = pg.zones[b.zone]!;
+  const pending =
+    b.spotX >= z.x0 && b.spotX <= z.x1 && Math.abs(b.spotX - b.x) > b.w * 3;
+  if (pending && rand(pg) < 0.55) {
+    enter(pg, b, 'walk', 8);
+    b.dir = b.spotX >= b.x ? 1 : -1;
+    return;
+  }
+  if (rand(pg) < 0.4) pickBehavior(pg, b);
+  else enter(pg, b, 'idle', randRange(pg, 0.3, 0.9));
 }
 
 /** Contact resolution: same-zone, grounded bots that overlap get bumped apart. */
@@ -315,15 +412,39 @@ function separate(pg: Playground): void {
       // A real collision (one or both moving in) becomes a bump interaction.
       if (a.bumpIn <= 0 && c.bumpIn <= 0) {
         const closing = Math.abs(a.vx) + Math.abs(c.vx) > 40;
-        if (closing || (a.kind !== 'walk' && c.kind !== 'walk')) {
+        // Between two calm bots, usually hop over instead of bouncing
+        // off — that's how anyone crosses a stage this crowded. A walker
+        // whose destination lies past the blocker is determined: it vaults
+        // almost every time. Napping or performing bots get bumped instead.
+        const calm = (k: Behavior) => k === 'walk' || k === 'idle' || k === 'watch';
+        const thru = (w: SimBot, o: SimBot) =>
+          w.kind === 'walk' && Math.sign(w.spotX - o.x) === Math.sign(w.spotX - w.x);
+        const vaultP = thru(a, c) || thru(c, a) ? 0.9 : 0.7;
+        if (calm(a.kind) && calm(c.kind) && rand(pg) < vaultP) {
+          const ji =
+            thru(a, c) && !thru(c, a)
+              ? i
+              : thru(c, a) && !thru(a, c)
+                ? j
+                : a.kind === 'walk' && c.kind !== 'walk'
+                  ? i
+                  : c.kind === 'walk' && a.kind !== 'walk'
+                    ? j
+                    : rand(pg) < 0.5
+                      ? i
+                      : j;
+          startLeap(pg, ji, ji === i ? j : i);
+          a.bumpIn = 1.4;
+          c.bumpIn = 1.4;
+        } else if (closing || (a.kind !== 'walk' && c.kind !== 'walk')) {
           enter(pg, a, 'bump', 0.55, j);
           enter(pg, c, 'bump', 0.55, i);
           a.bumpIn = 1.4;
           c.bumpIn = 1.4;
-          a.vx = -s * randRange(pg, 70, 110);
-          c.vx = s * randRange(pg, 70, 110);
-          a.vy = HOP_V * 0.55;
-          c.vy = HOP_V * 0.55;
+          a.vx = -s * randRange(pg, 70, 110) * pg.scale;
+          c.vx = s * randRange(pg, 70, 110) * pg.scale;
+          a.vy = HOP_V * 0.55 * pg.scale;
+          c.vy = HOP_V * 0.55 * pg.scale;
           a.squashT = 0;
           c.squashT = 0;
         } else {
@@ -335,14 +456,14 @@ function separate(pg: Playground): void {
   }
 }
 
-function land(b: SimBot): void {
+function land(pg: Playground, b: SimBot): void {
   if (b.y <= 0 && b.vy < 0) {
     const impact = -b.vy;
     b.y = 0;
     b.vy = 0;
     // Only a real landing squashes — on the ground gravity re-enters below
     // this threshold every step, which would pin the squash clock at 0.
-    if (impact > 60) b.squashT = 0;
+    if (impact > 60 * pg.scale) b.squashT = 0;
   }
 }
 
@@ -406,19 +527,19 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
     }
     case 'walk': {
       b.dir = b.spotX >= b.x ? 1 : -1;
-      b.vx = b.dir * WALK_V * (56 / Math.max(30, b.w));
+      b.vx = b.dir * WALK_V * pg.scale * (56 / Math.max(30, b.w));
       b.x += b.vx * dt;
       // Little hop every step cycle + waddle tilt.
-      const stepT = b.t * (WALK_V / 34);
+      const stepT = b.t * (WALK_V * pg.scale / 34);
       const ph = stepT % 1;
-      if (ph < 0.35 && b.y === 0) b.vy = HOP_V * 0.4;
+      if (ph < 0.35 && b.y === 0) b.vy = HOP_V * 0.4 * pg.scale;
       b.tilt = Math.sin(stepT * Math.PI * 2) * 0.14 * b.dir;
       b.yaw += (b.dir * 0.45 - b.yaw) * Math.min(1, dt * 8);
       const z = pg.zones[b.zone]!;
       const pad = b.w / 2 + 2;
       if ((b.dir > 0 && b.x >= Math.min(b.spotX, z.x1 - pad)) || (b.dir < 0 && b.x <= Math.max(b.spotX, z.x0 + pad))) {
         b.vx = 0;
-        enter(pg, b, 'idle', randRange(pg, 1.2, 3.4));
+        settleOrAct(pg, b);
       }
       break;
     }
@@ -427,12 +548,12 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
       if (b.y === 0 && b.vy === 0) {
         if (b.hops > 0) {
           b.hops--;
-          b.vy = BIG_HOP_V * randRange(pg, 0.8, 1);
+          b.vy = BIG_HOP_V * pg.scale * randRange(pg, 0.8, 1);
           b.sy = 1.22;
           b.sx = 0.86;
           b.squashT = -1;
         } else {
-          enter(pg, b, 'idle', randRange(pg, 1, 2.6));
+          settleOrAct(pg, b);
         }
       }
       break;
@@ -440,23 +561,23 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
     case 'chase': {
       const o = pg.bots[b.target];
       if (!o || b.t >= b.dur || o.zone !== b.zone) {
-        enter(pg, b, 'idle', randRange(pg, 0.8, 2));
+        settleOrAct(pg, b);
         break;
       }
       b.dir = o.x >= b.x ? 1 : -1;
-      b.vx = b.dir * CHASE_V;
+      b.vx = b.dir * CHASE_V * pg.scale;
       b.x += b.vx * dt;
       b.tilt = 0.1 * b.dir;
       b.yaw += (b.dir * 0.5 - b.yaw) * Math.min(1, dt * 10);
-      const stepT = b.t * (CHASE_V / 30);
-      if (stepT % 1 < 0.3 && b.y === 0) b.vy = HOP_V * 0.45;
+      const stepT = b.t * (CHASE_V * pg.scale / 30);
+      if (stepT % 1 < 0.3 && b.y === 0) b.vy = HOP_V * 0.45 * pg.scale;
       // Contact is resolved into a bump by the separation pass.
       break;
     }
     case 'flee': {
       const o = pg.bots[b.target];
       if (!o || o.kind !== 'chase' || b.t >= b.dur) {
-        enter(pg, b, 'idle', randRange(pg, 0.8, 2));
+        settleOrAct(pg, b);
         break;
       }
       b.dir = Math.sign(b.x - o.x) >= 0 ? 1 : -1;
@@ -464,13 +585,13 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
       const pad = b.w / 2 + 2;
       // Cornered? Cut back under the chaser.
       if ((b.dir > 0 && b.x > z.x1 - pad - 6) || (b.dir < 0 && b.x < z.x0 + pad + 6)) b.dir *= -1;
-      b.vx = b.dir * FLEE_V;
+      b.vx = b.dir * FLEE_V * pg.scale;
       b.x += b.vx * dt;
       b.eyeW = 1.25;
       b.tilt = 0.12 * b.dir;
       b.yaw += (b.dir * 0.55 - b.yaw) * Math.min(1, dt * 10);
-      const stepT = b.t * (FLEE_V / 30);
-      if (stepT % 1 < 0.3 && b.y === 0) b.vy = HOP_V * 0.5;
+      const stepT = b.t * (FLEE_V * pg.scale / 30);
+      if (stepT % 1 < 0.3 && b.y === 0) b.vy = HOP_V * 0.5 * pg.scale;
       break;
     }
     case 'bump': {
@@ -482,11 +603,11 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
       if (b.t >= b.dur) {
         // Sometimes a happy little hop afterward.
         if (rand(pg) < 0.3) {
-          b.vy = BIG_HOP_V * 0.7;
+          b.vy = BIG_HOP_V * 0.7 * pg.scale;
           enter(pg, b, 'bounce', 2);
           b.hops = 1;
         } else {
-          enter(pg, b, 'idle', randRange(pg, 0.8, 2.2));
+          settleOrAct(pg, b);
         }
       }
       break;
@@ -498,7 +619,7 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
       if (b.y === 0 && b.vy === 0 && b.t > 0.15) {
         b.tilt = 0;
         b.vx = 0;
-        enter(pg, b, 'idle', randRange(pg, 0.8, 2));
+        settleOrAct(pg, b);
       }
       break;
     }
@@ -511,7 +632,7 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
       b.pitch = -0.5 * k; // look up at the hopper
       if (b.t >= b.dur) {
         b.pitch = 0;
-        enter(pg, b, 'idle', randRange(pg, 0.8, 2));
+        settleOrAct(pg, b);
       }
       break;
     }
@@ -526,7 +647,7 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
         b.zIn = randRange(pg, 0.7, 1.2);
         pg.zs.push({ x: b.x + b.w * 0.3, y: b.y + b.w * 0.9, age: 0 });
       }
-      if (b.t >= b.dur) enter(pg, b, 'idle', randRange(pg, 0.6, 1.6));
+      if (b.t >= b.dur) settleOrAct(pg, b);
       break;
     }
     case 'dance': {
@@ -539,10 +660,10 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
         b.tilt = Math.sin(p * Math.PI * 8) * 0.2;
         b.yaw = Math.sin(p * Math.PI * 6) * 0.5;
       }
-      if (p > 0.8 && b.y === 0 && b.vy === 0) b.vy = BIG_HOP_V * 0.6;
+      if (p > 0.8 && b.y === 0 && b.vy === 0) b.vy = BIG_HOP_V * 0.6 * pg.scale;
       if (b.t >= b.dur) {
         b.tilt = 0;
-        enter(pg, b, 'idle', randRange(pg, 0.8, 2));
+        settleOrAct(pg, b);
       }
       break;
     }
@@ -553,22 +674,22 @@ function stepBot(pg: Playground, b: SimBot, dt: number): void {
       b.lid = 1;
       if (b.t >= b.dur) {
         b.tilt = 0;
-        enter(pg, b, 'idle', randRange(pg, 0.8, 2));
+        settleOrAct(pg, b);
       }
       break;
     }
     case 'watch': {
       const o = pg.bots[b.target];
       if (o) b.yaw += ((Math.sign(o.x - b.x) * 0.5) - b.yaw) * Math.min(1, dt * 10);
-      if (b.t >= b.dur) enter(pg, b, 'idle', randRange(pg, 0.8, 2));
+      if (b.t >= b.dur) settleOrAct(pg, b);
       break;
     }
   }
 
   // Gravity + ground.
   b.y += b.vy * dt;
-  b.vy -= GRAV * dt;
-  land(b);
+  b.vy -= GRAV * pg.scale * dt;
+  land(pg, b);
   clampToZone(pg, b);
   if (b.kind !== 'flee' && b.kind !== 'surprise' && b.kind !== 'duck') b.eyeW += (1 - b.eyeW) * Math.min(1, dt * 8);
   if (b.kind !== 'duck') b.pitch *= 1 - Math.min(1, dt * 4);

@@ -138,6 +138,7 @@ export class App {
       isLevelUnlocked: (id) => this.isLevelUnlocked(id),
       levelRefs: () => this.levelRefs(),
       applyAimGuide: () => this.applyAimGuide(),
+      groundScreenY: () => this.renderer.groundScreenY(),
     });
 
     const splash = new Splash(this.uiRoot, botImage('grok'));
