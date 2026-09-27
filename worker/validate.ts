@@ -17,7 +17,5 @@ export function isStars(n: unknown): n is number {
 
 /** Only same-origin paths; protocol-relative `//evil.com` collapses to "/". */
 export function safeReturnPath(s: unknown): string {
-  return typeof s === 'string' && s.startsWith('/') && !s.startsWith('//')
-    ? s
-    : '/';
+  return typeof s === 'string' && /^\/(?![/\\])/.test(s) ? s : '/';
 }

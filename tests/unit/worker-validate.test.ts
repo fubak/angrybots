@@ -40,6 +40,7 @@ describe('worker/validate', () => {
     expect(safeReturnPath('/')).toBe('/');
     expect(safeReturnPath('/levels?x=1')).toBe('/levels?x=1');
     expect(safeReturnPath('//evil.com')).toBe('/');
+    expect(safeReturnPath('/\\evil.com')).toBe('/');
     expect(safeReturnPath('https://evil.com')).toBe('/');
     expect(safeReturnPath('relative')).toBe('/');
     expect(safeReturnPath(null)).toBe('/');

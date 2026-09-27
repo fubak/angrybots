@@ -174,18 +174,22 @@ export class LeaderboardScreen {
         : entry.rank === 2 || entry.rank === 3
           ? `<span class="lb-rank r${entry.rank}">${entry.rank}</span>`
           : `<span class="lb-rank">${entry.rank}</span>`;
-    const avatar = entry.avatarUrl ?? stickerImage('01');
     const sub = [entry.name];
     if (entry.levels != null) sub.push(`${entry.levels} levels`);
     if (entry.stars) sub.push(`★${entry.stars}`);
     r.innerHTML = `
       ${rank}
-      <img class="lb-avatar" alt="" src="${avatar}">
+      <img class="lb-avatar" alt="">
       <div style="flex:1">
-        <div class="lb-name">@${entry.handle}</div>
-        <div class="lb-sub">${sub.join(' · ')}</div>
+        <div class="lb-name"></div>
+        <div class="lb-sub"></div>
       </div>
-      <div class="lb-score">${entry.score.toLocaleString()}</div>`;
+      <div class="lb-score"></div>`;
+    r.querySelector<HTMLImageElement>('.lb-avatar')!.src =
+      entry.avatarUrl ?? stickerImage('01');
+    r.querySelector('.lb-name')!.textContent = `@${entry.handle}`;
+    r.querySelector('.lb-sub')!.textContent = sub.join(' · ');
+    r.querySelector('.lb-score')!.textContent = entry.score.toLocaleString();
     return r;
   }
 
