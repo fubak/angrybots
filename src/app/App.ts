@@ -56,9 +56,6 @@ export class App {
   private levelId: string | null = null;
   private daily: { date: string; levelId: string } | null = null;
   private introElapsed = 0;
-  /** Score/pigs snapshot at launch — the shot's result is judged against it. */
-  private shotStartScore = 0;
-  private shotStartPigs = 0;
   private currentView: View = { cx: 0, cy: 5, h: 12 };
   private paused = false;
   private backgrounded = false;
@@ -456,21 +453,19 @@ export class App {
     this.session.update(dt);
     const state = this.session.getState();
 
-    // Shot bookkeeping for the sun/moon: snapshot score + pigs at launch,
-    // then judge the shot when it resolves so they can react.
-    if (state === 'flight' && prev !== 'flight') {
-      this.shotStartScore = this.session.getScore();
-      this.shotStartPigs = this.session.getSim()?.pigsAlive() ?? 0;
-    }
+    // Shot bookkeeping for the sun/moon: the baseline is snapped inside
+    // beginFlight (launches land between ticks on DOM events, so the
+    // aim→flight edge is never visible here); judge the shot at resolve.
     if (
       (prev === 'flight' || prev === 'resolve') &&
       (state === 'nextBot' || state === 'bonus' || state === 'won' || state === 'lost')
     ) {
       const simNow = this.session.getSim();
+      const base = this.session.getShotBaseline();
       this.renderer.celestialReact(
         shotReaction({
-          kills: this.shotStartPigs - (simNow?.pigsAlive() ?? this.shotStartPigs),
-          shotScore: this.session.getScore() - this.shotStartScore,
+          kills: base.pigs - (simNow?.pigsAlive() ?? base.pigs),
+          shotScore: this.session.getScore() - base.score,
           won: state === 'won' || state === 'bonus',
         })
       );

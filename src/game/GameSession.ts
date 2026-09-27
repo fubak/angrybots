@@ -43,6 +43,10 @@ export class GameSession {
   private launchTime = 0;
   private shotSlowTime = 0;
   private primaryShotBotId: string | null = null;
+  // Snapshot taken in beginFlight — launches arrive on DOM events between
+  // ticks, so App.tick can never observe the aim→flight edge itself.
+  private shotStartScore = 0;
+  private shotStartPigs = 0;
 
   constructor() {
     this.fsm = makeSessionFsm('intro');
@@ -114,6 +118,13 @@ export class GameSession {
     this.primaryShotBotId = bot.id;
     this.botQueue.shift();
     this.score = this.sim.hooks.score;
+    this.shotStartScore = this.score;
+    this.shotStartPigs = this.sim.pigsAlive();
+  }
+
+  /** Score/pig baseline captured at launch — for judging the shot at resolve. */
+  getShotBaseline(): { score: number; pigs: number } {
+    return { score: this.shotStartScore, pigs: this.shotStartPigs };
   }
 
   activateAbility(): void {
