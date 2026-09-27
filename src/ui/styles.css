@@ -296,6 +296,10 @@ body,
   z-index: 29;
 }
 
+.modal-wrap.lb-wrap {
+  z-index: 38;
+}
+
 .modal-wrap.open {
   display: flex;
 }

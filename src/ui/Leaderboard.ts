@@ -31,7 +31,7 @@ export class LeaderboardScreen {
   constructor(parent: HTMLElement, deps: Deps) {
     this.deps = deps;
     this.el = document.createElement('div');
-    this.el.className = 'modal-wrap';
+    this.el.className = 'modal-wrap lb-wrap';
 
     const panel = document.createElement('div');
     panel.className = 'ui-panel modal modal-pop';
@@ -95,6 +95,7 @@ export class LeaderboardScreen {
         : 'global';
     this.renderTabs();
     this.renderAccount();
+    this.el.parentElement?.appendChild(this.el);
     this.toggle(true);
     track('leaderboard_open', { scope: this.scope });
     void this.load();

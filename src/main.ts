@@ -1,4 +1,7 @@
+import { installGoogleAnalytics } from './analytics/ga';
 import { App } from './app/App';
+
+if (import.meta.env.PROD) installGoogleAnalytics(import.meta.env.VITE_GA_MEASUREMENT_ID);
 
 const root = document.querySelector('#app');
 if (root) {

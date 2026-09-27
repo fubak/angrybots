@@ -30,7 +30,7 @@ Sign-in with X, per-level best scores, and global/daily/level leaderboards are s
 **X developer app** ([developer.x.com](https://developer.x.com)):
 
 1. User authentication settings → enable **OAuth 2.0**, type **"Web App, Automated App or Bot"** (confidential client).
-2. Callback URIs: `https://angrybots.lol/api/auth/x/callback` and `http://127.0.0.1:5173/api/auth/x/callback` (local dev via `npm run dev`).
+2. Callback URIs: `https://angrybots.lol/api/auth/x/callback` and `http://127.0.0.1:5173/api/auth/x/callback` (local dev via `npm run dev`). Changing the app type regenerates the Client ID/Secret — re-run the `wrangler secret put` commands below afterwards.
 3. Website URL: `https://angrybots.lol`.
 4. Scopes requested at login: `users.read tweet.read`.
 
@@ -45,6 +45,10 @@ npx wrangler secret put SESSION_SECRET   # e.g. openssl rand -base64 32
 **Database:** `npm run db:migrate` applies `migrations/` to the remote D1 once (`--local` variant: `npm run db:migrate:local`).
 
 **Local dev:** copy `.dev.vars.example` to `.dev.vars` and fill in the three secrets, then run `npm run worker:dev` (API on :8787) alongside `npm run dev` (Vite proxies `/api` to it).
+
+## Analytics
+
+Gameplay events (`src/analytics/index.ts`) go to Google Analytics 4 when a measurement id is present at build time: `VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX npm run build` (or put it in a local `.env.production`, which is git-ignored). Without it — and always in dev builds — nothing is sent. GA is also skipped when the browser sends `DNT: 1`.
 
 ## Daily challenge
 
