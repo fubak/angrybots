@@ -1,10 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { pouchForLaunch, SLING } from '../../src/sling/launch';
 import {
-  holdMs,
+  launchSolution,
   openApp,
   pickLevel,
-  screenOf,
   snapshot,
   waitForAim,
 } from './helpers';
@@ -38,25 +36,8 @@ test('collapse stays on the fort and the tip fits', async ({ page }) => {
   await waitForAim(page);
   await page.screenshot({ path: 'docs/evidence/collapse-aim.png' });
 
-  const pouch = pouchForLaunch(22, 23);
-  const desired = Math.hypot(pouch.pull.x, pouch.pull.y);
-  const from = await screenOf(page, SLING.anchor.x, SLING.anchor.y);
-  let to = await screenOf(page, pouch.x, pouch.y);
-  await page.mouse.move(from.x, from.y);
-  await page.mouse.down();
-  await holdMs(page, 500);
-  await page.mouse.move(to.x, to.y, { steps: 12 });
-  for (let i = 0; i < 6; i++) {
-    const s = await snapshot(page);
-    const got = Math.hypot(s.pullX, s.pullY);
-    if (s.slingPhase !== 'dragging') break;
-    if (Math.abs(got - desired) < 0.12) break;
-    const scale = desired / Math.max(got, 0.12);
-    to = { x: from.x + (to.x - from.x) * scale, y: from.y + (to.y - from.y) * scale };
-    await page.mouse.move(to.x, to.y, { steps: 5 });
-  }
+  await launchSolution(page, 22, 23, { holdMs: 500 });
   await page.screenshot({ path: 'docs/evidence/collapse-pull.png' });
-  await page.mouse.up();
 
   let hitShot = false;
   const lows: number[] = [];

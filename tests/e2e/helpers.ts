@@ -208,26 +208,37 @@ export async function launchSolution(
 
   /* The camera keeps easing while a pull is held (tension widen), so the
      screen-space drag target drifts mid-gesture. Correct additively in WORLD
-     space — pull = anchor − pointerWorld — each iteration, with a beat for the
-     camera to settle, instead of rescaling the stale target (that overshoots
-     and oscillates on wide phone frames). */
-  const correct = async () => {
-    const s = await snapshot(page);
-    if (s.slingPhase !== 'dragging') return false;
+     space — pull = anchor − pointerWorld — each iteration, and only release
+     once two consecutive samples are inside a sub-pixel tolerance: a single
+     in-tolerance sample can still sit mid-ease and drift before pointerup. */
+  const goodSamples = async () => {
+    const s1 = await snapshot(page);
+    if (s1.slingPhase !== 'dragging') return 'released';
+    const e1 = Math.hypot(pouch.pull.x - s1.pullX, pouch.pull.y - s1.pullY);
+    if (e1 >= 0.03) return s1;
+    await holdMs(page, 100);
+    const s2 = await snapshot(page);
+    if (s2.slingPhase !== 'dragging') return 'released';
+    const e2 = Math.hypot(pouch.pull.x - s2.pullX, pouch.pull.y - s2.pullY);
+    const drift = Math.abs(s2.camera.height - s1.camera.height) +
+      Math.abs(s2.camera.cx - s1.camera.cx) + Math.abs(s2.camera.cy - s1.camera.cy);
+    if (e2 < 0.03 && drift < 0.002) return null; // converged + settled
+    return s2;
+  };
+  const applyCorrection = async (s: {
+    pullX: number;
+    pullY: number;
+    camera: { cx: number; cy: number; height: number };
+  }) => {
     const errX = pouch.pull.x - s.pullX;
     const errY = pouch.pull.y - s.pullY;
-    if (Math.hypot(errX, errY) < 0.06) return false;
     const box = await canvasBox(page);
     const pxW = box.width / (s.camera.height * (box.width / box.height));
     const pxH = box.height / s.camera.height;
     to = { x: to.x - errX * pxW, y: to.y + errY * pxH };
-    return true;
+    if (type === 'touch') await touchFire('pointermove', to);
+    else await page.mouse.move(to.x, to.y, { steps: 5 });
   };
-  const moveTo = async (p: { x: number; y: number }) => {
-    if (type === 'touch') await touchFire('pointermove', p);
-    else await page.mouse.move(p.x, p.y, { steps: 5 });
-  };
-
   if (type === 'touch') {
     await touchFire('pointerdown', from);
     await holdMs(page, hold);
@@ -236,11 +247,13 @@ export async function launchSolution(
     await page.mouse.down();
     await holdMs(page, hold);
   }
-  await moveTo(to);
-  for (let i = 0; i < 10; i++) {
+  if (type === 'touch') await touchFire('pointermove', to);
+  else await page.mouse.move(to.x, to.y, { steps: 5 });
+  for (let i = 0; i < 12; i++) {
     await holdMs(page, 120);
-    if (!(await correct())) break;
-    await moveTo(to);
+    const r = await goodSamples();
+    if (r === null || r === 'released') break;
+    await applyCorrection(r);
   }
   if (type === 'touch') await touchFire('pointerup', to);
   else await page.mouse.up();
