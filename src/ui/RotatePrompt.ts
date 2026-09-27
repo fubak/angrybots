@@ -13,10 +13,14 @@ export class RotatePrompt {
     return this.el.classList.contains('visible');
   }
 
-  update(): boolean {
+  /**
+   * Show the prompt only while gameplay needs landscape (`active` = App is in
+   * the play phase). Menus and modals stay usable in portrait.
+   */
+  update(active: boolean): boolean {
     const coarse = window.matchMedia('(pointer: coarse)').matches;
     const portrait = window.innerHeight > window.innerWidth;
-    const show = coarse && portrait;
+    const show = active && coarse && portrait;
     this.el.classList.toggle('visible', show);
     return show;
   }

@@ -381,7 +381,7 @@ export class App {
 
   /** Orientation recovery must run even while simulation is paused. */
   private syncSimulationPause(): void {
-    const rotate = this.rotate.update();
+    const rotate = this.rotate.update(this.phase === 'play');
     this.loop.paused =
       this.paused ||
       this.backgrounded ||
