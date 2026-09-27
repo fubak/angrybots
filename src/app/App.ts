@@ -215,6 +215,9 @@ export class App {
       if (booted) return;
       booted = true;
       splash.ready(() => {
+        // A level may already be running if boot outlived an early level
+        // entry — the title must never overlay live gameplay.
+        if (this.phase === 'play') return;
         this.screens.refreshTitleStats();
         this.screens.title.show();
         this.screens.hud.hide();
