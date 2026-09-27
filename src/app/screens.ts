@@ -143,6 +143,11 @@ export class AppScreens {
       onSignIn: () => this.signIn(),
       onSignOut: () =>
         void deps.online.logout().then(() => this.leaderboard.refresh()),
+      onDeleteAccount: () =>
+        void deps.online.deleteAccount().then(() => {
+          this.leaderboard.refresh();
+          this.toast('Account deleted');
+        }),
     });
     this.botIntro = new BotIntro(uiRoot);
   }

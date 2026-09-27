@@ -14,6 +14,7 @@ type Deps = {
   onClose: () => void;
   onSignIn: () => void;
   onSignOut: () => void;
+  onDeleteAccount: () => void;
 };
 
 type Tab = { label: string; scope: LeaderboardScope };
@@ -27,6 +28,7 @@ export class LeaderboardScreen {
   private readonly listEl: HTMLElement;
   private ctx: { levelId?: string; levelName?: string } = {};
   private scope: LeaderboardScope = 'global';
+  private rankEl: HTMLElement | null = null;
 
   constructor(parent: HTMLElement, deps: Deps) {
     this.deps = deps;
@@ -52,7 +54,14 @@ export class LeaderboardScreen {
     row.className = 'btn-row';
     row.appendChild(back);
 
-    panel.append(this.tabsEl, this.accountEl, this.listEl, row);
+    const privacy = document.createElement('a');
+    privacy.className = 'lb-privacy';
+    privacy.href = 'privacy.html';
+    privacy.target = '_blank';
+    privacy.rel = 'noopener';
+    privacy.textContent = 'Privacy';
+
+    panel.append(this.tabsEl, this.accountEl, this.listEl, privacy, row);
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
     this.el.append(backdrop, panel);
@@ -134,7 +143,8 @@ export class LeaderboardScreen {
   }
 
   private renderAccount(): void {
-    const { client, onSignIn, onSignOut } = this.deps;
+    const { client, onSignIn, onSignOut, onDeleteAccount } = this.deps;
+    this.rankEl = null;
     this.accountEl.replaceChildren();
     if (client.status === 'offline') {
       this.accountEl.textContent = 'Leaderboards need angrybots.lol';
@@ -152,7 +162,23 @@ export class LeaderboardScreen {
       out.className = 'ui-btn lb-signout';
       out.textContent = 'Sign out';
       out.addEventListener('click', onSignOut);
-      this.accountEl.append(img, handle, out);
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'ui-btn lb-danger';
+      del.textContent = 'Delete account';
+      del.addEventListener('click', () => {
+        if (
+          confirm(
+            'Delete your account and all leaderboard scores? This cannot be undone.'
+          )
+        ) {
+          onDeleteAccount();
+        }
+      });
+      const rank = document.createElement('span');
+      rank.className = 'lb-myrank';
+      this.rankEl = rank;
+      this.accountEl.append(img, handle, rank, out, del);
       return;
     }
     if (client.oauth || client.status === 'unknown') {
@@ -203,6 +229,7 @@ export class LeaderboardScreen {
       this.listEl.replaceChildren();
       return;
     }
+    if (this.rankEl) this.rankEl.textContent = '';
     empty('Loading…');
     const data: LeaderboardData | null = await this.deps.client.leaderboard(
       this.scope
@@ -213,6 +240,9 @@ export class LeaderboardScreen {
       return;
     }
     this.listEl.replaceChildren();
+    if (this.rankEl && this.deps.client.user) {
+      this.rankEl.textContent = data.me ? `#${data.me.rank}` : 'Unranked';
+    }
     if (data.entries.length === 0 && !data.me) {
       empty('No scores yet — be the first!');
       return;

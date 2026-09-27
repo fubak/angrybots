@@ -100,6 +100,17 @@ export class OnlineClient {
     }
   }
 
+  async deleteAccount(): Promise<boolean> {
+    try {
+      await this.postJson('api/auth/delete', {});
+      this.user = null;
+      this.changed();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async submitScore(
     levelId: string,
     score: number,
@@ -132,7 +143,7 @@ export class OnlineClient {
 
   async leaderboard(
     scope: LeaderboardScope,
-    limit = 50
+    limit = 10
   ): Promise<LeaderboardData | null> {
     try {
       return (await this.getJson(

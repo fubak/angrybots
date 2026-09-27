@@ -842,6 +842,14 @@ body,
   .lb-avatar { width: 28px; height: 28px; }
 }
 
+@media (max-height: 480px) {
+  .lb-row { padding: 3px 6px; }
+  .lb-avatar { width: 24px; height: 24px; }
+  .lb-name, .lb-score { font-size: 13px; }
+  .lb-sub { display: none; }
+  .lb-list { gap: 3px; max-height: calc(100dvh - 200px); }
+}
+
 /* Landscape level map on short screens: the wrap owns all space left under
    the header and the path runs horizontally (see LevelSelect.renderPath). */
 @media (max-height: 500px) and (orientation: landscape) {
@@ -1334,8 +1342,45 @@ body,
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 52dvh;
+  max-height: calc(100dvh - 300px);
+  min-height: 120px;
   overflow: auto;
+}
+
+.lb-myrank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 15px;
+  border: 2px solid #23180f;
+  background: #ffe066;
+  font-weight: 800;
+  font-size: 13px;
+  color: #23180f;
+  flex: none;
+}
+
+.lb-danger {
+  min-height: 34px;
+  font-size: 13px;
+  padding: 3px 10px;
+  background: #e2452b;
+  box-shadow: 0 4px 0 #8f2a18;
+}
+
+.lb-danger:active:not(:disabled) {
+  box-shadow: 0 1px 0 #8f2a18;
+}
+
+.lb-privacy {
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #3a2414;
+  opacity: 0.7;
 }
 
 .lb-row {
