@@ -137,6 +137,16 @@ for (const size of SIZES) {
     // The close control must be usable without scrolling.
     await assertReachable(page, '.modal-wrap.open .modal-close');
     await assertModalReachable(page, '.modal-wrap.open button');
+    // The panel scrolls internally: dumping it to the bottom must bring the
+    // last settings row fully inside the viewport (it was clipped at 750x342).
+    await page.evaluate(() => {
+      const m = document.querySelector('.modal-wrap.open .ui-panel.modal') as HTMLElement;
+      m.scrollTop = m.scrollHeight;
+    });
+    const lastRow = await page.locator('.modal-wrap.open .settings-row').last().boundingBox();
+    expect(lastRow, 'settings last row has no box').toBeTruthy();
+    expect(lastRow!.y).toBeGreaterThanOrEqual(-1);
+    expect(lastRow!.y + lastRow!.height).toBeLessThanOrEqual(size.height + 1);
     await page.getByRole('button', { name: 'Close settings' }).click();
 
     await page.getByRole('button', { name: 'Achievements' }).click();
