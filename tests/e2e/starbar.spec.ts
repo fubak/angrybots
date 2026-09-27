@@ -1,5 +1,5 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
-import { seedCleared, skipToPlay } from './helpers';
+import { launchSolution, seedCleared, skipToPlay, snapshot } from './helpers';
 
 /*
  * Star-bar layout regression: the bar is absolutely centered at the top of
@@ -67,3 +67,35 @@ for (const size of SIZES) {
     await page.context().close();
   });
 }
+
+/*
+ * Why: setStarThresholds used to re-render with the previous level's score,
+ * so entering a new level after a high-scoring run flashed lit stars + a pop
+ * for one frame before the score reset. Assert the first frame after level
+ * entry is clean.
+ */
+test('a fresh level never flashes lit stars from the previous run', async ({ page }) => {
+  test.setTimeout(120_000);
+  await seedCleared(page, []);
+  await skipToPlay(page, 'first-flight');
+  // Score something — a solution hit is enough to clear the first threshold.
+  await launchSolution(page, 22, 23);
+  await expect
+    .poll(async () => page.locator('.hud-starbar .notch.lit').count(), { timeout: 30_000 })
+    .toBeGreaterThan(0);
+  // Real UI path: results panel → Next loads the next level synchronously.
+  // The click handler and the read must share one task — the stale lit
+  // state is cleared by the next tick's setScore(0), so an async gap would
+  // miss the flash.
+  await expect.poll(async () => (await snapshot(page)).state, { timeout: 70_000 }).toBe('won');
+  await page.waitForSelector('.results-actions [data-a="next"]', { state: 'visible' });
+  const { lit, fill } = await page.evaluate(() => {
+    (document.querySelector('.results-actions [data-a="next"]') as HTMLElement).click();
+    return {
+      lit: document.querySelectorAll('.hud-starbar .notch.lit').length,
+      fill: (document.querySelector('.hud-starbar .fill') as HTMLElement).style.width,
+    };
+  });
+  expect(lit, 'stale lit stars on level entry').toBe(0);
+  expect(fill === '' || fill === '0%', `stale fill ${fill}`).toBe(true);
+});

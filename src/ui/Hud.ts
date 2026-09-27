@@ -81,8 +81,13 @@ export class Hud {
 
   setStarThresholds(thresholds: [number, number, number]): void {
     this.thresholds = thresholds;
+    // A level change always starts at score 0 — carrying the previous run's
+    // score here flashed lit stars for one frame.
+    this.targetScore = 0;
+    this.shownScore = 0;
+    this.scoreEl.textContent = '0';
     this.starNotches.forEach((n) => n.classList.remove('lit', 'pop'));
-    this.updateStarBar(this.targetScore);
+    this.updateStarBar(0);
   }
 
   setScore(score: number, best: number): void {
