@@ -1,3 +1,5 @@
+import { visibleViewport } from '../app/viewport';
+
 export class RotatePrompt {
   readonly el: HTMLElement;
 
@@ -19,7 +21,8 @@ export class RotatePrompt {
    */
   update(active: boolean): boolean {
     const coarse = window.matchMedia('(pointer: coarse)').matches;
-    const portrait = window.innerHeight > window.innerWidth;
+    const v = visibleViewport();
+    const portrait = v.h > v.w;
     const show = active && coarse && portrait;
     this.el.classList.toggle('visible', show);
     return show;

@@ -113,6 +113,9 @@ export function attachDamagePipeline(
     if (other?.kind === 'bot' && target.kind === 'block') {
       dmg *= affinity(other.botKind, target.material);
     }
+    if (other?.kind === 'block' && target.kind === 'pig') {
+      dmg *= TUNING.pig.crushScale;
+    }
     const dealt = Math.min(dmg, Math.max(target.hp, 0));
     target.hp -= dmg;
     if (target.kind === 'block') {

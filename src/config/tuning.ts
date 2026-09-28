@@ -18,6 +18,8 @@ export const TUNING = {
     restitution: 0.15,
     sizes: { S: { r: 0.4, hp: 3 }, M: { r: 0.55, hp: 6 }, L: { r: 0.75, hp: 12 } },
     minImpulse: 1.0,
+    // Blocks are light vs bots — falling debris must still crush.
+    crushScale: 3,
     helmetMultiplier: 2.5,
     hatMultiplier: 1.5,
   },
