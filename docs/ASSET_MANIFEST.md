@@ -11,7 +11,8 @@ All art is generated at runtime or committed to the repo — no third-party art.
 | `public/favicon.svg` | Bot-mark favicon | Original (repo) |
 | `public/icons/icon-*.png` | PWA icons 192/512 + maskable, rendered from `favicon.svg` by `scripts/gen-icons.mjs` | Original (repo) |
 | `public/icons.svg` | UI icon glyph sheet | Original (repo) |
-| `public/game-preview.png` | Social/share preview | Original (repo) |
+| `public/og-image.png` | Social/share preview (1200×630) | Original (generated from gameplay) |
+| `public/game-preview.png` | Legacy preview image | Original (repo) |
 | `public/manifest.webmanifest` | PWA manifest (relative `start_url`/`scope` — works under `/` and `/angrybots/`) | Original (repo) |
 | Baloo 2 webfonts (via `@fontsource/baloo-2`) | UI font, bundled at build | Baloo 2, OFL |
 | `src/assets/hero.png` | Splash hero image | Original (repo) |
