@@ -1,0 +1,56 @@
+/**
+ * Tiny typed event bus — the decoupling layer between engine, runtime and UI.
+ * Known event names and payloads live in `EventMap`; areas may add their own
+ * via declaration merging if needed.
+ */
+
+export interface EventMap {
+  /** A tool was used (fired). */
+  'tool-used': { toolId: string };
+  /** Player inspected an entity with the Mouse. */
+  inspect: { entityId: string };
+  /** Player reported/accused an entity (insider threat). */
+  report: { entityId: string };
+  /** An infected entity was cleaned by the scanner. */
+  cleaned: { entityId: string };
+  /** Player interacted (Keyboard) with an entity. */
+  interact: { entityId: string };
+  /** Player used badge on a door. */
+  'badge-door': { doorId: string; accessRole?: string; allowed: boolean };
+  /** Player plugged in a suspicious found USB. */
+  'plugged-usb': { entityId: string };
+  /** Player reached the exit. */
+  'reach-exit': Record<string, never>;
+  /** Player integrity hit zero. */
+  'player-down': Record<string, never>;
+  /** Player picked up an item. */
+  pickup: { entityId: string };
+  /** HUD ticker message. */
+  message: { text: string; kind?: 'info' | 'warn' | 'good' | 'bad' };
+}
+
+type Handler<T> = (payload: T) => void;
+
+export class EventBus {
+  private handlers = new Map<string, Set<Handler<never>>>();
+
+  on<K extends keyof EventMap>(event: K, fn: Handler<EventMap[K]>): () => void {
+    let set = this.handlers.get(event);
+    if (!set) {
+      set = new Set();
+      this.handlers.set(event, set);
+    }
+    set.add(fn as Handler<never>);
+    return () => set!.delete(fn as Handler<never>);
+  }
+
+  emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void {
+    const set = this.handlers.get(event);
+    if (!set) return;
+    for (const fn of [...set]) (fn as Handler<EventMap[K]>)(payload);
+  }
+
+  clear(): void {
+    this.handlers.clear();
+  }
+}
